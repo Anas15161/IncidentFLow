@@ -1,0 +1,153 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- PACKAGES DE BASE ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+
+% --- CONFIGURATION GRAPHIQUE & COULEURS ---
+\definecolor{primary}{HTML}{1D4ED8}     % Bleu primaire
+\definecolor{secondary}{HTML}{0A2647}   % Bleu nuit
+\definecolor{darkslate}{HTML}{1E293B}   % Slate 800
+\definecolor{lightbg}{HTML}{F8FAFC}     % Slate 50
+\definecolor{bordercolor}{HTML}{E2E8F0} % Slate 200
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    filecolor=primary,      
+    urlcolor=primary,
+    pdftitle={IncidentFlow - Rapport de Fin de Phase 2},
+    pdfpagemode=FullScreen,
+}
+
+% --- SETUP LISTINGS ---
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{lightbg},
+    frame=single,
+    rulecolor=\color{bordercolor},
+    breaklines=true,
+    showstringspaces=false
+}
+
+% --- EN-TÊTES ET PIEDS DE PAGE ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{secondary}{\textbf{IncidentFlow}}}
+\rhead{Rapport de Fin de Phase 2}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- INFORMATIONS DU DOCUMENT ---
+\title{
+    \vspace{2cm}
+    \textbf{\Huge IncidentFlow}\\[0.5cm]
+    \Large Plateforme Dynamique de Gestion d'Incidents\\[1.5cm]
+    \textbf{\Large Rapport d'Exécution -- Phase 2 \\ Développement du Backend (Spring Boot API)}
+    \vspace{1.5cm}
+}
+\author{\textbf{Anas HADDOU} \\ Élève Ingénieur en Génie Informatique}
+\date{\today}
+
+\begin{document}
+
+% Page de garde
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+% Table des matières
+\tableofcontents
+\clearpage
+
+% --- SECTION 1 : INTRODUCTION ---
+\section{Introduction}
+Ce rapport documente la finalisation et les résultats de la \textbf{Phase 2} du projet \textbf{IncidentFlow}. 
+
+Cette phase a été consacrée au développement complet du backend Spring Boot, à la mise en place du modèle objet persistant (JPA), à la sécurisation des points d'accès (REST Endpoints) et à l'implémentation du moteur de validation dynamique des transitions d'états d'incidents conformément aux configurations de workflows associées à chaque catégorie.
+
+% --- SECTION 2 : MODELE DE DONNEES JPA ---
+\section{Modèle de Données Persistant (JPA)}
+Le schéma de base de données relationnelle a été implémenté en tant que classes d'entités JPA au sein du package \texttt{com.netmar.incidentflow.model} :
+\begin{itemize}
+    \item \textbf{User \& Role} : Modélisent les utilisateurs et leurs habilitations.
+    \item \textbf{Workflow, WorkflowState \& WorkflowTransition} : Configurable de manière dynamique pour définir la structure d'états d'une catégorie donnée.
+    \item \textbf{Incident, Comment, Attachment \& IncidentHistory} : Représentent le cycle de vie des fiches d'incidents déclarés avec leurs métadonnées collaboratives.
+\end{itemize}
+
+Nous avons également mis en place les interfaces \texttt{JpaRepository} correspondantes pour chaque entité, étendues au besoin (ex. : \texttt{IncidentRepository} étendant \texttt{JpaSpecificationExecutor} pour les filtres complexes).
+
+% --- SECTION 3 : SECURISATION & AUTHENTIFICATION ---
+\section{Sécurisation et Authentification Hybride}
+Le fichier de configuration \texttt{SecurityConfig.java} a été implémenté pour supporter deux stratégies d'authentification distinctes :
+\begin{enumerate}
+    \item \textbf{Profil de production (\texttt{prod})} : Authentification sans état via Keycloak et des jetons JWT sécurisés décodés et validés par Spring Security.
+    \item \textbf{Profil de développement (\texttt{dev-mock})} : Authentification simulée via le décodage d'un en-tête HTTP personnalisé nommé \texttt{X-Mock-User} (contenant l'adresse e-mail de l'utilisateur simulé).
+\end{enumerate}
+
+Le composant \texttt{UserService} se charge d'extraire de manière transparente l'identité de l'utilisateur en cours d'exécution quel que soit le profil actif.
+
+% --- SECTION 4 : MOTEUR DE VALIDATION DES TRANSITIONS ---
+\section{Moteur de Transition de Workflows}
+Le coeur algorithmique de cette phase réside dans le moteur de validation implémenté dans \texttt{WorkflowService.java}. Lors de chaque demande de changement de statut, le service exécute les vérifications suivantes :
+\begin{itemize}
+    \item \textbf{Validation de transition} : Vérifie si le statut cible est bien autorisé à partir du statut actuel dans le workflow de la catégorie concernée.
+    \item \textbf{Habilitation du Rôle} : S'assure que l'utilisateur en session dispose du rôle requis (ex. : \textit{Administrateur} pour clore un incident résolu).
+    \item \textbf{Obligation de commentaire} : Si la transition requiert un commentaire (ex. : déclaration de résolution en Sécurité), valide la présence de celui-ci avant d'opérer la transition.
+\end{itemize}
+
+En cas de violation des règles métiers, une exception spécialisée de type \texttt{InvalidTransitionException} (retournant un code d'erreur HTTP 400 avec un message JSON descriptif) est levée.
+
+% --- SECTION 5 : POINTS D'ACCÈS API REST EXPOSÉS ---
+\section{Points d'Accès de l'API REST}
+Les contrôleurs REST exposent les ressources suivantes :
+
+\subsection{Gestion des Utilisateurs et Habilitations}
+\begin{itemize}
+    \item \texttt{GET /api/users} : Liste l'ensemble des utilisateurs enregistrés.
+    \item \texttt{GET /api/users/me} : Renvoie le profil de l'utilisateur connecté.
+    \item \texttt{GET /api/roles} : Renvoie les rôles systèmes.
+\end{itemize}
+
+\subsection{Gestion des Workflows}
+\begin{itemize}
+    \item \texttt{GET /api/workflows} : Liste les processus.
+    \item \texttt{GET /api/workflows/category/\{category\}} : Renvoie le workflow associé à une catégorie d'incident.
+    \item \texttt{POST / PUT / DELETE /api/workflows} : CRUD pour administrer dynamiquement les configurations.
+\end{itemize}
+
+\subsection{Fiches Incidents et Collaboration}
+\begin{itemize}
+    \item \texttt{GET /api/incidents} : Recherche multicritère filtrable par catégorie, priorité, statut, assignataire et mot-clé textuel.
+    \item \texttt{POST /api/incidents} : Déclaration d'incident avec génération automatique du code (ex. : \texttt{INC-2026-005}) et règles d'affectation automatique (ex. : affectation médicale).
+    \item \texttt{POST /api/incidents/\{code\}/transition} : Déclenche le passage d'état validé par le moteur de workflow.
+    \item \texttt{POST /api/incidents/\{code\}/comments} : Publication d'un commentaire.
+    \item \texttt{POST /api/incidents/\{code\}/attachments} : Envoi de pièces jointes (fichiers multipart) stockées localement.
+    \item \texttt{GET /api/incidents/attachments/\{id\}} : Téléchargement sécurisé des pièces jointes.
+\end{itemize}
+
+% --- SECTION 6 : VALIDATION TECHNIQUE ---
+\section{Validation Technique et Tests}
+Le bon fonctionnement du backend a été validé à l'aide de tests fonctionnels par requêtes HTTP (Curl/Postman) sur le serveur s'exécutant sur le port \texttt{8080} :
+\begin{itemize}
+    \item \textbf{Persistance \& Démarrage} : Lancement réussi et initialisation automatique du schéma relationnel et des données de tests.
+    \item \textbf{Transition légitime} : Passage avec succès de l'incident \texttt{INC-2026-001} au statut \textit{Assigné}.
+    \item \textbf{Blocage de Transition} : Rejet automatique avec statut HTTP 400 de la clôture de l'incident \texttt{INC-2026-004} par un utilisateur non administrateur.
+    \item \textbf{Commentaire obligatoire} : Rejet automatique de la résolution de l'incident de Sécurité \texttt{INC-2026-002} sans justificatif écrit.
+\end{itemize}
+
+% --- SECTION 7 : CONCLUSION ---
+\section{Conclusion}
+Tous les objectifs de la Phase 2 ont été atteints avec succès. Le moteur de workflows est opérationnel, l'API REST est robuste et sécurisée. L'application est prête à entrer dans sa \textbf{Phase 3 : Développement du Frontend (React UI)} pour concevoir l'interface utilisateur graphique et l'intégrer avec cette API.
+
+\end{document}
