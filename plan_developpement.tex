@@ -1,0 +1,203 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- PACKAGES DE BASE ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+
+% --- CONFIGURATION GRAPHIQUE & COULEURS ---
+\definecolor{primary}{HTML}{1D4ED8}     % Bleu primaire
+\definecolor{secondary}{HTML}{0A2647}   % Bleu nuit sidebar
+\definecolor{darkslate}{HTML}{1E293B}   % Slate 800
+\definecolor{lightbg}{HTML}{F8FAFC}     % Slate 50
+\definecolor{bordercolor}{HTML}{E2E8F0} % Slate 200
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    filecolor=primary,      
+    urlcolor=primary,
+    pdftitle={IncidentFlow - Plan de Developpement},
+    pdfpagemode=FullScreen,
+}
+
+% --- SETUP LISTINGS POUR CONFIG/CODE ---
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{lightbg},
+    frame=single,
+    rulecolor=\color{bordercolor},
+    breaklines=true,
+    postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+    showstringspaces=false
+}
+
+% --- EN-TÊTES ET PIEDS DE PAGE ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{secondary}{\textbf{IncidentFlow}}}
+\rhead{Plan de Développement}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- INFORMATIONS DU DOCUMENT ---
+\title{
+    \vspace{2cm}
+    \textbf{\Huge IncidentFlow}\\[0.5cm]
+    \Large Plateforme Dynamique de Gestion d'Incidents\\[1.5cm]
+    \textbf{\Large Rapport de Spécification et Plan de Développement}
+    \vspace{1.5cm}
+}
+\author{\textbf{Anas HADDOU} \\ Élève Ingénieur en Génie Informatique}
+\date{\today}
+
+\begin{document}
+
+% Page de garde
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+% Table des matières
+\tableofcontents
+\clearpage
+
+% --- SECTION 1 : INTRODUCTION ---
+\section{Introduction}
+Le projet \textbf{IncidentFlow} vise à concevoir et à implémenter une plateforme centralisée et dynamique pour la gestion du cycle de vie des incidents au sein d'une organisation. 
+
+Contrairement aux outils traditionnels rigides, la valeur ajoutée d'IncidentFlow réside dans son \textbf{moteur de workflow dynamique}. Ce moteur permet aux administrateurs de configurer librement les états et les transitions autorisés pour chaque catégorie d'incidents directement depuis l'interface utilisateur, sans nécessiter de modification du code source.
+
+Ce document fournit le plan de développement pas à pas ainsi que les estimations de temps et de ressources nécessaires à la réalisation de l'application, en se basant sur le document de spécification \texttt{IncidentFlow.pdf} et sur l'identité visuelle définie dans la maquette \texttt{wireframe.html}.
+
+% --- SECTION 2 : ARCHITECTURE TECHNIQUE ---
+\section{Architecture Technique et Infrastructure}
+L'application adopte une architecture micro-services conteneurisée à l'aide de Docker. Elle est articulée autour de quatre conteneurs principaux décrits dans le tableau~\ref{tab:architecture} :
+
+\begin{table}[htbp]
+    \centering
+    \caption{Description des conteneurs de l'infrastructure}
+    \label{tab:architecture}
+    \vspace{0.3cm}
+    \begin{tabular}{llll}
+        \toprule
+        \textbf{Conteneur} & \textbf{Image de base} & \textbf{Port exposé} & \textbf{Rôle} \\
+        \midrule
+        \texttt{incidentflow-postgres} & PostgreSQL 15-alpine & 5432 & Persistance des données relationnelles \\
+        \texttt{incidentflow-keycloak} & Keycloak (Latest) & 8180 & Gestion des identités et accès (IAM, OAuth2) \\
+        \texttt{incidentflow-backend} & Spring Boot (JDK 17) & 8080 & API REST et moteur de règles métier \\
+        \texttt{incidentflow-frontend} & React (Vite / Node) & 3000 & Interface utilisateur Web réactive \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Modèle de Données Conceptuel}
+Le schéma relationnel PostgreSQL s'organise autour des entités suivantes :
+\begin{itemize}
+    \item \textbf{Role} : Identifiant et libellé des rôles système (\textit{Administrateur}, \textit{Opérateur}, \textit{Opérateur médical}, \textit{Responsable}).
+    \item \textbf{User} : Comptes utilisateurs reliés à Keycloak par leur identifiant unique.
+    \item \textbf{Incident} : Informations de l'incident (titre, description, catégorie, priorité, état actuel, créateur et assignataire).
+    \item \textbf{Comment \& Attachment} : Commentaires et pièces jointes associés à un incident.
+    \item \textbf{Workflow, State \& Transition} : Entités de configuration dynamique des processus.
+\end{itemize}
+
+% --- SECTION 3 : STYLE ET CHARTE GRAPHIQUE ---
+\section{Spécifications Graphiques (Design System)}
+L'interface de l'application respectera strictement les tokens CSS définis dans le fichier \texttt{wireframe.html} pour offrir un rendu professionnel et haut de gamme.
+
+\subsection{Palette de Couleurs}
+\begin{itemize}
+    \item \textbf{Arrière-plan principal} : \texttt{\#F8FAFC} (Slate 50)
+    \item \textbf{Barre latérale (Sidebar)} : \texttt{\#0A2647} (Bleu nuit profond)
+    \item \textbf{Couleur primaire (Actions \& Liens)} : \texttt{\#3B82F6} (Bleu Azure / Primary 500)
+    \item \textbf{Textes} : \texttt{\#1E293B} (Texte principal) et \texttt{\#64748B} (Texte secondaire/muet)
+\end{itemize}
+
+\subsection{Typographie}
+Le rendu textuel s'appuiera sur deux polices Google Fonts :
+\begin{enumerate}
+    \item \textbf{\textit{Plus Jakarta Sans}} : Utilisée pour l'ensemble des éléments de l'interface utilisateur (titres, boutons, formulaires).
+    \item \textbf{\textit{JetBrains Mono}} : Réservée aux codes techniques et identifiants d'incidents (ex. : \texttt{INC-2026-001}).
+\end{enumerate}
+
+% --- SECTION 4 : PLAN DE DEVELOPPEMENT ---
+\section{Plan de Développement Étape par Étape}
+Le développement est découpé en cinq phases séquentielles afin de garantir une intégration et une validation progressives.
+
+\subsection{Phase 1 : Initialisation de l'Infrastructure et de la Base de Données}
+\begin{enumerate}
+    \item Écriture du fichier \texttt{docker-compose.yml} configurant les volumes réseau et l'ordre de démarrage (\texttt{PostgreSQL} $\rightarrow$ \texttt{Keycloak} $\rightarrow$ \texttt{Backend} $\rightarrow$ \texttt{Frontend}).
+    \item Création du Realm et du client OpenID Connect dans Keycloak, suivi de la définition des rôles applicatifs.
+    \item Initialisation de la base de données PostgreSQL et écriture des scripts d'initialisation de schéma (\texttt{schema.sql}).
+\end{enumerate}
+
+\subsection{Phase 2 : Développement du Backend (Spring Boot API)}
+\begin{enumerate}
+    \item Sécurisation des endpoints de l'API via Spring Security en configurant la validation des tokens JWT Keycloak.
+    \item Développement des services d'accès aux données (JPA Repositories) et des contrôleurs REST pour la gestion des incidents.
+    \item Implémentation du moteur de validation des transitions : vérification du rôle requis, de la présence d'un commentaire obligatoire et historique automatique des changements d'état.
+\end{enumerate}
+
+\subsection{Phase 3 : Développement du Frontend (React UI)}
+\begin{enumerate}
+    \item Initialisation du projet React avec Vite et intégration du fichier CSS global contenant le design system (\texttt{index.css}).
+    \item Intégration de la bibliothèque d'authentification Keycloak JS pour gérer la session utilisateur.
+    \item Conception des composants structurels fixes (Sidebar de \texttt{260px}, barre supérieure avec indicateur de profil et centre de notifications).
+    \item Création de la page d'accueil (Dashboard) avec ses cartes de métriques et listes d'incidents filtrables.
+\end{enumerate}
+
+\subsection{Phase 4 : Gestion des Fiches Incidents et Collaboration}
+\begin{enumerate}
+    \item Formulaire de déclaration d'incident avec upload de fichiers.
+    \item Fiche détaillée de l'incident affichant les détails à gauche et le volet d'action collaborative à droite (timeline historique, commentaires et pièces jointes).
+    \item Rendu dynamique des boutons de transition d'état sur la fiche selon les droits de l'utilisateur.
+\end{enumerate}
+
+\subsection{Phase 5 : Administration des Workflows et Tests E2E}
+\begin{enumerate}
+    \item Création du panneau d'administration permettant de modifier visuellement les états et les transitions associés à chaque catégorie d'incidents.
+    \item Système d'envoi et de réception des notifications applicatives en temps réel.
+    \item Écriture et passage des scénarios de test bout en bout (recette fonctionnelle).
+\end{enumerate}
+
+% --- SECTION 5 : ESTIMATIONS ---
+\section{Estimations de Charge et de Ressources}
+Le tableau~\ref{tab:estimations} présente l'estimation de la charge de travail pour chaque phase, comparée entre un développeur humain classique et le processus automatisé par l'agent IA Antigravity.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Estimation de la charge de travail par phase}
+    \label{tab:estimations}
+    \vspace{0.3cm}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Phase} & \textbf{Développeur Humain} & \textbf{Agent IA (Antigravity)} \\
+        \midrule
+        Phase 1 : Infrastructure \& DB & 1 à 2 jours & 20 à 30 minutes \\
+        Phase 2 : Backend \& API REST & 3 à 5 jours & 45 à 60 minutes \\
+        Phase 3 : Frontend \& UI de Base & 3 à 4 jours & 45 à 60 minutes \\
+        Phase 4 : Fiche Incident \& Collaboration & 2 à 3 jours & 30 à 45 minutes \\
+        Phase 5 : Administration \& Recette & 2 à 3 jours & 30 à 45 minutes \\
+        \midrule
+        \textbf{Total Estimé} & \textbf{11 à 17 jours} & \textbf{2,5 à 4 heures} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Consommation de Tokens (Modèle IA)}
+Pour l'exécution automatisée avec le modèle \textit{Gemini 3.5 Flash (Medium)}, les volumes de tokens projetés sont :
+\begin{itemize}
+    \item \textbf{Tokens d'entrée (Context Window)} : Entre $400\,000$ et $750\,000$ tokens au total (itérations et relectures de fichiers incluses).
+    \item \textbf{Tokens de sortie (Génération de code)} : Entre $80\,000$ et $150\,000$ tokens de code source rédigé.
+\end{itemize}
+
+\end{document}
