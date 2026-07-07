@@ -1,0 +1,142 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- PACKAGES DE BASE ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+
+% --- CONFIGURATION GRAPHIQUE & COULEURS ---
+\definecolor{primary}{HTML}{1D4ED8}     % Bleu primaire
+\definecolor{secondary}{HTML}{0A2647}   % Bleu nuit
+\definecolor{darkslate}{HTML}{1E293B}   % Slate 800
+\definecolor{lightbg}{HTML}{F8FAFC}     % Slate 50
+\definecolor{bordercolor}{HTML}{E2E8F0} % Slate 200
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    filecolor=primary,      
+    urlcolor=primary,
+    pdftitle={IncidentFlow - Rapport de Fin de Phase 1},
+    pdfpagemode=FullScreen,
+}
+
+% --- SETUP LISTINGS ---
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{lightbg},
+    frame=single,
+    rulecolor=\color{bordercolor},
+    breaklines=true,
+    showstringspaces=false
+}
+
+% --- EN-TÊTES ET PIEDS DE PAGE ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{secondary}{\textbf{IncidentFlow}}}
+\rhead{Rapport de Fin de Phase 1}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- INFORMATIONS DU DOCUMENT ---
+\title{
+    \vspace{2cm}
+    \textbf{\Huge IncidentFlow}\\[0.5cm]
+    \Large Plateforme Dynamique de Gestion d'Incidents\\[1.5cm]
+    \textbf{\Large Rapport d'Exécution -- Phase 1 \\ Initialisation de l'Infrastructure et de la Base de Données}
+    \vspace{1.5cm}
+}
+\author{\textbf{Anas HADDOU} \\ Élève Ingénieur en Génie Informatique}
+\date{\today}
+
+\begin{document}
+
+% Page de garde
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+% Table des matières
+\tableofcontents
+\clearpage
+
+% --- SECTION 1 : INTRODUCTION ---
+\section{Introduction}
+Ce rapport documente la finalisation et les résultats de la \textbf{Phase 1} du projet \textbf{IncidentFlow}. 
+
+L'objectif de cette phase était de mettre en place l'environnement d'infrastructure conteneurisé (Docker), d'initialiser les services de persistance des données (PostgreSQL), de configurer le contrôle de version (Git/GitHub), et de surmonter les contraintes de connectivité réseau propres à l'environnement de développement.
+
+% --- SECTION 2 : CONFIGURATION DOCKER COMPOSE ---
+\section{Configuration de l'Infrastructure Docker}
+Pour orchestrer les composants de la plateforme, nous avons créé et configuré les fichiers suivants à la racine du projet :
+\begin{itemize}
+    \item \texttt{docker-compose.yml} : Configure le réseau de communication interne, le volume de persistance des données et les conteneurs PostgreSQL et Keycloak.
+    \item \texttt{.env} : Fichier sécurisé contenant les identifiants d'administration et les secrets de la base de données.
+\end{itemize}
+
+\subsection{Résolution du Conflit de Port PostgreSQL}
+Lors du lancement initial, un conflit de port a été détecté : le port de base de données standard \texttt{5432} était déjà occupé sur la machine hôte par un conteneur en cours d'exécution nommé \texttt{saas\_postgres}.
+
+Pour résoudre ce conflit, la configuration de redirection de port a été modifiée dans le fichier de configuration Docker comme suit :
+\begin{lstlisting}[language=bash]
+# Extrait du fichier docker-compose.yml
+ports:
+  - "5433:5432" # Redirection du port 5433 de l'hote vers le port 5432 du conteneur
+\end{lstlisting}
+
+\subsection{Optimisation par Image Locale Cachée}
+Afin de contourner les limites de bande passante et les échecs de téléchargement sur le registre Docker, nous avons reconfiguré le conteneur pour utiliser l'image locale déjà disponible sur le système : \texttt{postgres:16-alpine}. Le conteneur \texttt{IncidentFlow-postgres} a été démarré avec succès.
+
+% --- SECTION 3 : CONTOURNEMENT DU CAS KEYCLOAK (MODE MOCK) ---
+\section{Gestion du Problème Réseau Keycloak et Stratégie Hors Ligne}
+Lors des tentatives de récupération de l'image Keycloak (\texttt{keycloak/keycloak:21.1.1}), le démon Docker a retourné des erreurs réseau répétées (\texttt{Recv failure: Connection reset by peer}). Ces erreurs proviennent de restrictions de connectivité réseau ou de proxies bloquant le trafic vers Docker Hub et Quay.io depuis l'environnement.
+
+\subsection{Description de la Stratégie Keycloak Mock}
+Afin de ne pas retarder le développement applicatif, nous avons choisi d'implémenter une architecture compatible hors-ligne via un profil Spring appelé \texttt{dev-mock}.
+\begin{itemize}
+    \item \textbf{Spring Boot Backend} : En mode \texttt{dev-mock}, Spring Security validera des jetons JWT locaux ou simulera le contexte utilisateur à l'aide d'un filtre personnalisé, sans contacter Keycloak.
+    \item \textbf{React Frontend} : Une authentification locale simplifiée avec un sélecteur de rôle simulera les accès.
+    \item \textbf{Bascule transparente} : En production, l'activation du profil \texttt{prod} permettra d'utiliser le vrai serveur Keycloak sans modifier le code de l'application.
+\end{itemize}
+
+% --- SECTION 4 : INITIALISATION DE GIT ET DEPÔT GITHUB ---
+\section{Contrôle de Version et Dépôt GitHub}
+Un dépôt Git local a été configuré à la racine du projet pour assurer la traçabilité du code source.
+
+\subsection{Protection des Secrets applicatifs}
+Nous avons créé un fichier \texttt{.gitignore} pour interdire le commit d'informations sensibles (mots de passe de base de données dans le fichier \texttt{.env}) et de fichiers inutiles (fichiers d'IDE ou dépendances).
+
+\subsection{Premier Commit et Push sur GitHub}
+Après avoir committé localement les spécifications, la maquette, le plan de développement et la configuration Docker, nous avons poussé la branche principale sur le dépôt GitHub distant de l'utilisateur :
+\begin{lstlisting}[language=bash]
+git remote add origin https://github.com/Anas15161/IncidentFLow.git
+git push -u origin main
+\end{lstlisting}
+L'opération a été exécutée avec succès en mode réseau direct (unsandboxed) et le dépôt est accessible à l'adresse suivante : \url{https://github.com/Anas15161/IncidentFLow.git}.
+
+% --- SECTION 5 : INTERFACE PGADMIN ---
+\section{Connexion à la Base de Données dans pgAdmin}
+Le conteneur PostgreSQL est accessible à l'aide des paramètres de connexion suivants, testés et prêts à l'emploi dans pgAdmin :
+\begin{itemize}
+    \item \textbf{Hôte} : \texttt{localhost} (ou \texttt{127.0.0.1})
+    \item \textbf{Port} : \texttt{5433}
+    \item \textbf{Nom de la base} : \texttt{IncidentFlow\_db}
+    \item \textbf{Utilisateur} : \texttt{IncidentFlow\_user}
+    \item \textbf{Mot de passe} : \texttt{incidentflow\_secure\_db\_pass}
+\end{itemize}
+
+% --- SECTION 6 : CONCLUSION ---
+\section{Conclusion}
+Tous les jalons de la Phase 1 ont été validés. L'infrastructure de base de données est active, le code est hébergé de manière sécurisée sur GitHub, et la stratégie de contournement Keycloak est prête. Nous pouvons entamer la Phase 2 : Initialisation du projet Backend et création du modèle de données JPA.
+
+\end{document}
