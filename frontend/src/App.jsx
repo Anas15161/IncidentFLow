@@ -17,6 +17,13 @@ const USERS = [
 ];
 
 function App() {
+  const getRoleName = (role) => {
+    if (!role) return '';
+    if (typeof role === 'string') return role;
+    if (typeof role === 'object' && role.name) return role.name;
+    return '';
+  };
+
   // Authentication states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState('');
@@ -953,7 +960,7 @@ function App() {
                   className="btn btn-secondary"
                   style={{ fontSize: '10.5px', padding: '6px', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', color: 'white', borderColor: 'rgba(255,255,255,0.05)' }}
                 >
-                  {u.firstName} ({u.role})
+                  {u.firstName} ({getRoleName(u.role)})
                 </button>
               ))}
             </div>
@@ -1008,7 +1015,7 @@ function App() {
             </span>
           </button>
 
-          {currentUser.role === 'Administrateur' && (
+          {getRoleName(currentUser.role) === 'Administrateur' && (
             <button 
               className={`nav-btn ${currentView === 'users' ? 'active' : ''}`}
               onClick={() => { setCurrentView('users'); setSelectedIncidentCode(null); }}
@@ -1048,7 +1055,7 @@ function App() {
         <div className="sidebar-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{currentUser.name}</div>
-            <div className="role-badge-pill" style={{ marginTop: '2px' }}>{currentUser.role}</div>
+            <div className="role-badge-pill" style={{ marginTop: '2px' }}>{getRoleName(currentUser.role)}</div>
           </div>
           <button 
             onClick={handleLogout}
@@ -1112,7 +1119,7 @@ function App() {
               </div>
               <div className="profile-info">
                 <span className="profile-name">{currentUser.name}</span>
-                <span className="profile-role">{currentUser.role}</span>
+                <span className="profile-role">{getRoleName(currentUser.role)}</span>
               </div>
             </div>
           </div>
@@ -1221,7 +1228,7 @@ function App() {
                           {selectedIncidentWorkflow.transitions
                             .filter(t => t.fromState.toLowerCase() === selectedIncident.status.toLowerCase())
                             .map((t, idx) => {
-                              const hasRole = !t.roleRequired || currentUser.role.toLowerCase() === t.roleRequired.toLowerCase();
+                              const hasRole = !t.roleRequired || getRoleName(currentUser.role).toLowerCase() === t.roleRequired.toLowerCase();
                               return (
                                 <button
                                   key={idx}
