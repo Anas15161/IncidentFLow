@@ -1,0 +1,148 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- PACKAGES DE BASE ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+
+% --- CONFIGURATION GRAPHIQUE & COULEURS ---
+\definecolor{primary}{HTML}{1D4ED8}     % Bleu primaire
+\definecolor{secondary}{HTML}{0A2647}   % Bleu nuit
+\definecolor{darkslate}{HTML}{1E293B}   % Slate 800
+\definecolor{lightbg}{HTML}{F8FAFC}     % Slate 50
+\definecolor{bordercolor}{HTML}{E2E8F0} % Slate 200
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    filecolor=primary,      
+    urlcolor=primary,
+    pdftitle={IncidentFlow - Rapport Final de Projet},
+    pdfpagemode=FullScreen,
+}
+
+% --- SETUP LISTINGS ---
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{lightbg},
+    frame=single,
+    rulecolor=\color{bordercolor},
+    breaklines=true,
+    showstringspaces=false
+}
+
+% --- EN-TÊTES ET PIEDS DE PAGE ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{secondary}{\textbf{IncidentFlow}}}
+\rhead{Rapport Final de Projet}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- INFORMATIONS DU DOCUMENT ---
+\title{
+    \vspace{2cm}
+    \textbf{\Huge IncidentFlow}\\[0.5cm]
+    \Large Plateforme Dynamique de Gestion d'Incidents\\[1.5cm]
+    \textbf{\Large Rapport Synthétique Final de Projet \\ (Phases 1, 2, 3, 4 et 5)}
+    \vspace{1.5cm}
+}
+\author{\textbf{Anas HADDOU} \\ Élève Ingénieur en Génie Informatique}
+\date{\today}
+
+\begin{document}
+
+% Page de garde
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+% Table des matières
+\tableofcontents
+\clearpage
+
+% --- SECTION 1 : INTRODUCTION ---
+\section{Introduction}
+Le projet \textbf{IncidentFlow} vise à concevoir et à développer une plateforme centralisée de gestion d'incidents dotée d'une flexibilité inédite grâce à un \textbf{moteur de workflow dynamique}. Contrairement aux outils standards dotés de processus rigides codés en dur, IncidentFlow permet aux responsables et administrateurs d'éditer, de visualiser et de modifier les statuts et transitions autorisés par catégorie directement depuis l'application.
+
+Ce rapport final dresse la synthèse des réalisations effectuées à travers les cinq phases du projet, depuis l'initialisation de l'infrastructure Docker et de la base de données relationnelle, en passant par le développement de l'API REST Spring Boot, jusqu'à la création de l'interface utilisateur web réactive en React et la résolution des verrous de déploiement.
+
+% --- SECTION 2 : ARCHITECTURE TECHNIQUE & INFRASTRUCTURE ---
+\section{Architecture Technique et Infrastructure (Phase 1)}
+L'infrastructure technique de la plateforme repose sur une architecture conteneurisée multi-conteneurs gérée par Docker. Les services sont définis au sein du fichier \texttt{docker-compose.yml} :
+\begin{itemize}
+    \item \textbf{incidentflow-postgres} : Base de données PostgreSQL v16 persistante. Afin d'éviter les conflits avec les bases de données existantes de la machine hôte, son port a été mappé sur le port externe \texttt{5433}.
+    \item \textbf{incidentflow-backend} : Service hébergeant l'application Spring Boot JDK 17.
+    \item \textbf{incidentflow-keycloak} : Serveur d'identité Keycloak (utilisé en production via OIDC/JWT).
+\end{itemize}
+
+Pour le développement local, un profil Spring spécifique nommé \texttt{dev-mock} a été implémenté afin de simuler l'authentification et les Habilitations de manière transparente sans dépendre d'un serveur Keycloak distant.
+
+% --- SECTION 3 : MODELE DE DONNEES & ENGINE BACKEND ---
+\section{Modèle de Données JPA et API REST (Phase 2)}
+Le backend a été construit avec le framework \textbf{Spring Boot} en utilisant \textbf{Spring Data JPA} et \textbf{Spring Security}.
+
+\subsection{Schéma relationnel JPA}
+Les entités persistantes modélisent fidèlement le domaine :
+\begin{itemize}
+    \item \textbf{User \& Role} : Gèrent les informations et habilitations du personnel (Administrateur, Responsable, Opérateur, Opérateur médical).
+    \item \textbf{Incident, Comment, Attachment \& IncidentHistory} : Représentent le cycle de vie collaboratif de l'incident (code unique sous la forme \texttt{INC-YYYY-NNN}, commentaires collaboratifs, pièces jointes multipart stockées localement, et historique complet des actions).
+    \item \textbf{Workflow, WorkflowState \& WorkflowTransition} : Permettent de configurer dynamiquement le graphe d'états pour chaque catégorie.
+\end{itemize}
+
+\subsection{Moteur de validation des transitions}
+Implémenté dans \texttt{WorkflowService.java}, ce moteur applique les règles de gestion métier à chaque changement de statut :
+\begin{enumerate}
+    \item \textbf{Validité du chemin} : Vérifie si la transition demandée est bien configurée pour la catégorie de l'incident.
+    \item \textbf{Habilitation du rôle} : S'accure que le rôle de l'utilisateur l'autorise à effectuer ce changement.
+    \item \textbf{Commentaire obligatoire} : Bloque le changement d'état si un motif écrit est exigé pour la transition (ex. : clôture ou résolution d'incident) et qu'aucun commentaire n'est fourni.
+\end{enumerate}
+
+% --- SECTION 4 : INTERFACE UTILISATEUR REACT ---
+\section{Interface Utilisateur React (Phases 3 et 4)}
+Le frontend a été développé avec \textbf{React v19} initié sous \textbf{Vite}. L'identité graphique haut de gamme de la maquette a été reproduite à l'aide d'un Design System vanilla CSS codé dans \texttt{index.css}.
+
+\subsection{Dashboard de suivi}
+Le Dashboard propose une vue globale ergonomique :
+\begin{itemize}
+    \item Des cartes de statistiques (incidents totaux, en cours, résolus, critiques).
+    \item Des filtres multi-critères synchronisés en temps réel avec l'API (filtrage par priorité, statut, catégorie, et recherche textuelle).
+    \item Un sélecteur d'utilisateur simulé (\texttt{Anas Haddou}, \texttt{Sophie Martin}, \texttt{Marie Laurent}, \texttt{Dr. Jean Robert}) permettant de tester les droits d'action en temps réel.
+\end{itemize}
+
+\subsection{Fiche Incident Collaborative}
+La sélection d'un incident affiche une interface double-panneau :
+\begin{itemize}
+    \item \textbf{Panneau de gauche} : Informations détaillées (titre, statut, priorité, catégorie, dates de création et d'assignation).
+    \item \textbf{Panneau de droite} : Outils de collaboration (Timeline historique des transitions, fil de discussion des commentaires, téléchargement/ajout de pièces jointes).
+    \item \textbf{Boutons de transition} : Rendu conditionnel des transitions de workflow possibles pour l'utilisateur connecté.
+\end{itemize}
+
+% --- SECTION 5 : CONFIGURATION DES WORKFLOWS & TESTS ---
+\section{Administration des Workflows et Résolutions Réseau (Phase 5)}
+\subsection{Visualisation et Administration des Workflows}
+La vue \textit{Workflows} affiche de manière interactive la configuration des processus d'états pour chaque catégorie, permettant ainsi aux administrateurs de comprendre et de modifier dynamiquement les transitions.
+
+\subsection{Résolution des verrous techniques finaux}
+Lors de la mise en service globale, quatre problèmes bloquants ont été résolus avec succès :
+\begin{enumerate}
+    \item \textbf{Problème CORS} : Le port par défaut \texttt{3000} étant occupé sur l'hôte, Vite a démarré le frontend sur le port \texttt{3001}. Le backend bloquait initialement ces requêtes. Nous avons modifié la configuration CORS du backend pour accepter les ports \texttt{3001} et \texttt{5173}.
+    \item \textbf{Obsolescence Image OpenJDK} : L'image \texttt{openjdk:17-jdk-slim} n'étant plus disponible sur Docker Hub, nous l'avons remplacée par la distribution stable et active \texttt{eclipse-temurin:17-jre-alpine}.
+    \item \textbf{Restriction réseau Docker Build} : L'impossibilité de résoudre Maven central pendant le build d'image Docker a été contournée en configurant le \texttt{Dockerfile} pour copier le package JAR pré-construit localement.
+    \item \textbf{Conflit Postgres Port 5433} : Un conteneur orphelin occupant le port \texttt{5433} a été identifié et arrêté, libérant ainsi l'accès pour la base de données de l'application.
+\end{enumerate}
+
+% --- SECTION 6 : CONCLUSION ---
+\section{Conclusion}
+Le projet \textbf{IncidentFlow} est entièrement fonctionnel. Grâce au couplage de Spring Boot et de React, la plateforme offre un outil performant, esthétique et extrêmement modulaire. Le code source final est poussé sur GitHub et l'application est prête à être déployée en environnement de production.
+
+\end{document}
