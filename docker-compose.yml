@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  IncidentFlow-postgres:
+  incidentflow-postgres:
     image: postgres:16-alpine
-    container_name: IncidentFlow-postgres
+    container_name: incidentflow-postgres
     environment:
       POSTGRES_DB: IncidentFlow_db
       POSTGRES_USER: IncidentFlow_user
@@ -13,65 +13,63 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - IncidentFlow-network
+      - incidentflow-network
     restart: unless-stopped
 
-  IncidentFlow-keycloak:
-    image: keycloak/keycloak:21.1.1 # Version stable recommandée
-    container_name: IncidentFlow-keycloak
+  incidentflow-keycloak:
+    image: keycloak/keycloak:21.1.1
+    container_name: incidentflow-keycloak
     command: start-dev --import-realms
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KC_PASSWORD}
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://IncidentFlow-postgres:5432/IncidentFlow_db
+      KC_DB_URL: jdbc:postgresql://incidentflow-postgres:5432/IncidentFlow_db
       KC_DB_USERNAME: IncidentFlow_user
       KC_DB_PASSWORD: ${DB_PASSWORD}
     ports:
       - "8180:8080"
     depends_on:
-      - IncidentFlow-postgres
+      - incidentflow-postgres
     volumes:
       - ./keycloak/imports:/opt/keycloak/data/import
     networks:
-      - IncidentFlow-network
+      - incidentflow-network
     restart: unless-stopped
 
-  # Décommenter ces services une fois que le code backend/frontend sera initialisé
-  # IncidentFlow-backend:
-  #   build: ./backend
-  #   container_name: IncidentFlow-backend
-  #   environment:
-  #     SPRING_DATASOURCE_URL: jdbc:postgresql://IncidentFlow-postgres:5432/IncidentFlow_db
-  #     SPRING_DATASOURCE_USERNAME: IncidentFlow_user
-  #     SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-  #     KEYCLOAK_AUTH_SERVER_URL: http://IncidentFlow-keycloak:8080
-  #   ports:
-  #     - "8080:8080"
-  #   depends_on:
-  #     - IncidentFlow-postgres
-  #     - IncidentFlow-keycloak
-  #   networks:
-  #     - IncidentFlow-network
-  #   restart: unless-stopped
+  incidentflow-backend:
+    build: ./backend
+    container_name: incidentflow-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://incidentflow-postgres:5432/IncidentFlow_db
+      SPRING_DATASOURCE_USERNAME: IncidentFlow_user
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: dev-mock
+    ports:
+      - "8080:8080"
+    depends_on:
+      - incidentflow-postgres
+    networks:
+      - incidentflow-network
+    restart: unless-stopped
 
-  # IncidentFlow-frontend:
+  # incidentflow-frontend:
   #   build: ./frontend
-  #   container_name: IncidentFlow-frontend
+  #   container_name: incidentflow-frontend
   #   environment:
-  #     REACT_APP_API_URL: http://IncidentFlow-backend:8080
-  #     REACT_APP_KEYCLOAK_URL: http://IncidentFlow-keycloak:8080
+  #     REACT_APP_API_URL: http://incidentflow-backend:8080
+  #     REACT_APP_KEYCLOAK_URL: http://incidentflow-keycloak:8080
   #   ports:
   #     - "3000:80"
   #   depends_on:
-  #     - IncidentFlow-backend
+  #     - incidentflow-backend
   #   networks:
-  #     - IncidentFlow-network
+  #     - incidentflow-network
   #   restart: unless-stopped
 
 volumes:
   postgres-data:
 
 networks:
-  IncidentFlow-network:
+  incidentflow-network:
     driver: bridge
