@@ -36,4 +36,12 @@ public class User {
     private String telephone;
 
     private String avatarColor;
+
+    private String firstName;
+
+    private String lastName;
+
+    private String department;
+
+    private String post;
 }

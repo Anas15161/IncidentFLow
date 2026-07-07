@@ -162,6 +162,57 @@ public class IncidentController {
         }
     }
 
+    @GetMapping("/export/csv")
+    public ResponseEntity<String> exportCsv(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long assignedToId,
+            @RequestParam(required = false) String search) {
+        List<Incident> list = incidentService.getIncidents(category, priority, status, assignedToId, search);
+        StringBuilder sb = new StringBuilder();
+        sb.append("Code;Titre;Categorie;Priorite;Statut;Auteur;Assigne A;Date Creation\n");
+        for (Incident inc : list) {
+            sb.append(inc.getIncidentCode()).append(";")
+              .append(inc.getTitle().replace(";", ",")).append(";")
+              .append(inc.getCategory()).append(";")
+              .append(inc.getPriority()).append(";")
+              .append(inc.getStatus()).append(";")
+              .append(inc.getAuthor().getName()).append(";")
+              .append(inc.getAssignedTo() != null ? inc.getAssignedTo().getName() : "Non assigne").append(";")
+              .append(inc.getCreatedAt()).append("\n");
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"incidents.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(sb.toString());
+    }
+
+    @GetMapping("/export/pdf")
+    public ResponseEntity<String> exportPdf(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long assignedToId,
+            @RequestParam(required = false) String search) {
+        List<Incident> list = incidentService.getIncidents(category, priority, status, assignedToId, search);
+        StringBuilder sb = new StringBuilder();
+        sb.append("RAPPORT D'INCIDENTS - INCIDENTFLOW\n");
+        sb.append("========================================================================\n\n");
+        for (Incident inc : list) {
+            sb.append("[").append(inc.getIncidentCode()).append("] ").append(inc.getTitle()).append("\n")
+              .append("  Categorie: ").append(inc.getCategory()).append(" | Priorite: ").append(inc.getPriority()).append("\n")
+              .append("  Statut: ").append(inc.getStatus()).append("\n")
+              .append("  Auteur: ").append(inc.getAuthor().getName()).append(" | Assigne a: ").append(inc.getAssignedTo() != null ? inc.getAssignedTo().getName() : "Non assigne").append("\n")
+              .append("  Description: ").append(inc.getDescription()).append("\n")
+              .append("------------------------------------------------------------------------\n");
+        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"rapport_incidents.txt\"")
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(sb.toString());
+    }
+
     @Getter
     @Setter
     public static class TransitionRequest {

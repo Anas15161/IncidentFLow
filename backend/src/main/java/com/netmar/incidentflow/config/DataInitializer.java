@@ -51,6 +51,10 @@ public class DataInitializer implements CommandLineRunner {
         if (userRepository.count() == 0) {
             userRepository.save(User.builder()
                     .name("Anas Haddou")
+                    .firstName("Anas")
+                    .lastName("Haddou")
+                    .department("Informatique")
+                    .post("Administrateur Système")
                     .email("anas@netmar.com")
                     .password(passwordEncoder.encode("password"))
                     .role(adminRole)
@@ -61,6 +65,10 @@ public class DataInitializer implements CommandLineRunner {
 
             userRepository.save(User.builder()
                     .name("Sophie Martin")
+                    .firstName("Sophie")
+                    .lastName("Martin")
+                    .department("Sécurité")
+                    .post("Responsable SSI")
                     .email("sophie.m@netmar.com")
                     .password(passwordEncoder.encode("password"))
                     .role(respRole)
@@ -71,6 +79,10 @@ public class DataInitializer implements CommandLineRunner {
 
             userRepository.save(User.builder()
                     .name("Marie Laurent")
+                    .firstName("Marie")
+                    .lastName("Laurent")
+                    .department("Support client")
+                    .post("Opératrice Réseau")
                     .email("marie.l@netmar.com")
                     .password(passwordEncoder.encode("password"))
                     .role(opeRole)
@@ -81,6 +93,10 @@ public class DataInitializer implements CommandLineRunner {
 
             userRepository.save(User.builder()
                     .name("Dr. Jean Robert")
+                    .firstName("Jean")
+                    .lastName("Robert")
+                    .department("Urgences médicales")
+                    .post("Médecin Coordinateur")
                     .email("jean.r@netmar.com")
                     .password(passwordEncoder.encode("password"))
                     .role(medRole)

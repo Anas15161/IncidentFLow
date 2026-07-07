@@ -3,9 +3,8 @@ package com.netmar.incidentflow.controller;
 import com.netmar.incidentflow.model.Role;
 import com.netmar.incidentflow.model.User;
 import com.netmar.incidentflow.service.UserService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -32,5 +31,21 @@ public class UserController {
     @GetMapping("/roles")
     public List<Role> getRoles() {
         return userService.getAllRoles();
+    }
+
+    @PostMapping("/users")
+    public User createUser(@RequestBody User user) {
+        return userService.saveUser(user);
+    }
+
+    @PutMapping("/users/{id}")
+    public User updateUser(@PathVariable Long id, @RequestBody User userDetails) {
+        return userService.updateUser(id, userDetails);
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
     }
 }

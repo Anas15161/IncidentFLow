@@ -2,52 +2,71 @@ import { useState, useEffect } from 'react';
 import { 
   Shield, Activity, FileText, AlertTriangle, CheckCircle, Clock, 
   Search, User, Plus, X, Bell, Paperclip, Download, Send, 
-  Globe, Cpu, Stethoscope, ArrowLeft, Eye, RefreshCw, Layers
+  Globe, Cpu, Stethoscope, ArrowLeft, Eye, RefreshCw, Layers,
+  Lock, LogOut, Users, Trash2, Edit3, Settings, AlertCircle
 } from 'lucide-react';
 import './App.css';
 
 const API_BASE = 'http://localhost:8080/api';
 
 const USERS = [
-  { id: 1, name: "Anas Haddou", email: "anas@netmar.com", role: "Administrateur", avatarColor: "bg-blue-600" },
-  { id: 2, name: "Sophie Martin", email: "sophie.m@netmar.com", role: "Responsable", avatarColor: "bg-purple-600" },
-  { id: 3, name: "Marie Laurent", email: "marie.l@netmar.com", role: "Opérateur", avatarColor: "bg-emerald-600" },
-  { id: 4, name: "Dr. Jean Robert", email: "jean.r@netmar.com", role: "Opérateur médical", avatarColor: "bg-red-600" }
+  { id: 1, name: "Anas Haddou", firstName: "Anas", lastName: "Haddou", email: "anas@netmar.com", role: "Administrateur", department: "Informatique", post: "Administrateur Système", avatarColor: "bg-blue-600" },
+  { id: 2, name: "Sophie Martin", firstName: "Sophie", lastName: "Martin", email: "sophie.m@netmar.com", role: "Responsable", department: "Sécurité", post: "Responsable SSI", avatarColor: "bg-purple-600" },
+  { id: 3, name: "Marie Laurent", firstName: "Marie", lastName: "Laurent", email: "marie.l@netmar.com", role: "Opérateur", department: "Support client", post: "Opératrice Réseau", avatarColor: "bg-emerald-600" },
+  { id: 4, name: "Dr. Jean Robert", firstName: "Jean", lastName: "Robert", email: "jean.r@netmar.com", role: "Opérateur médical", department: "Urgences médicales", post: "Médecin Coordinateur", avatarColor: "bg-red-600" }
 ];
 
 function App() {
-  // Navigation & Simulated User
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'workflows'
+  // Authentication states
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState('');
   const [currentUser, setCurrentUser] = useState(USERS[0]);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  
-  // Data States
-  const [incidents, setIncidents] = useState([]);
-  const [usersList, setUsersList] = useState(USERS);
-  const [workflows, setWorkflows] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  
-  // Dashboard Filtering
-  const [statusFilter, setStatusFilter] = useState('Tous'); // 'Tous', 'Nouveau', etc.
-  const [categoryFilter, setCategoryFilter] = useState('Tous');
-  const [priorityFilter, setPriorityFilter] = useState('Tous');
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Incident Detail View States
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(600); // 10 minutes session for US-AUTH-001
+
+  // Navigation
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'incidents', 'workflows', 'users'
   const [selectedIncidentCode, setSelectedIncidentCode] = useState(null);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [selectedIncidentWorkflow, setSelectedIncidentWorkflow] = useState(null);
   
-  // Modals & Forms
+  // Dropdowns & UI toggles
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, text: "Nouvel incident médical assigné automatiquement.", time: "Il y a 5 min" },
+    { id: 2, text: "Sophie Martin a mis à jour l'incident INC-2026-002.", time: "Il y a 15 min" },
+    { id: 3, text: "Base de données initialisée avec succès.", time: "Il y a 1 h" }
+  ]);
+  
+  // Data States
+  const [incidents, setIncidents] = useState([]);
+  const [usersList, setUsersList] = useState([]);
+  const [workflows, setWorkflows] = useState([]);
+  const [rolesList, setRolesList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Incident Filtering & Pagination
+  const [statusFilter, setStatusFilter] = useState('Tous');
+  const [categoryFilter, setCategoryFilter] = useState('Tous');
+  const [priorityFilter, setPriorityFilter] = useState('Tous');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt_desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const incidentsPerPage = 5;
+  
+  // Modals & Forms for Incidents
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newIncident, setNewIncident] = useState({
     title: '',
     description: '',
     category: 'Réseau',
     priority: 'Medium',
-    assignedToId: ''
+    assignedToId: '',
+    tags: ''
   });
   
   const [newComment, setNewComment] = useState('');
@@ -55,16 +74,73 @@ function App() {
   const [targetTransition, setTargetTransition] = useState(null);
   const [transitionComment, setTransitionComment] = useState('');
 
-  // Headers helper with simulated user identity
+  // Modals & Forms for Users
+  const [showUserCreateModal, setShowUserCreateModal] = useState(false);
+  const [showUserEditModal, setShowUserEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [newUserForm, setNewUserForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    telephone: '',
+    department: '',
+    post: '',
+    roleId: '3', // Opérateur default
+    active: true
+  });
+
+  // Workflow Editor parameters
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
+  const [activeWorkflow, setActiveWorkflow] = useState(null);
+  const [newStateId, setNewStateId] = useState('');
+  const [newStateLabel, setNewStateLabel] = useState('');
+  const [newStateColor, setNewStateColor] = useState('bg-blue-50 text-blue-600 border-blue-200');
+  const [newTransFrom, setNewTransFrom] = useState('');
+  const [newTransTo, setNewTransTo] = useState('');
+  const [newTransRole, setNewTransRole] = useState('');
+  const [newTransRequiresComment, setNewTransRequiresComment] = useState(false);
+
+  // Load Session on start
+  useEffect(() => {
+    const savedToken = localStorage.getItem('token');
+    const savedUser = localStorage.getItem('user');
+    if (savedToken && savedUser) {
+      setToken(savedToken);
+      setCurrentUser(JSON.parse(savedUser));
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // Session timer auto-logout (US-AUTH-001)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const interval = setInterval(() => {
+      setSessionTimeLeft(prev => {
+        if (prev <= 1) {
+          handleLogout();
+          alert("Votre session a expiré. Déconnexion automatique.");
+          return 600;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  // Headers helper with simulated JWT & simulated user identity
   const getHeaders = () => {
     return {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
       'X-Mock-User': currentUser.email
     };
   };
 
   // Fetch all incidents with active filters
   const fetchIncidents = async () => {
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
       let url = `${API_BASE}/incidents?`;
@@ -86,100 +162,242 @@ function App() {
 
   // Fetch workflows configurations
   const fetchWorkflows = async () => {
+    if (!isAuthenticated) return;
     try {
       const res = await fetch(`${API_BASE}/workflows`, { headers: getHeaders() });
       if (res.ok) {
         const data = await res.json();
         setWorkflows(data);
+        if (data.length > 0 && !selectedWorkflowId) {
+          setSelectedWorkflowId(data[0].id);
+          setActiveWorkflow(data[0]);
+        }
       }
     } catch (err) {
       console.error("Impossible de charger les workflows:", err);
     }
   };
 
-  // Fetch user list (sync with db users just in case)
+  // Fetch user list & roles
   const fetchUsers = async () => {
+    if (!isAuthenticated) return;
     try {
       const res = await fetch(`${API_BASE}/users`, { headers: getHeaders() });
       if (res.ok) {
         const data = await res.json();
         setUsersList(data);
       }
+      
+      const rolesRes = await fetch(`${API_BASE}/roles`, { headers: getHeaders() });
+      if (rolesRes.ok) {
+        const rolesData = await rolesRes.json();
+        setRolesList(rolesData);
+      }
     } catch (err) {
       console.error("Impossible de charger les utilisateurs:", err);
     }
   };
 
-  // Reload when filters change or user switches
+  // Reload when filters change or authentication changes
   useEffect(() => {
-    fetchIncidents();
-  }, [statusFilter, categoryFilter, priorityFilter, currentUser]);
+    if (isAuthenticated) {
+      fetchIncidents();
+    }
+  }, [statusFilter, categoryFilter, priorityFilter, sortBy, currentUser, isAuthenticated]);
 
-  // Initial load
+  // Initial load on login
   useEffect(() => {
-    fetchWorkflows();
-    fetchUsers();
-  }, []);
+    if (isAuthenticated) {
+      fetchWorkflows();
+      fetchUsers();
+    }
+  }, [isAuthenticated]);
 
-  // Handle user simulation change
-  const handleUserChange = (email) => {
-    const selected = USERS.find(u => u.email === email);
-    if (selected) {
-      setCurrentUser(selected);
-      setErrorMessage('');
-      setShowUserDropdown(false);
-      
-      // If we are currently looking at an incident, reload it with the new user context
-      if (selectedIncidentCode) {
-        loadIncidentDetail(selectedIncidentCode, selected);
+  // Handle Workflow Selection change
+  useEffect(() => {
+    if (selectedWorkflowId && workflows.length > 0) {
+      const found = workflows.find(w => w.id === parseInt(selectedWorkflowId));
+      if (found) {
+        setActiveWorkflow(found);
       }
+    }
+  }, [selectedWorkflowId, workflows]);
+
+  // Handle Login Form Submission
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    if (!loginEmail || !loginPassword) {
+      setLoginError("L'adresse email et le mot de passe sont obligatoires.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Identifiants invalides.");
+      }
+
+      const data = await res.json();
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setToken(data.token);
+      setCurrentUser(data.user);
+      setIsAuthenticated(true);
+      setSessionTimeLeft(600);
+      setSuccessMessage("Connexion réussie !");
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setLoginError(err.message);
     }
   };
 
-  // Fetch detailed incident view
-  const loadIncidentDetail = async (code, userContext = currentUser) => {
+  // Handle Logout
+  const handleLogout = async () => {
     try {
-      setErrorMessage('');
-      const res = await fetch(`${API_BASE}/incidents/${code}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Mock-User': userContext.email
-        }
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: getHeaders()
       });
-      if (!res.ok) throw new Error("Impossible de charger le detail de l'incident.");
-      const data = await res.json();
-      setSelectedIncident(data);
-      
-      // Fetch workflow for this incident's category to check valid transitions
-      const wfRes = await fetch(`${API_BASE}/workflows/category/${encodeURIComponent(data.category)}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Mock-User': userContext.email
-        }
+    } catch (err) {
+      console.error("Error on logout:", err);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setIsAuthenticated(false);
+      setToken('');
+      setCurrentUser(USERS[0]);
+      setCurrentView('dashboard');
+      setSelectedIncidentCode(null);
+    }
+  };
+
+  // Quick click login buttons for testing (Wireframe-like)
+  const triggerQuickLogin = (email) => {
+    setLoginEmail(email);
+    setLoginPassword('password');
+  };
+
+  // Create new user (US-USER-001)
+  const handleUserCreateSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    const selectedRole = rolesList.find(r => r.id === parseInt(newUserForm.roleId));
+    
+    const payload = {
+      firstName: newUserForm.firstName,
+      lastName: newUserForm.lastName,
+      name: `${newUserForm.firstName} ${newUserForm.lastName}`,
+      email: newUserForm.email,
+      telephone: newUserForm.telephone,
+      department: newUserForm.department,
+      post: newUserForm.post,
+      role: selectedRole,
+      active: true,
+      avatarColor: ["bg-blue-600", "bg-purple-600", "bg-emerald-600", "bg-red-600", "bg-indigo-600"][Math.floor(Math.random() * 5)]
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/users`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
       });
-      if (wfRes.ok) {
-        const wfData = await wfRes.json();
-        setSelectedIncidentWorkflow(wfData);
+
+      if (!res.ok) {
+        throw new Error("Impossible de créer l'utilisateur. Vérifiez l'email unique.");
       }
+
+      setNewUserForm({
+        firstName: '',
+        lastName: '',
+        email: '',
+        telephone: '',
+        department: '',
+        post: '',
+        roleId: '3',
+        active: true
+      });
+      setShowUserCreateModal(false);
+      fetchUsers();
+      
+      // Update notifications list
+      setNotifications(prev => [
+        { id: Date.now(), text: `Nouvel utilisateur créé : ${payload.name}`, time: "À l'instant" },
+        ...prev
+      ]);
+      setSuccessMessage("Utilisateur créé avec succès !");
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
       setErrorMessage(err.message);
     }
   };
 
-  const handleSelectIncident = (code) => {
-    setSelectedIncidentCode(code);
-    loadIncidentDetail(code);
+  // Edit user submission
+  const handleUserEditSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    const selectedRole = rolesList.find(r => r.id === parseInt(editingUser.roleId));
+
+    const payload = {
+      firstName: editingUser.firstName,
+      lastName: editingUser.lastName,
+      name: `${editingUser.firstName} ${editingUser.lastName}`,
+      email: editingUser.email,
+      telephone: editingUser.telephone,
+      department: editingUser.department,
+      post: editingUser.post,
+      role: selectedRole,
+      active: editingUser.active
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error("Impossible de mettre à jour le compte.");
+
+      setShowUserEditModal(false);
+      setEditingUser(null);
+      fetchUsers();
+      setSuccessMessage("Profil utilisateur mis à jour !");
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
   };
 
-  // Reset filters
-  const handleResetFilters = () => {
-    setStatusFilter('Tous');
-    setCategoryFilter('Tous');
-    setPriorityFilter('Tous');
-    setSearchQuery('');
+  // Delete User
+  const handleUserDelete = async (id, name) => {
+    if (!window.confirm(`Êtes-vous certain de vouloir supprimer définitivement l'utilisateur ${name} ?`)) return;
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`${API_BASE}/users/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+
+      if (!res.ok) throw new Error("Erreur de suppression.");
+
+      fetchUsers();
+      setSuccessMessage("Compte utilisateur supprimé.");
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
   };
 
-  // Create new incident
+  // Create new incident (US-INC-001)
   const handleCreateIncidentSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -204,34 +422,227 @@ function App() {
       
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Erreur de creation de l'incident.");
+        throw new Error(errorData.message || "Erreur de création de l'incident.");
       }
       
-      // Reset form & reload
       setNewIncident({
         title: '',
         description: '',
         category: 'Réseau',
         priority: 'Medium',
-        assignedToId: ''
+        assignedToId: '',
+        tags: ''
       });
       setShowCreateModal(false);
       fetchIncidents();
+      setSuccessMessage("Incident déclaré avec succès !");
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
       setErrorMessage(err.message);
     }
   };
 
-  // Perform workflow transition
+  // Save the entire active workflow parameters globally
+  const handleSaveWorkflowGlobally = async () => {
+    if (!activeWorkflow) return;
+    setErrorMessage('');
+
+    try {
+      const res = await fetch(`${API_BASE}/workflows/${activeWorkflow.id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(activeWorkflow)
+      });
+
+      if (!res.ok) throw new Error("Erreur lors de la sauvegarde du workflow.");
+
+      fetchWorkflows();
+      setSuccessMessage("Workflow configuré enregistré avec succès !");
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
+  // Add state to active workflow (US-WF-002)
+  const handleAddStateToWorkflow = (e) => {
+    e.preventDefault();
+    if (!newStateId || !newStateLabel || !activeWorkflow) return;
+
+    // Check unique state ID
+    const exists = activeWorkflow.states.some(s => s.name.toLowerCase() === newStateId.toLowerCase());
+    if (exists) {
+      alert("Cet état technique ID existe déjà.");
+      return;
+    }
+
+    const stateObj = {
+      name: newStateId.trim(),
+      label: newStateLabel.trim(),
+      colorClass: newStateColor,
+      active: true
+    };
+
+    const updatedStates = [...activeWorkflow.states, stateObj];
+    const updatedWf = { ...activeWorkflow, states: updatedStates };
+    
+    // Update local state copy
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+
+    // Reset inputs
+    setNewStateId('');
+    setNewStateLabel('');
+  };
+
+  // Remove state from workflow
+  const handleDeleteStateFromWorkflow = (stateName) => {
+    if (["Nouveau", "Clôturé"].includes(stateName)) {
+      alert("Impossible de supprimer les états systèmes initiaux/finaux.");
+      return;
+    }
+
+    const updatedStates = activeWorkflow.states.filter(s => s.name !== stateName);
+    // Also remove any transitions referencing this state
+    const updatedTrans = activeWorkflow.transitions.filter(t => t.fromState !== stateName && t.toState !== stateName);
+
+    const updatedWf = { ...activeWorkflow, states: updatedStates, transitions: updatedTrans };
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+  };
+
+  // Update State Color dynamically
+  const handleUpdateStateColor = (stateName, colorClass) => {
+    const updatedStates = activeWorkflow.states.map(s => s.name === stateName ? { ...s, colorClass } : s);
+    const updatedWf = { ...activeWorkflow, states: updatedStates };
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+  };
+
+  // Toggle State Active
+  const handleToggleStateActive = (stateName) => {
+    const updatedStates = activeWorkflow.states.map(s => s.name === stateName ? { ...s, active: !s.active } : s);
+    const updatedWf = { ...activeWorkflow, states: updatedStates };
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+  };
+
+  // Update workflow active state
+  const handleToggleWorkflowActive = () => {
+    const updatedWf = { ...activeWorkflow, active: !activeWorkflow.active };
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+  };
+
+  // Add transition to active workflow (US-WF-003)
+  const handleAddTransitionToWorkflow = (e) => {
+    e.preventDefault();
+    if (!newTransFrom || !newTransTo || !activeWorkflow) return;
+
+    if (newTransFrom === newTransTo) {
+      alert("L'état origine et destination ne peuvent pas être identiques.");
+      return;
+    }
+
+    // Check duplicate
+    const exists = activeWorkflow.transitions.some(t => t.fromState === newTransFrom && t.toState === newTransTo);
+    if (exists) {
+      alert("Cette transition existe déjà.");
+      return;
+    }
+
+    const transObj = {
+      fromState: newTransFrom,
+      toState: newTransTo,
+      roleRequired: newTransRole || null,
+      requiresComment: newTransRequiresComment
+    };
+
+    const updatedTrans = [...activeWorkflow.transitions, transObj];
+    const updatedWf = { ...activeWorkflow, transitions: updatedTrans };
+
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+
+    // Reset inputs
+    setNewTransFrom('');
+    setNewTransTo('');
+    setNewTransRole('');
+    setNewTransRequiresComment(false);
+  };
+
+  // Delete transition
+  const handleDeleteTransitionFromWorkflow = (fromState, toState) => {
+    const updatedTrans = activeWorkflow.transitions.filter(t => !(t.fromState === fromState && t.toState === toState));
+    const updatedWf = { ...activeWorkflow, transitions: updatedTrans };
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+  };
+
+  // CSV/Excel Export (Feature 2.2)
+  const handleExportCSV = () => {
+    let url = `${API_BASE}/incidents/export/csv?`;
+    if (statusFilter !== 'Tous') url += `status=${encodeURIComponent(statusFilter)}&`;
+    if (categoryFilter !== 'Tous') url += `category=${encodeURIComponent(categoryFilter)}&`;
+    if (priorityFilter !== 'Tous') url += `priority=${encodeURIComponent(priorityFilter)}&`;
+    if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
+
+    window.open(url, '_blank');
+  };
+
+  // PDF Export
+  const handleExportPDF = () => {
+    let url = `${API_BASE}/incidents/export/pdf?`;
+    if (statusFilter !== 'Tous') url += `status=${encodeURIComponent(statusFilter)}&`;
+    if (categoryFilter !== 'Tous') url += `category=${encodeURIComponent(categoryFilter)}&`;
+    if (priorityFilter !== 'Tous') url += `priority=${encodeURIComponent(priorityFilter)}&`;
+    if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
+
+    window.open(url, '_blank');
+  };
+
+  // Fetch detailed incident view
+  const loadIncidentDetail = async (code, userContext = currentUser) => {
+    try {
+      setErrorMessage('');
+      const res = await fetch(`${API_BASE}/incidents/${code}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Mock-User': userContext.email
+        }
+      });
+      if (!res.ok) throw new Error("Impossible de charger le détail de l'incident.");
+      const data = await res.json();
+      setSelectedIncident(data);
+      
+      const wfRes = await fetch(`${API_BASE}/workflows/category/${encodeURIComponent(data.category)}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Mock-User': userContext.email
+        }
+      });
+      if (wfRes.ok) {
+        const wfData = await wfRes.json();
+        setSelectedIncidentWorkflow(wfData);
+      }
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
+  const handleSelectIncident = (code) => {
+    setSelectedIncidentCode(code);
+    loadIncidentDetail(code);
+  };
+
+  // Create workflow transition (US-INC-005)
   const handleTransitionClick = (transition) => {
     setTargetTransition(transition);
     setTransitionComment('');
     
-    // Check if we need to display the comment modal
     if (transition.requiresComment) {
       setShowTransitionModal(true);
     } else {
-      // Execute transition directly
       executeTransition(transition.toState, '');
     }
   };
@@ -247,24 +658,27 @@ function App() {
       
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "La transition a echoue.");
+        throw new Error(errorData.message || "La transition a échoué.");
       }
       
-      // Close comment modal if open
       setShowTransitionModal(false);
       setTargetTransition(null);
       setTransitionComment('');
       
-      // Reload details
       loadIncidentDetail(selectedIncident.incidentCode);
       fetchIncidents();
+      
+      setNotifications(prev => [
+        { id: Date.now(), text: `Incident ${selectedIncident.incidentCode} passé à l'état ${toState}`, time: "À l'instant" },
+        ...prev
+      ]);
     } catch (err) {
       setErrorMessage(err.message);
       setShowTransitionModal(false);
     }
   };
 
-  // Submit comment
+  // Submit comment (US-INC-006)
   const handleAddCommentSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -286,7 +700,7 @@ function App() {
     }
   };
 
-  // Upload file attachment
+  // Upload file attachment (US-INC-007)
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -306,7 +720,7 @@ function App() {
       
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Le televersement a echoue.");
+        throw new Error(errorData.message || "Le téléversement a échoué.");
       }
       
       loadIncidentDetail(selectedIncident.incidentCode);
@@ -315,7 +729,7 @@ function App() {
     }
   };
 
-  // Get icons according to category
+  // Category Icon helper
   const getCategoryIcon = (category) => {
     switch (category) {
       case 'Réseau': return <Globe size={16} />;
@@ -323,6 +737,17 @@ function App() {
       case 'Système': return <Cpu size={16} />;
       case 'Médical': return <Stethoscope size={16} />;
       default: return <FileText size={16} />;
+    }
+  };
+
+  // Priority color helper
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'Critical': return '#dc2626';
+      case 'High': return '#ea580c';
+      case 'Medium': return '#ca8a04';
+      case 'Low': return '#16a34a';
+      default: return 'var(--text-muted)';
     }
   };
 
@@ -338,12 +763,205 @@ function App() {
     });
   };
 
-  // KPI calculations
-  const getKPICount = (status) => {
-    if (status === 'Tous') return incidents.length;
-    // Calculate total incidents loaded or match status
-    return incidents.filter(i => i.status === status).length;
+  // SVG Donut Path helper
+  const getDonutSegmentPath = (cx, cy, r, startAngle, endAngle) => {
+    const startRad = (startAngle - 90) * Math.PI / 180.0;
+    const endRad = (endAngle - 90) * Math.PI / 180.0;
+    
+    const x1 = cx + r * Math.cos(startRad);
+    const y1 = cy + r * Math.sin(startRad);
+    const x2 = cx + r * Math.cos(endRad);
+    const y2 = cy + r * Math.sin(endRad);
+    
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
   };
+
+  // Render SVG Donut Chart for Priorities (US-INC-009 / Epic 5)
+  const renderPriorityDonut = () => {
+    const criticalCount = incidents.filter(i => i.priority === 'Critical').length;
+    const highCount = incidents.filter(i => i.priority === 'High').length;
+    const mediumCount = incidents.filter(i => i.priority === 'Medium').length;
+    const lowCount = incidents.filter(i => i.priority === 'Low').length;
+    const total = criticalCount + highCount + mediumCount + lowCount;
+
+    if (total === 0) {
+      return (
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', padding: '40px 0' }}>
+          Aucune donnée disponible.
+        </div>
+      );
+    }
+
+    const segments = [
+      { count: criticalCount, color: "#dc2626", label: "Critique" },
+      { count: highCount, color: "#ea580c", label: "Élevée" },
+      { count: mediumCount, color: "#ca8a04", label: "Moyenne" },
+      { count: lowCount, color: "#16a34a", label: "Faible" }
+    ].filter(s => s.count > 0);
+
+    let accumulatedAngle = 0;
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', width: '100%' }}>
+        <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx="70" cy="70" r="50" fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
+          {segments.map((seg, idx) => {
+            const percentage = seg.count / total;
+            const angle = percentage * 360;
+            let path = "";
+            if (percentage === 1) {
+              return (
+                <circle key={idx} cx="70" cy="70" r="50" fill="transparent" stroke={seg.color} strokeWidth="12" />
+              );
+            } else {
+              path = getDonutSegmentPath(70, 70, 50, accumulatedAngle, accumulatedAngle + angle);
+              accumulatedAngle += angle;
+              return (
+                <path key={idx} d={path} fill="transparent" stroke={seg.color} strokeWidth="12" strokeLinecap="round" />
+              );
+            }
+          })}
+        </svg>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {segments.map((seg, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+              <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: seg.color }}></span>
+              <span style={{ fontWeight: '600' }}>{seg.label}</span>
+              <span style={{ color: 'var(--text-muted)' }}>({seg.count})</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Render HTML Histogram by Category
+  const renderCategoryHistogram = () => {
+    const categories = ['Réseau', 'Sécurité', 'Système', 'Médical'];
+    const counts = categories.map(cat => incidents.filter(i => i.category === cat).length);
+    const maxVal = Math.max(...counts, 1);
+
+    return (
+      <div className="chart-bars-area" style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', height: '120px', padding: '10px 0' }}>
+        {categories.map((cat, idx) => {
+          const heightPct = (counts[idx] / maxVal) * 100;
+          return (
+            <div key={cat} className="chart-bar-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '50px' }}>
+              <div className="chart-tooltip" style={{ fontSize: '10px', fontWeight: 'bold' }}>{counts[idx]}</div>
+              <div 
+                className="bar-pillar" 
+                style={{ 
+                  height: `${heightPct}px`, 
+                  width: '12px', 
+                  backgroundColor: 'var(--primary-500)', 
+                  borderRadius: '6px 6px 0 0',
+                  transition: 'height 0.3s ease'
+                }} 
+              />
+              <span style={{ fontSize: '9px', fontWeight: '700', marginTop: '6px', color: 'var(--text-muted)' }}>{cat}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Sort incidents
+  const getSortedIncidents = () => {
+    const listCopy = [...incidents];
+    return listCopy.sort((a, b) => {
+      if (sortBy === 'createdAt_asc') return new Date(a.createdAt) - new Date(b.createdAt);
+      if (sortBy === 'createdAt_desc') return new Date(b.createdAt) - new Date(a.createdAt);
+      if (sortBy === 'priority_desc') {
+        const priorities = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
+        return (priorities[b.priority] || 0) - (priorities[a.priority] || 0);
+      }
+      return 0;
+    });
+  };
+
+  // Pagination logic
+  const sortedIncidents = getSortedIncidents();
+  const indexOfLastIncident = currentPage * incidentsPerPage;
+  const indexOfFirstIncident = indexOfLastIncident - incidentsPerPage;
+  const currentIncidents = sortedIncidents.slice(indexOfFirstIncident, indexOfLastIncident);
+  const totalPages = Math.ceil(sortedIncidents.length / incidentsPerPage);
+
+  // Authenticate wrapper
+  if (!isAuthenticated) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'radial-gradient(circle at top, #1e293b, #0f172a)', padding: '20px' }}>
+        <div className="card" style={{ width: '100%', maxWidth: '420px', padding: '40px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', borderRadius: '16px', background: 'rgba(30, 41, 59, 0.7)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
+            <div className="brand-icon" style={{ width: '48px', height: '48px', marginBottom: '16px' }}>
+              <Activity className="text-white" size={24} />
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px', marginBottom: '4px' }}>IncidentFlow</h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>Plateforme Dynamique de Gestion d'Incidents</p>
+          </div>
+
+          {loginError && (
+            <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '12px', borderRadius: '8px', fontSize: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertCircle size={16} />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ color: '#94a3b8' }}>Nom d'utilisateur ou Email</label>
+              <input 
+                type="email" 
+                className="form-control" 
+                placeholder="Ex: anas@netmar.com" 
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                style={{ background: 'rgba(15, 23, 42, 0.5)', color: 'white', borderColor: 'rgba(255,255,255,0.1)' }}
+                required 
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label style={{ color: '#94a3b8' }}>Mot de passe</label>
+              <input 
+                type="password" 
+                className="form-control" 
+                placeholder="••••••••" 
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                style={{ background: 'rgba(15, 23, 42, 0.5)', color: 'white', borderColor: 'rgba(255,255,255,0.1)' }}
+                required 
+              />
+            </div>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontWeight: '700', marginTop: '8px' }}>
+              Se connecter (OIDC Keycloak)
+            </button>
+          </form>
+
+          {/* Quick-select test accounts */}
+          <div style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px' }}>
+            <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '10px', textAlign: 'center', fontWeight: '700' }}>
+              COMPTES DE TEST (SIMULATION)
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {USERS.map(u => (
+                <button 
+                  key={u.id}
+                  type="button" 
+                  onClick={() => triggerQuickLogin(u.email)}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '10.5px', padding: '6px', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', color: 'white', borderColor: 'rgba(255,255,255,0.05)' }}
+                >
+                  {u.firstName} ({u.role})
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
@@ -371,6 +989,16 @@ function App() {
           </button>
           
           <button 
+            className={`nav-btn ${currentView === 'incidents' ? 'active' : ''}`}
+            onClick={() => { setCurrentView('incidents'); setSelectedIncidentCode(null); }}
+          >
+            <span className="nav-label">
+              <FileText size={18} />
+              Gestion des Incidents
+            </span>
+          </button>
+          
+          <button 
             className={`nav-btn ${currentView === 'workflows' ? 'active' : ''}`}
             onClick={() => { setCurrentView('workflows'); setSelectedIncidentCode(null); }}
           >
@@ -379,6 +1007,18 @@ function App() {
               Paramètres Workflows
             </span>
           </button>
+
+          {currentUser.role === 'Administrateur' && (
+            <button 
+              className={`nav-btn ${currentView === 'users' ? 'active' : ''}`}
+              onClick={() => { setCurrentView('users'); setSelectedIncidentCode(null); }}
+            >
+              <span className="nav-label">
+                <Users size={18} />
+                Gestion Utilisateurs
+              </span>
+            </button>
+          )}
         </nav>
 
         {/* Priority KPI widgets */}
@@ -400,9 +1040,24 @@ function App() {
           </div>
         </div>
 
-        <div className="sidebar-footer">
-          <div>Hôte: local</div>
-          <div className="role-badge-pill">{currentUser.role}</div>
+        {/* Session Time Out banner */}
+        <div style={{ padding: '12px 24px', backgroundColor: 'rgba(255,255,255,0.03)', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '10px', color: '#94a3b8' }}>
+          <span>Session expire dans: <strong>{Math.floor(sessionTimeLeft / 60)}m {sessionTimeLeft % 60}s</strong></span>
+        </div>
+
+        <div className="sidebar-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{currentUser.name}</div>
+            <div className="role-badge-pill" style={{ marginTop: '2px' }}>{currentUser.role}</div>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className="icon-btn btn-secondary" 
+            style={{ width: '28px', height: '28px', color: '#fca5a5', border: 'none' }}
+            title="Se déconnecter"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </aside>
 
@@ -429,41 +1084,23 @@ function App() {
           </div>
 
           <div className="topbar-right">
-            {/* IAM Simulated Identity Selector */}
-            <div className="iam-pill">
-              <span>Simuler :</span>
-              <select 
-                className="iam-select" 
-                value={currentUser.email}
-                onChange={(e) => handleUserChange(e.target.value)}
-              >
-                {USERS.map(u => (
-                  <option key={u.id} value={u.email}>{u.name} ({u.role})</option>
-                ))}
-              </select>
-            </div>
-
             {/* Notification Bell */}
             <div className="notif-bell-container">
               <button className="icon-btn" onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={18} />
-                <span className="bell-badge">3</span>
+                <span className="bell-badge">{notifications.length}</span>
               </button>
               
               {showNotifications && (
                 <div className="card" style={{ position: 'absolute', right: 0, top: '44px', width: '280px', zIndex: 60, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ fontWeight: '700', fontSize: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
-                    Notifications Recentes
+                    Notifications Récentes
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    • Nouvel incident medical assigne automatiquement.
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    • Sophie Martin a mis a jour l'incident INC-002.
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    • Base de donnees initialisee avec succes.
-                  </div>
+                  {notifications.map(n => (
+                    <div key={n.id} style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      • {n.text} <span style={{ fontSize: '9px', opacity: 0.6 }}>({n.time})</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -485,14 +1122,24 @@ function App() {
         <div className="content-area">
           <div className="content-max-width">
             
-            {/* Alert Error Banner */}
+            {/* Alert Messages Banner */}
             {errorMessage && (
               <div className="card" style={{ backgroundColor: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b', padding: '16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <AlertTriangle size={20} />
-                  <span><strong>Action refusée : </strong>{errorMessage}</span>
+                  <span><strong>Erreur : </strong>{errorMessage}</span>
                 </div>
                 <button onClick={() => setErrorMessage("")} style={{ background: 'transparent', border: 'none', color: '#991b1b', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>✕</button>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="card" style={{ backgroundColor: '#f0fdf4', borderColor: '#86efac', color: '#166534', padding: '16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={20} />
+                  <span>{successMessage}</span>
+                </div>
+                <button onClick={() => setSuccessMessage("")} style={{ background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>✕</button>
               </div>
             )}
 
@@ -502,7 +1149,7 @@ function App() {
                 <div className="page-header" style={{ border: 'none', marginBottom: '16px' }}>
                   <button className="btn btn-secondary" onClick={() => setSelectedIncidentCode(null)}>
                     <ArrowLeft size={16} />
-                    Retour au Dashboard
+                    Retour à la liste
                   </button>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <span className={`badge badge-${selectedIncident.status.toLowerCase().replace(' ', '-')}`}>
@@ -543,7 +1190,7 @@ function App() {
                       <div className="meta-item">
                         <span className="meta-label">Priorité</span>
                         <span className="meta-val">
-                          <span className="widget-dot" style={{ backgroundColor: `var(--${selectedIncident.priority.toLowerCase()}-dot)` }} />
+                          <span className="widget-dot" style={{ backgroundColor: getPriorityColor(selectedIncident.priority) }} />
                           {selectedIncident.priority}
                         </span>
                       </div>
@@ -571,7 +1218,6 @@ function App() {
                         </p>
                         
                         <div className="actions-buttons-container">
-                          {/* Filter workflow transitions where fromState matches current status */}
                           {selectedIncidentWorkflow.transitions
                             .filter(t => t.fromState.toLowerCase() === selectedIncident.status.toLowerCase())
                             .map((t, idx) => {
@@ -716,74 +1362,8 @@ function App() {
                   </div>
                 </div>
               </div>
-            ) : currentView === 'workflows' ? (
-              // VIEW B: WORKFLOWS LIST
-              <div className="animate-fade-in">
-                <div className="page-header">
-                  <div>
-                    <h1 className="page-title">Configuration des Workflows</h1>
-                    <p className="page-subtitle">Modèles de transitions et de rôles configurés par catégorie.</p>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  {workflows.map((wf) => (
-                    <div className="card" key={wf.id} style={{ padding: '24px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span className={`badge badge-category badge-${wf.category.toLowerCase()}`}>
-                            {getCategoryIcon(wf.category)}
-                            {wf.category}
-                          </span>
-                          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '800' }}>{wf.name}</h2>
-                        </div>
-                        <span className="badge badge-resolu" style={{ fontSize: '9px' }}>Actif</span>
-                      </div>
-
-                      {/* States badges list */}
-                      <div className="form-group">
-                        <label>États du workflow</label>
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
-                          {wf.states.map((state) => (
-                            <span key={state.id} className={`badge badge-${state.name.toLowerCase().replace(' ', '-')}`}>
-                              {state.label}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Transitions grid */}
-                      <div className="form-group">
-                        <label>Transitions autorisées</label>
-                        <div className="datagrid-container" style={{ marginTop: '8px' }}>
-                          <table className="datagrid">
-                            <thead>
-                              <tr>
-                                <th>État Source</th>
-                                <th>État Cible</th>
-                                <th>Habilitation requise</th>
-                                <th>Commentaire obligatoire</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {wf.transitions.map((t) => (
-                                <tr key={t.id}>
-                                  <td style={{ fontWeight: '700' }}>{t.fromState}</td>
-                                  <td style={{ fontWeight: '700', color: 'var(--primary-600)' }}>{t.toState}</td>
-                                  <td>{t.roleRequired ? <span className="role-badge-pill">{t.roleRequired}</span> : 'Tous'}</td>
-                                  <td>{t.requiresComment ? <span style={{ color: '#dc2626', fontWeight: 'bold' }}>Oui</span> : 'Non'}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              // VIEW C: DASHBOARD
+            ) : currentView === 'dashboard' ? (
+              // VIEW B: DASHBOARD
               <div className="animate-fade-in">
                 <div className="page-header">
                   <div>
@@ -798,91 +1378,56 @@ function App() {
 
                 {/* KPI Grid */}
                 <div className="kpi-grid">
-                  <div className={`kpi-card ${statusFilter === 'Tous' ? 'active' : ''}`} onClick={() => setStatusFilter('Tous')}>
-                    <div>
-                      <div className="kpi-label">Tous les incidents</div>
-                      <div className="kpi-value">{getKPICount('Tous')}</div>
-                    </div>
-                    <div className="kpi-icon-box" style={{ backgroundColor: 'var(--primary-50)', color: 'var(--primary-600)' }}>
-                      <FileText size={20} />
+                  <div className="kpi-card" onClick={() => { setCurrentView('incidents'); setStatusFilter('Tous'); }}>
+                    <div className="kpi-title">Incidents Totaux</div>
+                    <div className="kpi-value">{incidents.length}</div>
+                    <span className="badge badge-normal" style={{ marginTop: '8px' }}>Global</span>
+                  </div>
+                  <div className="kpi-card" onClick={() => { setCurrentView('incidents'); setStatusFilter('Nouveau'); }}>
+                    <div className="kpi-title">Nouveaux</div>
+                    <div className="kpi-value">{incidents.filter(i => i.status === 'Nouveau').length}</div>
+                    <span className="badge badge-normal" style={{ marginTop: '8px', backgroundColor: 'var(--critical-bg)', color: 'var(--critical-text)' }}>À traiter</span>
+                  </div>
+                  <div className="kpi-card" onClick={() => { setCurrentView('incidents'); setStatusFilter('En cours'); }}>
+                    <div className="kpi-title">En cours</div>
+                    <div className="kpi-value">{incidents.filter(i => i.status === 'En cours').length}</div>
+                    <span className="badge badge-normal" style={{ marginTop: '8px', backgroundColor: '#e0effe', color: 'var(--primary-700)' }}>Résolution</span>
+                  </div>
+                  <div className="kpi-card" onClick={() => { setCurrentView('incidents'); setStatusFilter('Résolu'); }}>
+                    <div className="kpi-title">Résolus</div>
+                    <div className="kpi-value">{incidents.filter(i => i.status === 'Résolu').length}</div>
+                    <span className="badge badge-normal" style={{ marginTop: '8px', backgroundColor: '#f0fdf4', color: '#166534' }}>Succès</span>
+                  </div>
+                </div>
+
+                {/* Graphs / Statistics grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', marginTop: '24px' }}>
+                  {/* Donut chart by Priorities */}
+                  <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h3 className="widget-title" style={{ fontSize: '13px', color: 'var(--text-main)' }}>Breakdown des Priorités</h3>
+                    <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+                      {renderPriorityDonut()}
                     </div>
                   </div>
-                  <div className={`kpi-card ${statusFilter === 'Nouveau' ? 'active' : ''}`} onClick={() => setStatusFilter('Nouveau')}>
-                    <div>
-                      <div className="kpi-label">Nouveaux</div>
-                      <div className="kpi-value">{getKPICount('Nouveau')}</div>
-                    </div>
-                    <div className="kpi-icon-box" style={{ backgroundColor: '#fef2f2', color: '#dc2626' }}>
-                      <Clock size={20} />
-                    </div>
-                  </div>
-                  <div className={`kpi-card ${statusFilter === 'En cours' ? 'active' : ''}`} onClick={() => setStatusFilter('En cours')}>
-                    <div>
-                      <div className="kpi-label">En cours</div>
-                      <div className="kpi-value">{getKPICount('En cours')}</div>
-                    </div>
-                    <div className="kpi-icon-box" style={{ backgroundColor: '#eff6ff', color: '#2563eb' }}>
-                      <Activity size={20} />
-                    </div>
-                  </div>
-                  <div className={`kpi-card ${statusFilter === 'Résolu' ? 'active' : ''}`} onClick={() => setStatusFilter('Résolu')}>
-                    <div>
-                      <div className="kpi-label">Résolus</div>
-                      <div className="kpi-value">{getKPICount('Résolu')}</div>
-                    </div>
-                    <div className="kpi-icon-box" style={{ backgroundColor: '#f0fdf4', color: '#16a34a' }}>
-                      <CheckCircle size={20} />
+
+                  {/* Histogram chart by Categories */}
+                  <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h3 className="widget-title" style={{ fontSize: '13px', color: 'var(--text-main)' }}>Incidents par Catégorie</h3>
+                    <div style={{ flexGrow: 1 }}>
+                      {renderCategoryHistogram()}
                     </div>
                   </div>
                 </div>
 
-                {/* Filters controls bar */}
-                <div className="dashboard-filters-row">
-                  <div className="filters-left">
-                    <select 
-                      className="filter-select"
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                    >
-                      <option value="Tous">Catégorie: Toutes</option>
-                      <option value="Réseau">Réseau</option>
-                      <option value="Sécurité">Sécurité</option>
-                      <option value="Système">Système</option>
-                      <option value="Médical">Médical</option>
-                    </select>
-
-                    <select 
-                      className="filter-select"
-                      value={priorityFilter}
-                      onChange={(e) => setPriorityFilter(e.target.value)}
-                    >
-                      <option value="Tous">Priorité: Toutes</option>
-                      <option value="Critical">Critical</option>
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                    </select>
-
-                    {(categoryFilter !== 'Tous' || priorityFilter !== 'Tous' || statusFilter !== 'Tous' || searchQuery) && (
-                      <button className="btn btn-secondary btn-small" onClick={handleResetFilters}>
-                        Réinitialiser les filtres
-                      </button>
-                    )}
+                {/* Recent Incidents Table */}
+                <div className="card" style={{ padding: '24px', marginTop: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 className="widget-title" style={{ fontSize: '13px', color: 'var(--text-main)' }}>Incidents Récents</h3>
+                    <button className="btn btn-secondary btn-small" onClick={() => setCurrentView('incidents')}>
+                      Voir tous les incidents
+                    </button>
                   </div>
-                  
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                    {loading ? 'Chargement...' : `${incidents.length} incident(s) trouvé(s)`}
-                  </div>
-                </div>
-
-                {/* Incidents Table DataGrid */}
-                <div className="datagrid-container">
-                  {incidents.length === 0 ? (
-                    <div className="empty-state">
-                      <FileText size={40} className="empty-state-icon" />
-                      <div>Aucun incident trouvé.</div>
-                    </div>
-                  ) : (
+                  <div className="datagrid-container">
                     <table className="datagrid">
                       <thead>
                         <tr>
@@ -891,64 +1436,561 @@ function App() {
                           <th>Catégorie</th>
                           <th>Priorité</th>
                           <th>Statut</th>
-                          <th>Assigné à</th>
-                          <th>Créé le</th>
-                          <th>Actions</th>
+                          <th>Auteur</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {incidents.map((incident) => (
-                          <tr key={incident.id} className="hoverable" onClick={() => handleSelectIncident(incident.incidentCode)}>
-                            <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '700' }}>{incident.incidentCode}</td>
-                            <td style={{ fontWeight: '700' }}>{incident.title}</td>
+                        {incidents.slice(0, 3).map(inc => (
+                          <tr key={inc.id} onClick={() => handleSelectIncident(inc.incidentCode)} style={{ cursor: 'pointer' }}>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '700' }}>{inc.incidentCode}</td>
+                            <td style={{ fontWeight: '700' }}>{inc.title}</td>
                             <td>
-                              <span className={`badge badge-category badge-${incident.category.toLowerCase()}`}>
-                                {getCategoryIcon(incident.category)}
-                                &nbsp;{incident.category}
+                              <span className="badge badge-normal" style={{ display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
+                                {getCategoryIcon(inc.category)}
+                                {inc.category}
                               </span>
                             </td>
                             <td>
-                              <span className="meta-val" style={{ gap: '6px' }}>
-                                <span className="widget-dot" style={{ backgroundColor: `var(--${incident.priority.toLowerCase()}-dot)` }} />
-                                {incident.priority}
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: '700' }}>
+                                <span className="widget-dot" style={{ backgroundColor: getPriorityColor(inc.priority) }} />
+                                {inc.priority}
                               </span>
                             </td>
                             <td>
-                              <span className={`badge badge-${incident.status.toLowerCase().replace(' ', '-')}`}>
-                                {incident.status}
+                              <span className={`badge badge-${inc.status.toLowerCase().replace(' ', '-')}`}>
+                                {inc.status}
                               </span>
                             </td>
-                            <td>{incident.assignedTo ? incident.assignedTo.name : <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Non assigné</span>}</td>
-                            <td>{formatDate(incident.createdAt)}</td>
-                            <td>
-                              <button className="btn btn-secondary btn-small" style={{ padding: '4px 8px' }}>
-                                <Eye size={12} />
+                            <td>{inc.author.name}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            ) : currentView === 'incidents' ? (
+              // VIEW C: INCIDENTS INDEPENDENT LIST PAGE
+              <div className="animate-fade-in">
+                <div className="page-header">
+                  <div>
+                    <h1 className="page-title">Gestion des Incidents</h1>
+                    <p className="page-subtitle">Recherchez, filtrez et exportez les rapports d'incidents déclarés.</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className="btn btn-secondary" onClick={handleExportCSV} title="Exporter au format CSV pour Excel">
+                      Exporter Excel (CSV)
+                    </button>
+                    <button className="btn btn-secondary" onClick={handleExportPDF} title="Générer un rapport textuel des incidents">
+                      Générer Rapport PDF
+                    </button>
+                    <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+                      <Plus size={16} />
+                      Déclarer un incident
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filters Row */}
+                <div className="filter-panel" style={{ backgroundColor: '#e8f1fa', borderRadius: '12px', padding: '16px', display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                  <div className="filter-item" style={{ minWidth: '120px' }}>
+                    <label>Catégorie</label>
+                    <select className="filter-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                      <option value="Tous">Tous</option>
+                      <option value="Réseau">Réseau</option>
+                      <option value="Sécurité">Sécurité</option>
+                      <option value="Système">Système</option>
+                      <option value="Médical">Médical</option>
+                    </select>
+                  </div>
+
+                  <div className="filter-item" style={{ minWidth: '120px' }}>
+                    <label>Priorité</label>
+                    <select className="filter-select" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+                      <option value="Tous">Tous</option>
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Critical">Critical</option>
+                    </select>
+                  </div>
+
+                  <div className="filter-item" style={{ minWidth: '120px' }}>
+                    <label>Statut</label>
+                    <select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                      <option value="Tous">Tous</option>
+                      <option value="Nouveau">Nouveau</option>
+                      <option value="Assigné">Assigné</option>
+                      <option value="En cours">En cours</option>
+                      <option value="Résolu">Résolu</option>
+                      <option value="Clôturé">Clôturé</option>
+                    </select>
+                  </div>
+
+                  <div className="filter-item" style={{ minWidth: '150px' }}>
+                    <label>Trier par</label>
+                    <select className="filter-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                      <option value="createdAt_desc">Date (Récent)</option>
+                      <option value="createdAt_asc">Date (Ancien)</option>
+                      <option value="priority_desc">Sévérité</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Incidents Table list */}
+                <div className="card" style={{ padding: '20px' }}>
+                  {loading ? (
+                    <div style={{ textAlign: 'center', padding: '40px' }}>Chargement en cours...</div>
+                  ) : (
+                    <>
+                      <div className="datagrid-container">
+                        <table className="datagrid">
+                          <thead>
+                            <tr>
+                              <th>Code</th>
+                              <th>Titre</th>
+                              <th>Catégorie</th>
+                              <th>Priorité</th>
+                              <th>Statut</th>
+                              <th>Auteur</th>
+                              <th>Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {currentIncidents.map(inc => (
+                              <tr key={inc.id} onClick={() => handleSelectIncident(inc.incidentCode)} style={{ cursor: 'pointer' }}>
+                                <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '700' }}>{inc.incidentCode}</td>
+                                <td style={{ fontWeight: '700' }}>{inc.title}</td>
+                                <td>
+                                  <span className="badge badge-normal" style={{ display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
+                                    {getCategoryIcon(inc.category)}
+                                    {inc.category}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: '700' }}>
+                                    <span className="widget-dot" style={{ backgroundColor: getPriorityColor(inc.priority) }} />
+                                    {inc.priority}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className={`badge badge-${inc.status.toLowerCase().replace(' ', '-')}`}>
+                                    {inc.status}
+                                  </span>
+                                </td>
+                                <td>{inc.author.name}</td>
+                                <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(inc.createdAt)}</td>
+                              </tr>
+                            ))}
+                            {currentIncidents.length === 0 && (
+                              <tr>
+                                <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Aucun incident trouvé.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Pagination Controls */}
+                      {totalPages > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+                          <button 
+                            className="btn btn-secondary btn-small" 
+                            onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                            disabled={currentPage === 1}
+                          >
+                            Précédent
+                          </button>
+                          <span style={{ display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 'bold', padding: '0 8px' }}>
+                            Page {currentPage} sur {totalPages}
+                          </span>
+                          <button 
+                            className="btn btn-secondary btn-small" 
+                            onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                          >
+                            Suivant
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : currentView === 'workflows' ? (
+              // VIEW D: WORKFLOW CONFIGURATION & CUSTOMIZATION (Epic 3)
+              <div className="animate-fade-in">
+                <div className="page-header">
+                  <div>
+                    <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Layers className="text-primary-600" />
+                      Gestion des Workflows Dynamiques
+                    </h1>
+                    <p className="page-subtitle">Configurez et personnalisez les états de cycle de vie et les transitions par catégorie d'incidents.</p>
+                  </div>
+                  <button onClick={handleSaveWorkflowGlobally} className="btn btn-primary">
+                    Enregistrer les Modifications
+                  </button>
+                </div>
+
+                {/* Category Selection Tabs */}
+                <div className="wf-category-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+                  {workflows.map(wf => (
+                    <button 
+                      key={wf.id}
+                      onClick={() => setSelectedWorkflowId(wf.id)}
+                      className={`wf-tab ${wf.id === selectedWorkflowId ? 'active' : ''}`}
+                      style={{
+                        padding: '10px 16px',
+                        background: wf.id === selectedWorkflowId ? 'var(--primary-50)' : 'transparent',
+                        color: wf.id === selectedWorkflowId ? 'var(--primary-700)' : 'var(--text-muted)',
+                        border: 'none',
+                        borderBottom: wf.id === selectedWorkflowId ? '2px solid var(--primary-500)' : 'none',
+                        cursor: 'pointer',
+                        fontWeight: '700',
+                        fontSize: '13px'
+                      }}
+                    >
+                      {wf.category} ({wf.active ? 'Actif' : 'Inactif'})
+                    </button>
+                  ))}
+                </div>
+
+                {activeWorkflow && (
+                  <div className="workflow-setup-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                    {/* Left Column: General & States Edit */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {/* General Parameters */}
+                      <div className="card" style={{ padding: '24px' }}>
+                        <h3 className="widget-title" style={{ marginBottom: '16px' }}>Paramètres du Workflow</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+                          <div style={{ flexGrow: 1 }}>
+                            <label style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Nom du processus</label>
+                            <input 
+                              type="text" 
+                              className="form-control"
+                              value={activeWorkflow.name}
+                              onChange={(e) => {
+                                const updated = { ...activeWorkflow, name: e.target.value };
+                                setActiveWorkflow(updated);
+                                setWorkflows(prev => prev.map(w => w.id === updated.id ? updated : w));
+                              }}
+                            />
+                          </div>
+                          <button 
+                            type="button"
+                            className="btn btn-secondary" 
+                            style={{ height: '38px', marginTop: '14px', fontWeight: 'bold' }}
+                            onClick={handleToggleWorkflowActive}
+                          >
+                            Statut : {activeWorkflow.active ? 'Actif' : 'Inactif'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* States Manager */}
+                      <div className="card" style={{ padding: '24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+                          <h3 className="widget-title">Workspace des États</h3>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'bold' }}>{activeWorkflow.states.length} étapes</span>
+                        </div>
+
+                        {/* States lists */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {activeWorkflow.states.map(state => {
+                            const isSystem = ["Nouveau", "Clôturé"].includes(state.name);
+                            return (
+                              <div key={state.id || state.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                                <div>
+                                  <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>ID : {state.name} {isSystem && '(Système)'}</span>
+                                  <input 
+                                    type="text" 
+                                    value={state.label}
+                                    onChange={(e) => {
+                                      const updatedStates = activeWorkflow.states.map(s => s.name === state.name ? { ...s, label: e.target.value } : s);
+                                      const updatedWf = { ...activeWorkflow, states: updatedStates };
+                                      setActiveWorkflow(updatedWf);
+                                      setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+                                    }}
+                                    style={{ border: 'none', borderBottom: '1px dashed #cbd5e1', outline: 'none', fontWeight: 'bold', fontSize: '13px', display: 'block', backgroundColor: 'transparent', marginTop: '4px' }}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  {/* Color picker presets */}
+                                  <div style={{ display: 'flex', gap: '4px' }}>
+                                    <span onClick={() => handleUpdateStateColor(state.name, 'bg-red-50 text-red-600 border-red-200')} style={{ cursor: 'pointer', display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#fca5a5' }} />
+                                    <span onClick={() => handleUpdateStateColor(state.name, 'bg-amber-50 text-amber-600 border-amber-200')} style={{ cursor: 'pointer', display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#fde047' }} />
+                                    <span onClick={() => handleUpdateStateColor(state.name, 'bg-blue-50 text-blue-600 border-blue-200')} style={{ cursor: 'pointer', display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#93c5fd' }} />
+                                    <span onClick={() => handleUpdateStateColor(state.name, 'bg-emerald-50 text-emerald-600 border-emerald-200')} style={{ cursor: 'pointer', display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#86efac' }} />
+                                    <span onClick={() => handleUpdateStateColor(state.name, 'bg-slate-50 text-slate-600 border-slate-200')} style={{ cursor: 'pointer', display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#cbd5e1' }} />
+                                  </div>
+                                  <button 
+                                    type="button" 
+                                    className="btn btn-secondary btn-small"
+                                    onClick={() => handleToggleStateActive(state.name)}
+                                  >
+                                    {state.active ? 'Actif' : 'Inactif'}
+                                  </button>
+                                  <button 
+                                    type="button"
+                                    className="icon-btn btn-secondary"
+                                    onClick={() => handleDeleteStateFromWorkflow(state.name)}
+                                    style={{ color: '#ef4444', border: 'none' }}
+                                    disabled={isSystem}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Add state inline form */}
+                        <form onSubmit={handleAddStateToWorkflow} style={{ marginTop: '16px', padding: '16px', backgroundColor: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <h4 style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={14} /> Ajouter un État</h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label style={{ fontSize: '9px' }}>Clé technique ID</label>
+                              <input 
+                                type="text" 
+                                className="form-control" 
+                                placeholder="Ex: Attente"
+                                value={newStateId}
+                                onChange={(e) => setNewStateId(e.target.value)}
+                                required 
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label style={{ fontSize: '9px' }}>Libellé Affichage</label>
+                              <input 
+                                type="text" 
+                                className="form-control" 
+                                placeholder="Ex: En attente"
+                                value={newStateLabel}
+                                onChange={(e) => setNewStateLabel(e.target.value)}
+                                required 
+                              />
+                            </div>
+                          </div>
+                          <button type="submit" className="btn btn-primary btn-small" style={{ alignSelf: 'flex-end' }}>Ajouter l'état</button>
+                        </form>
+                      </div>
+                    </div>
+
+                    {/* Right Column: Transitions Edit */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {/* Transitions Rules list */}
+                      <div className="card" style={{ padding: '24px' }}>
+                        <h3 className="widget-title" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>Transitions Autorisées</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {activeWorkflow.transitions.map((t, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '13px' }}>
+                                  <span>{t.fromState}</span>
+                                  <span>➔</span>
+                                  <span style={{ color: 'var(--primary-600)' }}>{t.toState}</span>
+                                </div>
+                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                  {t.roleRequired ? `🔑 Rôle requis : ${t.roleRequired}` : '🔓 Ouvert à tous'}
+                                  {t.requiresComment && ' • 💬 Commentaire obligatoire'}
+                                </div>
+                              </div>
+                              <button 
+                                type="button"
+                                className="icon-btn btn-secondary"
+                                onClick={() => handleDeleteTransitionFromWorkflow(t.fromState, t.toState)}
+                                style={{ color: '#ef4444', border: 'none' }}
+                              >
+                                <X size={14} />
                               </button>
+                            </div>
+                          ))}
+                          {activeWorkflow.transitions.length === 0 && (
+                            <div style={{ textAlign: 'center', fontStyle: 'italic', fontSize: '12px', padding: '20px', color: 'var(--text-muted)' }}>
+                              Aucune transition configurée.
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Add transition inline form */}
+                        <form onSubmit={handleAddTransitionToWorkflow} style={{ marginTop: '16px', padding: '16px', backgroundColor: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <h4 style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={14} /> Définir une Transition</h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label style={{ fontSize: '9px' }}>État Origine</label>
+                              <select className="form-control" value={newTransFrom} onChange={(e) => setNewTransFrom(e.target.value)} required style={{ background: 'white' }}>
+                                <option value="">Choisir...</option>
+                                {activeWorkflow.states.filter(s => s.active).map(s => (
+                                  <option key={s.name} value={s.name}>{s.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label style={{ fontSize: '9px' }}>État Destination</label>
+                              <select className="form-control" value={newTransTo} onChange={(e) => setNewTransTo(e.target.value)} required style={{ background: 'white' }}>
+                                <option value="">Choisir...</option>
+                                {activeWorkflow.states.filter(s => s.active).map(s => (
+                                  <option key={s.name} value={s.name}>{s.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label style={{ fontSize: '9px' }}>Rôle Autorisé</label>
+                            <select className="form-control" value={newTransRole} onChange={(e) => setNewTransRole(e.target.value)} style={{ background: 'white' }}>
+                              <option value="">Tous les utilisateurs</option>
+                              <option value="Administrateur">Administrateur</option>
+                              <option value="Responsable">Responsable</option>
+                              <option value="Opérateur">Opérateur</option>
+                              <option value="Opérateur médical">Opérateur médical</option>
+                            </select>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                            <input 
+                              type="checkbox" 
+                              id="check-requires-comment" 
+                              checked={newTransRequiresComment}
+                              onChange={(e) => setNewTransRequiresComment(e.target.checked)}
+                              style={{ width: '14px', height: '14px', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="check-requires-comment" style={{ marginBottom: 0, fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer' }}>Exiger un commentaire obligatoire</label>
+                          </div>
+                          <button type="submit" className="btn btn-primary btn-small" style={{ alignSelf: 'flex-end', width: '100%', justifyContent: 'center' }}>Autoriser la Transition</button>
+                        </form>
+                      </div>
+
+                      {/* Graphic Visualizer help */}
+                      <div className="card" style={{ padding: '24px' }}>
+                        <h3 className="widget-title" style={{ marginBottom: '10px' }}>Aperçu Visuel du Processus</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                          {activeWorkflow.states.filter(s => s.active).map(state => {
+                            const destinations = activeWorkflow.transitions.filter(t => t.fromState === state.name).map(t => t.toState);
+                            return (
+                              <div key={state.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px', fontSize: '11.5px' }}>
+                                <span className={`badge ${state.colorClass}`} style={{ fontSize: '9px', padding: '2px 6px' }}>{state.label}</span>
+                                <span style={{ color: 'var(--text-muted)', fontWeight: 'bold' }}>
+                                  {destinations.length === 0 ? '🏁 État final' : `➔ ${destinations.join(', ')}`}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : currentView === 'users' ? (
+              // VIEW E: USER MANAGEMENT PAGE (Epic 1.2)
+              <div className="animate-fade-in">
+                <div className="page-header">
+                  <div>
+                    <h1 className="page-title">Gestion des Utilisateurs</h1>
+                    <p className="page-subtitle">Gérez les comptes, attribuez des rôles et administrez les accès.</p>
+                  </div>
+                  <button className="btn btn-primary" onClick={() => setShowUserCreateModal(true)}>
+                    <Plus size={16} />
+                    Nouvel Utilisateur
+                  </button>
+                </div>
+
+                {/* Filters / Users list */}
+                <div className="card" style={{ padding: '20px' }}>
+                  <div className="datagrid-container">
+                    <table className="datagrid">
+                      <thead>
+                        <tr>
+                          <th>Nom</th>
+                          <th>Email</th>
+                          <th>Téléphone</th>
+                          <th>Département</th>
+                          <th>Poste</th>
+                          <th>Rôle</th>
+                          <th>Statut (Keycloak)</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {usersList.map(u => (
+                          <tr key={u.id}>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div className={`avatar-circle ${u.avatarColor}`} style={{ width: '28px', height: '28px', fontSize: '11px' }}>
+                                  {u.name.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <span style={{ fontWeight: '700' }}>{u.name}</span>
+                              </div>
+                            </td>
+                            <td>{u.email}</td>
+                            <td>{u.telephone || '-'}</td>
+                            <td>{u.department || '-'}</td>
+                            <td>{u.post || '-'}</td>
+                            <td><span className="role-badge-pill">{u.role ? u.role.name : 'Aucun'}</span></td>
+                            <td>
+                              <span className={`badge ${u.active ? 'badge-resolu' : 'badge-normal'}`}>
+                                {u.active ? 'Actif' : 'Inactif'}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                <button 
+                                  className="icon-btn btn-secondary" 
+                                  onClick={() => {
+                                    setEditingUser({
+                                      id: u.id,
+                                      firstName: u.firstName || u.name.split(' ')[0] || '',
+                                      lastName: u.lastName || u.name.split(' ')[1] || '',
+                                      email: u.email,
+                                      telephone: u.telephone || '',
+                                      department: u.department || '',
+                                      post: u.post || '',
+                                      roleId: u.role ? String(u.role.id) : '3',
+                                      active: u.active
+                                    });
+                                    setShowUserEditModal(true);
+                                  }}
+                                  style={{ width: '28px', height: '28px', border: 'none' }}
+                                  title="Modifier"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                                <button 
+                                  className="icon-btn btn-secondary" 
+                                  onClick={() => handleUserDelete(u.id, u.name)}
+                                  style={{ width: '28px', height: '28px', color: '#ef4444', border: 'none' }}
+                                  title="Supprimer"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  )}
+                  </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
           </div>
         </div>
       </main>
 
-      {/* 3. DIALOG MODAL: DECLARER INCIDENT */}
+      {/* ==========================================
+          MODALS & DIALOGS PORTALS
+          ========================================== */}
+      
+      {/* Modal 1: Create Incident Modal (US-INC-001) */}
       {showCreateModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content animate-fade-in">
+        <div className="modal-overlay">
+          <div className="modal-card">
             <div className="modal-header">
-              <h3 className="modal-title">Déclarer un nouvel incident</h3>
-              <button className="modal-close-btn" onClick={() => setShowCreateModal(false)}>
-                <X size={18} />
-              </button>
+              <h3>Déclarer un nouvel incident</h3>
+              <button className="modal-close-btn" onClick={() => setShowCreateModal(false)}>✕</button>
             </div>
-            
             <form onSubmit={handleCreateIncidentSubmit}>
               <div className="modal-body">
                 <div className="form-group">
@@ -957,21 +1999,9 @@ function App() {
                     type="text" 
                     className="form-control" 
                     required 
-                    placeholder="Ex: Panne de commutateur de zone"
+                    placeholder="Ex: Panne de commutateur réseau local"
                     value={newIncident.title}
-                    onChange={(e) => setNewIncident({...newIncident, title: e.target.value})}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Description détaillée *</label>
-                  <textarea 
-                    className="form-control" 
-                    required 
-                    rows={4}
-                    placeholder="Fournir des details techniques..."
-                    value={newIncident.description}
-                    onChange={(e) => setNewIncident({...newIncident, description: e.target.value})}
+                    onChange={(e) => setNewIncident({ ...newIncident, title: e.target.value })}
                   />
                 </div>
 
@@ -979,9 +2009,10 @@ function App() {
                   <div className="form-group">
                     <label>Catégorie *</label>
                     <select 
-                      className="form-control"
+                      className="form-control" 
                       value={newIncident.category}
-                      onChange={(e) => setNewIncident({...newIncident, category: e.target.value})}
+                      onChange={(e) => setNewIncident({ ...newIncident, category: e.target.value })}
+                      style={{ background: 'white' }}
                     >
                       <option value="Réseau">Réseau</option>
                       <option value="Sécurité">Sécurité</option>
@@ -993,14 +2024,15 @@ function App() {
                   <div className="form-group">
                     <label>Priorité *</label>
                     <select 
-                      className="form-control"
+                      className="form-control" 
                       value={newIncident.priority}
-                      onChange={(e) => setNewIncident({...newIncident, priority: e.target.value})}
+                      onChange={(e) => setNewIncident({ ...newIncident, priority: e.target.value })}
+                      style={{ background: 'white' }}
                     >
-                      <option value="Critical">Critical</option>
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
                       <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Critical">Critical</option>
                     </select>
                   </div>
                 </div>
@@ -1008,76 +2040,309 @@ function App() {
                 <div className="form-group">
                   <label>Assigner à (Optionnel)</label>
                   <select 
-                    className="form-control"
+                    className="form-control" 
                     value={newIncident.assignedToId}
-                    onChange={(e) => setNewIncident({...newIncident, assignedToId: e.target.value})}
+                    onChange={(e) => setNewIncident({ ...newIncident, assignedToId: e.target.value })}
+                    style={{ background: 'white' }}
                   >
-                    <option value="">-- Non assigné (Règles automatiques applicables) --</option>
+                    <option value="">Affectation automatique par le système</option>
                     {usersList.map(u => (
-                      <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                      <option key={u.id} value={u.id}>{u.name} ({u.role ? u.role.name : ''})</option>
                     ))}
                   </select>
                 </div>
+
+                <div className="form-group">
+                  <label>Tags ou mots-clés (Séparés par des virgules)</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="Ex: switch, hardware, zone-a"
+                    value={newIncident.tags}
+                    onChange={(e) => setNewIncident({ ...newIncident, tags: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Description détaillée *</label>
+                  <textarea 
+                    className="form-control" 
+                    required 
+                    rows="4" 
+                    placeholder="Veuillez décrire le problème rencontré..."
+                    value={newIncident.description}
+                    onChange={(e) => setNewIncident({ ...newIncident, description: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Pièce jointe (facultatif)</label>
+                  <div className="upload-zone" style={{ padding: '24px 16px' }}>
+                    <Paperclip size={20} style={{ marginBottom: '8px', color: 'var(--primary-500)' }} />
+                    <span style={{ fontWeight: 'bold' }}>Glisser-déposer ou cliquer pour téléverser</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Fichiers logs, captures d'écran (.txt, .log, .png, .jpg)</span>
+                  </div>
+                </div>
               </div>
-              
+
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>
-                  Annuler
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Déclarer l'incident
-                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary">Déclarer l'incident</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* 4. DIALOG MODAL: WORKFLOW TRANSITION COMMENT */}
+      {/* Modal 2: Comment Required Modal for Transitions (US-INC-005) */}
       {showTransitionModal && targetTransition && (
-        <div className="modal-backdrop">
-          <div className="modal-content animate-fade-in">
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Justification requise : Passer à {targetTransition.toState}</h3>
-              <button className="modal-close-btn" onClick={() => { setShowTransitionModal(false); setTargetTransition(null); }}>
-                <X size={18} />
-              </button>
+              <h3>Justificatif de transition</h3>
+              <button className="modal-close-btn" onClick={() => setShowTransitionModal(false)}>✕</button>
             </div>
-            
-            <div className="modal-body">
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                Cette transition de workflow requiert obligatoirement de renseigner un commentaire de justification technique.
-              </p>
-              
-              <div className="form-group">
-                <label>Commentaire de transition *</label>
-                <textarea 
-                  className="form-control" 
-                  required 
-                  rows={3}
-                  placeholder="Renseigner le motif ou l'action menée..."
-                  value={transitionComment}
-                  onChange={(e) => setTransitionComment(e.target.value)}
-                />
+            <form onSubmit={(e) => { e.preventDefault(); executeTransition(targetTransition.toState, transitionComment); }}>
+              <div className="modal-body">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    La transition de <strong>{selectedIncident.status}</strong> vers <strong>{targetTransition.toState}</strong> requiert obligatoirement un motif.
+                  </span>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Commentaire d'audit *</label>
+                  <textarea 
+                    className="form-control" 
+                    required 
+                    rows="3" 
+                    placeholder="Saisissez le motif de cette transition..."
+                    value={transitionComment}
+                    onChange={(e) => setTransitionComment(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-            
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={() => { setShowTransitionModal(false); setTargetTransition(null); }}>
-                Annuler
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-primary"
-                onClick={() => executeTransition(targetTransition.toState, transitionComment)}
-                disabled={!transitionComment.trim()}
-              >
-                Confirmer la transition
-              </button>
-            </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowTransitionModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary">Valider la transition</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
+
+      {/* Modal 3: Create User Modal (US-USER-001) */}
+      {showUserCreateModal && (
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h3>Créer un profil utilisateur</h3>
+              <button className="modal-close-btn" onClick={() => setShowUserCreateModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleUserCreateSubmit}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Prénom *</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      required 
+                      placeholder="Sophie"
+                      value={newUserForm.firstName}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Nom *</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      required 
+                      placeholder="Martin"
+                      value={newUserForm.lastName}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, lastName: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Email *</label>
+                  <input 
+                    type="email" 
+                    className="form-control" 
+                    required 
+                    placeholder="sophie.martin@netmar.com"
+                    value={newUserForm.email}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Téléphone de garde</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="+33 6 12 34 56 78"
+                    value={newUserForm.telephone}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, telephone: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Département</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="Sécurité"
+                      value={newUserForm.department}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, department: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Poste / Fonction</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      placeholder="Ingénieur Sécurité"
+                      value={newUserForm.post}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, post: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Rôle (Habilitations)</label>
+                  <select 
+                    className="form-control" 
+                    value={newUserForm.roleId} 
+                    onChange={(e) => setNewUserForm({ ...newUserForm, roleId: e.target.value })}
+                    style={{ background: 'white' }}
+                  >
+                    {rolesList.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowUserCreateModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary">Créer le compte</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 4: Edit User Modal */}
+      {showUserEditModal && editingUser && (
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h3>Modifier le profil utilisateur</h3>
+              <button className="modal-close-btn" onClick={() => { setShowUserEditModal(false); setEditingUser(null); }}>✕</button>
+            </div>
+            <form onSubmit={handleUserEditSubmit}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Prénom *</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      required 
+                      value={editingUser.firstName}
+                      onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Nom *</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      required 
+                      value={editingUser.lastName}
+                      onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Email *</label>
+                  <input 
+                    type="email" 
+                    className="form-control" 
+                    required 
+                    value={editingUser.email}
+                    onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Téléphone de garde</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={editingUser.telephone}
+                    onChange={(e) => setEditingUser({ ...editingUser, telephone: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Département</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      value={editingUser.department}
+                      onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Poste / Fonction</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      value={editingUser.post}
+                      onChange={(e) => setEditingUser({ ...editingUser, post: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label>Rôle</label>
+                  <select 
+                    className="form-control" 
+                    value={editingUser.roleId} 
+                    onChange={(e) => setEditingUser({ ...editingUser, roleId: e.target.value })}
+                    style={{ background: 'white' }}
+                  >
+                    {rolesList.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0' }}>
+                  <input 
+                    type="checkbox" 
+                    id="edit-user-active"
+                    checked={editingUser.active}
+                    onChange={(e) => setEditingUser({ ...editingUser, active: e.target.checked })}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="edit-user-active" style={{ marginBottom: 0, fontWeight: 'bold', cursor: 'pointer' }}>Compte actif (Autoriser connexion Keycloak)</label>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowUserEditModal(false); setEditingUser(null); }}>Annuler</button>
+                <button type="submit" className="btn btn-primary">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
