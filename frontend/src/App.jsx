@@ -116,6 +116,7 @@ function App() {
     assignedToId: '',
     tags: ''
   });
+  const [newIncidentFile, setNewIncidentFile] = useState(null);
   
   const [newComment, setNewComment] = useState('');
   const [showTransitionModal, setShowTransitionModal] = useState(false);
@@ -553,6 +554,25 @@ function App() {
         throw new Error(errorData.message || "Erreur de création de l'incident.");
       }
       
+      const createdInc = await res.json();
+
+      if (newIncidentFile) {
+        const formData = new FormData();
+        formData.append('file', newIncidentFile);
+        
+        const uploadRes = await fetch(`${API_BASE}/incidents/${createdInc.incidentCode}/attachments`, {
+          method: 'POST',
+          headers: {
+            'X-Mock-User': currentUser.email
+          },
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          console.error("Le téléversement de la pièce jointe a échoué.");
+        }
+      }
+      
       setNewIncident({
         title: '',
         description: '',
@@ -561,6 +581,7 @@ function App() {
         assignedToId: '',
         tags: ''
       });
+      setNewIncidentFile(null);
       setShowCreateModal(false);
       fetchIncidents();
       setSuccessMessage("Incident déclaré avec succès !");
@@ -889,6 +910,54 @@ function App() {
       hour: '2-digit', 
       minute: '2-digit' 
     });
+  };
+
+  // Render SLA Badge helper
+  const renderSlaBadge = (inc) => {
+    if (!inc.slaDueAt) return null;
+    
+    if (inc.status === 'Résolu' || inc.status === 'Clôturé') {
+      return (
+        <span className="badge" style={{ backgroundColor: '#f0fdf4', color: '#166534', borderColor: '#86efac', fontWeight: 'bold' }}>
+          ✓ SLA Respecté
+        </span>
+      );
+    }
+
+    const dueTime = new Date(inc.slaDueAt).getTime();
+    const now = new Date().getTime();
+    const diffMs = dueTime - now;
+
+    if (diffMs < 0) {
+      const overdueMins = Math.abs(Math.round(diffMs / 60000));
+      const hours = Math.floor(overdueMins / 60);
+      const mins = overdueMins % 60;
+      const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
+      return (
+        <span className="badge pulse-active-glow" style={{ backgroundColor: '#fef2f2', color: '#991b1b', borderColor: '#fca5a5', fontWeight: 'bold' }} title={`Dépassé de ${timeStr}`}>
+          ⚠ SLA Dépassé (-{timeStr})
+        </span>
+      );
+    }
+
+    const remainingMins = Math.round(diffMs / 60000);
+    const hours = Math.floor(remainingMins / 60);
+    const mins = remainingMins % 60;
+    const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
+
+    if (remainingMins <= 30) {
+      return (
+        <span className="badge pulse-active-glow" style={{ backgroundColor: '#fff7ed', color: '#c2410c', borderColor: '#fdba74', fontWeight: 'bold' }}>
+          ⏱ Échéance ({timeStr})
+        </span>
+      );
+    }
+
+    return (
+      <span className="badge" style={{ backgroundColor: '#f0fdf4', color: '#15803d', borderColor: '#bbf7d0', fontWeight: 'bold' }}>
+        ⏱ {timeStr} restants
+      </span>
+    );
   };
 
   // SVG Donut Path helper
@@ -1327,6 +1396,28 @@ function App() {
                   </div>
                 </div>
 
+                {/* SLA Warning Banner */}
+                {selectedIncident.status !== 'Résolu' && selectedIncident.status !== 'Clôturé' && selectedIncident.slaDueAt && (() => {
+                  const dueTime = new Date(selectedIncident.slaDueAt).getTime();
+                  const diffMs = dueTime - new Date().getTime();
+                  if (diffMs < 0) {
+                    return (
+                      <div className="card" style={{ backgroundColor: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '700' }}>
+                        <AlertTriangle size={16} />
+                        <span>Attention : Le délai de résolution SLA pour cet incident a été dépassé. Action immédiate requise.</span>
+                      </div>
+                    );
+                  } else if (diffMs <= 30 * 60 * 1000) {
+                    return (
+                      <div className="card" style={{ backgroundColor: '#fff7ed', borderColor: '#fdba74', color: '#c2410c', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '700' }}>
+                        <Clock size={16} className="pulse-active-glow" style={{ borderRadius: '50%' }} />
+                        <span>Échéance proche : Cet incident doit être résolu rapidement. Il reste moins de 30 minutes.</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 <div className="detail-layout">
                   {/* Left Column: Details & Actions */}
                   <div className="card detail-card">
@@ -1363,6 +1454,12 @@ function App() {
                         <span className="meta-label">Dernière mise à jour</span>
                         <span className="meta-val">
                           {formatDate(selectedIncident.updatedAt)}
+                        </span>
+                      </div>
+                      <div className="meta-item">
+                        <span className="meta-label">SLA / Échéance</span>
+                        <span className="meta-val">
+                          {renderSlaBadge(selectedIncident)}
                         </span>
                       </div>
                     </div>
@@ -1514,9 +1611,9 @@ function App() {
                         )}
                       </div>
 
-                      <label className="upload-zone">
-                        <Paperclip size={14} style={{ marginBottom: '4px' }} />
-                        <div>Cliquer pour téléverser un fichier log/pièce</div>
+                      <label className="upload-zone" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <Paperclip size={14} />
+                        <span>Cliquer pour téléverser un fichier log/pièce</span>
                         <input 
                           type="file" 
                           style={{ display: 'none' }} 
@@ -1601,6 +1698,7 @@ function App() {
                           <th>Catégorie</th>
                           <th>Priorité</th>
                           <th>Statut</th>
+                          <th>SLA / Échéance</th>
                           <th>Auteur</th>
                         </tr>
                       </thead>
@@ -1625,6 +1723,9 @@ function App() {
                               <span className={`badge badge-${inc.status.toLowerCase().replace(' ', '-')}`}>
                                 {inc.status}
                               </span>
+                            </td>
+                            <td>
+                              {renderSlaBadge(inc)}
                             </td>
                             <td>{inc.author.name}</td>
                           </tr>
@@ -1717,6 +1818,7 @@ function App() {
                               <th>Catégorie</th>
                               <th>Priorité</th>
                               <th>Statut</th>
+                              <th>SLA / Échéance</th>
                               <th>Auteur</th>
                               <th>Date</th>
                             </tr>
@@ -1725,7 +1827,12 @@ function App() {
                             {currentIncidents.map(inc => (
                               <tr key={inc.id} onClick={() => handleSelectIncident(inc.incidentCode)} style={{ cursor: 'pointer' }}>
                                 <td style={{ fontFamily: 'var(--font-mono)', fontWeight: '700' }}>{inc.incidentCode}</td>
-                                <td style={{ fontWeight: '700' }}>{inc.title}</td>
+                                <td style={{ fontWeight: '700' }}>
+                                  {inc.title}
+                                  {inc.attachments && inc.attachments.length > 0 && (
+                                    <Paperclip size={12} className="text-slate-400" style={{ marginLeft: '6px', display: 'inline-block', verticalAlign: 'middle' }} title={`${inc.attachments.length} pièce(s) jointe(s)`} />
+                                  )}
+                                </td>
                                 <td>
                                   <span className="badge badge-normal" style={{ display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content' }}>
                                     {getCategoryIcon(inc.category)}
@@ -1742,6 +1849,9 @@ function App() {
                                   <span className={`badge badge-${inc.status.toLowerCase().replace(' ', '-')}`}>
                                     {inc.status}
                                   </span>
+                                </td>
+                                <td>
+                                  {renderSlaBadge(inc)}
                                 </td>
                                 <td>{inc.author.name}</td>
                                 <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(inc.createdAt)}</td>
@@ -2242,11 +2352,26 @@ function App() {
 
                 <div className="form-group">
                   <label>Pièce jointe (facultatif)</label>
-                  <div className="upload-zone" style={{ padding: '24px 16px' }}>
+                  <label className="upload-zone" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                     <Paperclip size={20} style={{ marginBottom: '8px', color: 'var(--primary-500)' }} />
-                    <span style={{ fontWeight: 'bold' }}>Glisser-déposer ou cliquer pour téléverser</span>
+                    <span style={{ fontWeight: 'bold' }}>{newIncidentFile ? `Fichier sélectionné : ${newIncidentFile.name}` : "Glisser-déposer ou cliquer pour téléverser"}</span>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Fichiers logs, captures d'écran (.txt, .log, .png, .jpg)</span>
-                  </div>
+                    <input 
+                      type="file" 
+                      style={{ display: 'none' }} 
+                      onChange={(e) => setNewIncidentFile(e.target.files[0])}
+                    />
+                  </label>
+                  {newIncidentFile && (
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-small" 
+                      onClick={() => setNewIncidentFile(null)} 
+                      style={{ marginTop: '8px', color: '#ef4444', width: 'fit-content' }}
+                    >
+                      Supprimer la pièce jointe
+                    </button>
+                  )}
                 </div>
               </div>
 
