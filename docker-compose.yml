@@ -19,7 +19,7 @@ services:
   incidentflow-keycloak:
     image: keycloak/keycloak:21.1.1
     container_name: incidentflow-keycloak
-    command: start-dev --import-realms
+    command: start-dev --import-realm
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: ${KC_PASSWORD}
