@@ -2158,10 +2158,33 @@ function App() {
                 </div>
 
                 {/* Filters Row */}
-                <div className="filter-panel" style={{ backgroundColor: '#e8f1fa', borderRadius: '12px', padding: '16px', display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-                  <div className="filter-item" style={{ minWidth: '120px' }}>
+                <div className="filter-panel-premium">
+                  <div className="filter-item" style={{ flexGrow: 1, minWidth: '220px' }}>
+                    <label>Recherche rapide</label>
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
+                      <input 
+                        type="text" 
+                        className="filter-select" 
+                        placeholder="Rechercher par titre, code..." 
+                        value={searchQuery} 
+                        onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                        style={{ paddingLeft: '34px', width: '100%', height: '37px' }}
+                      />
+                      {searchQuery && (
+                        <button 
+                          onClick={() => setSearchQuery('')} 
+                          style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="filter-item" style={{ minWidth: '130px' }}>
                     <label>Catégorie</label>
-                    <select className="filter-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                    <select className="filter-select" value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }} style={{ height: '37px' }}>
                       <option value="Tous">Tous</option>
                       <option value="Réseau">Réseau</option>
                       <option value="Sécurité">Sécurité</option>
@@ -2170,9 +2193,9 @@ function App() {
                     </select>
                   </div>
 
-                  <div className="filter-item" style={{ minWidth: '120px' }}>
+                  <div className="filter-item" style={{ minWidth: '130px' }}>
                     <label>Priorité</label>
-                    <select className="filter-select" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+                    <select className="filter-select" value={priorityFilter} onChange={(e) => { setPriorityFilter(e.target.value); setCurrentPage(1); }} style={{ height: '37px' }}>
                       <option value="Tous">Tous</option>
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
@@ -2181,9 +2204,9 @@ function App() {
                     </select>
                   </div>
 
-                  <div className="filter-item" style={{ minWidth: '120px' }}>
+                  <div className="filter-item" style={{ minWidth: '130px' }}>
                     <label>Statut</label>
-                    <select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <select className="filter-select" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} style={{ height: '37px' }}>
                       <option value="Tous">Tous</option>
                       <option value="Nouveau">Nouveau</option>
                       <option value="Assigné">Assigné</option>
@@ -2193,9 +2216,9 @@ function App() {
                     </select>
                   </div>
 
-                  <div className="filter-item" style={{ minWidth: '150px' }}>
+                  <div className="filter-item" style={{ minWidth: '160px' }}>
                     <label>Trier par</label>
-                    <select className="filter-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <select className="filter-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ height: '37px' }}>
                       <option value="createdAt_desc">Date (Récent)</option>
                       <option value="createdAt_asc">Date (Ancien)</option>
                       <option value="priority_desc">Sévérité</option>
@@ -2203,8 +2226,26 @@ function App() {
                   </div>
                 </div>
 
+                {/* Filtered stats summary banner */}
+                <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center', padding: '0 4px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                    Résultats : <strong style={{ color: 'var(--text-main)' }}>{sortedIncidents.length} incident{sortedIncidents.length > 1 ? 's' : ''} trouvé{sortedIncidents.length > 1 ? 's' : ''}</strong>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+                    <span className="kpi-badge kpi-badge-nouveau" style={{ marginTop: 0, padding: '2px 10px', fontSize: '9.5px' }}>
+                      {sortedIncidents.filter(i => i.priority === 'Critical').length} Critique(s)
+                    </span>
+                    <span className="kpi-badge kpi-badge-en-cours" style={{ marginTop: 0, padding: '2px 10px', fontSize: '9.5px' }}>
+                      {sortedIncidents.filter(i => i.status !== 'Résolu' && i.status !== 'Clôturé').length} Actif(s)
+                    </span>
+                    <span className="kpi-badge kpi-badge-resolu" style={{ marginTop: 0, padding: '2px 10px', fontSize: '9.5px' }}>
+                      {sortedIncidents.filter(i => i.status === 'Résolu' || i.status === 'Clôturé').length} Résolu(s)
+                    </span>
+                  </div>
+                </div>
+
                 {/* Incidents Table list */}
-                <div className="card" style={{ padding: '20px' }}>
+                <div className="dashboard-card" style={{ padding: '20px' }}>
                   {loading ? (
                     <div style={{ textAlign: 'center', padding: '40px' }}>Chargement en cours...</div>
                   ) : (
@@ -2221,6 +2262,7 @@ function App() {
                               <th>SLA / Échéance</th>
                               <th>Auteur</th>
                               <th>Date</th>
+                              <th style={{ textAlign: 'center' }}>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -2255,11 +2297,21 @@ function App() {
                                 </td>
                                 <td>{inc.author.name}</td>
                                 <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(inc.createdAt)}</td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <button 
+                                    className="btn btn-secondary btn-small" 
+                                    onClick={(e) => { e.stopPropagation(); handleSelectIncident(inc.incidentCode); }} 
+                                    style={{ padding: '6px 10px', height: '28px' }} 
+                                    title="Voir le détail"
+                                  >
+                                    <Eye size={13} />
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                             {currentIncidents.length === 0 && (
                               <tr>
-                                <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Aucun incident trouvé.</td>
+                                <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Aucun incident trouvé.</td>
                               </tr>
                             )}
                           </tbody>

@@ -19,6 +19,17 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.awt.Color;
+import com.lowagie.text.Document;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfPCell;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -189,28 +200,133 @@ public class IncidentController {
     }
 
     @GetMapping("/export/pdf")
-    public ResponseEntity<String> exportPdf(
+    public ResponseEntity<byte[]> exportPdf(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long assignedToId,
             @RequestParam(required = false) String search) {
         List<Incident> list = incidentService.getIncidents(category, priority, status, assignedToId, search);
-        StringBuilder sb = new StringBuilder();
-        sb.append("RAPPORT D'INCIDENTS - INCIDENTFLOW\n");
-        sb.append("========================================================================\n\n");
-        for (Incident inc : list) {
-            sb.append("[").append(inc.getIncidentCode()).append("] ").append(inc.getTitle()).append("\n")
-              .append("  Categorie: ").append(inc.getCategory()).append(" | Priorite: ").append(inc.getPriority()).append("\n")
-              .append("  Statut: ").append(inc.getStatus()).append("\n")
-              .append("  Auteur: ").append(inc.getAuthor().getName()).append(" | Assigne a: ").append(inc.getAssignedTo() != null ? inc.getAssignedTo().getName() : "Non assigne").append("\n")
-              .append("  Description: ").append(inc.getDescription()).append("\n")
-              .append("------------------------------------------------------------------------\n");
+        
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4, 30, 30, 40, 40);
+            PdfWriter.getInstance(document, baos);
+            document.open();
+            
+            // Define colors
+            Color primaryColor = new Color(10, 38, 71); // #0A2647
+            Color headerBgColor = new Color(15, 23, 42); // Slate 900
+            Color zebraColor = new Color(248, 250, 252); // Slate 50
+            Color borderColor = new Color(226, 232, 240); // Slate 200
+            
+            // Fonts
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18, Color.WHITE);
+            Font metaFont = FontFactory.getFont(FontFactory.HELVETICA, 9, new Color(148, 163, 184)); // Slate 400
+            Font tableHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE);
+            Font cellFont = FontFactory.getFont(FontFactory.HELVETICA, 8, new Color(51, 65, 85)); // Slate 700
+            Font codeFont = FontFactory.getFont(FontFactory.COURIER_BOLD, 8, primaryColor);
+            
+            // Main Header Banner Table
+            PdfPTable headerBanner = new PdfPTable(1);
+            headerBanner.setWidthPercentage(100);
+            headerBanner.setSpacingAfter(20);
+            
+            PdfPCell bannerCell = new PdfPCell();
+            bannerCell.setBackgroundColor(headerBgColor);
+            bannerCell.setPadding(16);
+            bannerCell.setBorder(PdfPCell.NO_BORDER);
+            
+            Paragraph title = new Paragraph("INCIDENTFLOW - RAPPORT D'INCIDENTS", titleFont);
+            title.setSpacingAfter(4);
+            bannerCell.addElement(title);
+            
+            Paragraph meta = new Paragraph("Rapport généré le " + 
+                new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date()) + 
+                " | Total incidents: " + list.size(), metaFont);
+            bannerCell.addElement(meta);
+            
+            headerBanner.addCell(bannerCell);
+            document.add(headerBanner);
+            
+            // Grid Table
+            PdfPTable table = new PdfPTable(6);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{1.8f, 3.2f, 1.4f, 1.4f, 1.4f, 2.8f}); // Column ratios
+            table.setSpacingAfter(20);
+            
+            // Table Header Row
+            String[] headers = {"Code", "Titre", "Catégorie", "Priorité", "Statut", "Créateur"};
+            for (String headerTitle : headers) {
+                PdfPCell cell = new PdfPCell(new Phrase(headerTitle, tableHeaderFont));
+                cell.setBackgroundColor(primaryColor);
+                cell.setBorderColor(borderColor);
+                cell.setPadding(8);
+                cell.setHorizontalAlignment(PdfPCell.ALIGN_LEFT);
+                table.addCell(cell);
+            }
+            
+            // Table Content Rows
+            int index = 0;
+            for (Incident inc : list) {
+                Color rowBg = (index % 2 == 0) ? Color.WHITE : zebraColor;
+                
+                // Code Cell
+                PdfPCell cCode = new PdfPCell(new Phrase(inc.getIncidentCode(), codeFont));
+                cCode.setBackgroundColor(rowBg);
+                cCode.setBorderColor(borderColor);
+                cCode.setPadding(7);
+                table.addCell(cCode);
+                
+                // Title Cell
+                PdfPCell cTitle = new PdfPCell(new Phrase(inc.getTitle(), cellFont));
+                cTitle.setBackgroundColor(rowBg);
+                cTitle.setBorderColor(borderColor);
+                cTitle.setPadding(7);
+                table.addCell(cTitle);
+                
+                // Category Cell
+                PdfPCell cCategory = new PdfPCell(new Phrase(inc.getCategory(), cellFont));
+                cCategory.setBackgroundColor(rowBg);
+                cCategory.setBorderColor(borderColor);
+                cCategory.setPadding(7);
+                table.addCell(cCategory);
+                
+                // Priority Cell
+                PdfPCell cPriority = new PdfPCell(new Phrase(inc.getPriority(), cellFont));
+                cPriority.setBackgroundColor(rowBg);
+                cPriority.setBorderColor(borderColor);
+                cPriority.setPadding(7);
+                table.addCell(cPriority);
+                
+                // Status Cell
+                PdfPCell cStatus = new PdfPCell(new Phrase(inc.getStatus(), cellFont));
+                cStatus.setBackgroundColor(rowBg);
+                cStatus.setBorderColor(borderColor);
+                cStatus.setPadding(7);
+                table.addCell(cStatus);
+                
+                // Creator Cell
+                PdfPCell cAuthor = new PdfPCell(new Phrase(inc.getAuthor().getName(), cellFont));
+                cAuthor.setBackgroundColor(rowBg);
+                cAuthor.setBorderColor(borderColor);
+                cAuthor.setPadding(7);
+                table.addCell(cAuthor);
+                
+                index++;
+            }
+            
+            document.add(table);
+            document.close();
+            
+            byte[] pdfBytes = baos.toByteArray();
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"rapport_incidents.pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfBytes);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(null);
         }
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"rapport_incidents.txt\"")
-                .contentType(MediaType.TEXT_PLAIN)
-                .body(sb.toString());
     }
 
     @Getter
