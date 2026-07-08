@@ -3,7 +3,8 @@ import {
   Shield, Activity, FileText, AlertTriangle, CheckCircle, Clock, 
   Search, User, Plus, X, Bell, Paperclip, Download, Send, 
   Globe, Cpu, Stethoscope, ArrowLeft, Eye, RefreshCw, Layers,
-  Lock, LogOut, Users, Trash2, Edit3, Settings, AlertCircle
+  Lock, LogOut, Users, Trash2, Edit3, Settings, AlertCircle,
+  ChevronDown, HelpCircle
 } from 'lucide-react';
 import './App.css';
 
@@ -31,7 +32,47 @@ function App() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [sessionTimeLeft, setSessionTimeLeft] = useState(600); // 10 minutes session for US-AUTH-001
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(() => {
+    return parseInt(localStorage.getItem('sessionDuration') || '600');
+  });
+
+  // Profile & Settings Dropdown / Modals states
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showAppSettingsModal, setShowAppSettingsModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+
+  // App Settings States
+  const [sessionDuration, setSessionDuration] = useState(() => {
+    return parseInt(localStorage.getItem('sessionDuration') || '600');
+  });
+  const [enableNotifications, setEnableNotifications] = useState(() => {
+    return localStorage.getItem('enableNotifications') !== 'false';
+  });
+  const [notificationSound, setNotificationSound] = useState(() => {
+    return localStorage.getItem('notificationSound') !== 'false';
+  });
+  const [maintenanceMode, setMaintenanceMode] = useState(() => {
+    return localStorage.getItem('maintenanceMode') === 'true';
+  });
+
+  // Edit Profile Form State
+  const [profileForm, setProfileForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    post: '',
+    department: '',
+    avatarColor: 'bg-blue-600'
+  });
+
+  // App Settings Form State
+  const [appSettingsForm, setAppSettingsForm] = useState({
+    sessionDuration: '600',
+    enableNotifications: true,
+    notificationSound: true,
+    maintenanceMode: false
+  });
 
   // Navigation
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'incidents', 'workflows', 'users'
@@ -127,14 +168,94 @@ function App() {
         if (prev <= 1) {
           handleLogout();
           alert("Votre session a expiré. Déconnexion automatique.");
-          return 600;
+          return sessionDuration;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, sessionDuration]);
+
+  // Close profile dropdown & notifications when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showProfileDropdown && !event.target.closest('.user-profile-dropdown-container')) {
+        setShowProfileDropdown(false);
+      }
+      if (showNotifications && !event.target.closest('.notif-bell-container')) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showProfileDropdown, showNotifications]);
+
+  // Open Edit Profile modal and set form fields
+  const handleOpenEditProfile = () => {
+    setProfileForm({
+      firstName: currentUser.firstName || '',
+      lastName: currentUser.lastName || '',
+      email: currentUser.email || '',
+      post: currentUser.post || '',
+      department: currentUser.department || '',
+      avatarColor: currentUser.avatarColor || 'bg-blue-600'
+    });
+    setShowEditProfileModal(true);
+    setShowProfileDropdown(false);
+  };
+
+  // Open App Settings modal and set form fields
+  const handleOpenAppSettings = () => {
+    setAppSettingsForm({
+      sessionDuration: sessionDuration.toString(),
+      enableNotifications: enableNotifications,
+      notificationSound: notificationSound,
+      maintenanceMode: maintenanceMode
+    });
+    setShowAppSettingsModal(true);
+    setShowProfileDropdown(false);
+  };
+
+  // Save profile changes
+  const handleEditProfileSubmit = (e) => {
+    e.preventDefault();
+    const updatedUser = {
+      ...currentUser,
+      firstName: profileForm.firstName,
+      lastName: profileForm.lastName,
+      name: `${profileForm.firstName} ${profileForm.lastName}`,
+      email: profileForm.email,
+      post: profileForm.post,
+      department: profileForm.department,
+      avatarColor: profileForm.avatarColor
+    };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setShowEditProfileModal(false);
+    setSuccessMessage("Profil mis à jour avec succès !");
+    setTimeout(() => setSuccessMessage(""), 3000);
+  };
+
+  // Save app settings changes
+  const handleAppSettingsSubmit = (e) => {
+    e.preventDefault();
+    const newDur = parseInt(appSettingsForm.sessionDuration);
+    setSessionDuration(newDur);
+    setSessionTimeLeft(newDur);
+    setEnableNotifications(appSettingsForm.enableNotifications);
+    setNotificationSound(appSettingsForm.notificationSound);
+    setMaintenanceMode(appSettingsForm.maintenanceMode);
+
+    localStorage.setItem('sessionDuration', appSettingsForm.sessionDuration);
+    localStorage.setItem('enableNotifications', appSettingsForm.enableNotifications.toString());
+    localStorage.setItem('notificationSound', appSettingsForm.notificationSound.toString());
+    localStorage.setItem('maintenanceMode', appSettingsForm.maintenanceMode.toString());
+
+    setShowAppSettingsModal(false);
+    setSuccessMessage("Paramètres mis à jour avec succès !");
+    setTimeout(() => setSuccessMessage(""), 3000);
+  };
 
   // Headers helper with simulated JWT & simulated user identity
   const getHeaders = () => {
@@ -257,7 +378,7 @@ function App() {
       setToken(data.token);
       setCurrentUser(data.user);
       setIsAuthenticated(true);
-      setSessionTimeLeft(600);
+      setSessionTimeLeft(sessionDuration);
       setSuccessMessage("Connexion réussie !");
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
@@ -1112,15 +1233,52 @@ function App() {
               )}
             </div>
 
-            {/* User display */}
-            <div className="user-profile-menu">
-              <div className={`avatar-circle ${currentUser.avatarColor}`}>
-                {currentUser.name.split(' ').map(n => n[0]).join('')}
-              </div>
-              <div className="profile-info">
-                <span className="profile-name">{currentUser.name}</span>
-                <span className="profile-role">{getRoleName(currentUser.role)}</span>
-              </div>
+            {/* User display with Dropdown */}
+            <div className="user-profile-dropdown-container">
+              <button 
+                className="user-profile-menu"
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              >
+                <div className={`avatar-circle ${currentUser.avatarColor}`}>
+                  {currentUser.name ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
+                </div>
+                <div className="profile-info">
+                  <span className="profile-name">{currentUser.name}</span>
+                  <span className="profile-role">{getRoleName(currentUser.role)}</span>
+                </div>
+                <ChevronDown size={14} className="dropdown-arrow" style={{ transform: showProfileDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.6 }} />
+              </button>
+
+              {showProfileDropdown && (
+                <div className="profile-dropdown-menu">
+                  <div className="profile-dropdown-header">
+                    <span className="user-name">{currentUser.name}</span>
+                    <span className="user-email">{currentUser.email}</span>
+                  </div>
+                  
+                  <button className="profile-dropdown-item" onClick={handleOpenEditProfile}>
+                    <User size={14} />
+                    <span>Modifier le profil</span>
+                  </button>
+                  
+                  <button className="profile-dropdown-item" onClick={handleOpenAppSettings}>
+                    <Settings size={14} />
+                    <span>Paramètres</span>
+                  </button>
+
+                  <button className="profile-dropdown-item" onClick={() => { setShowHelpModal(true); setShowProfileDropdown(false); }}>
+                    <HelpCircle size={14} />
+                    <span>Aide & Support</span>
+                  </button>
+
+                  <div className="profile-dropdown-divider"></div>
+
+                  <button className="profile-dropdown-item logout" onClick={() => { handleLogout(); setShowProfileDropdown(false); }}>
+                    <LogOut size={14} />
+                    <span>Se déconnecter</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -2346,6 +2504,246 @@ function App() {
                 <button type="submit" className="btn btn-primary">Enregistrer</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Profile */}
+      {showEditProfileModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <span className="modal-title">Modifier le profil</span>
+              <button className="modal-close-btn" onClick={() => setShowEditProfileModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleEditProfileSubmit}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group">
+                    <label>Prénom *</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      required 
+                      value={profileForm.firstName}
+                      onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Nom *</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      required 
+                      value={profileForm.lastName}
+                      onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Adresse e-mail *</label>
+                  <input 
+                    type="email" 
+                    className="form-control" 
+                    required 
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group">
+                    <label>Poste occupé</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      value={profileForm.post}
+                      onChange={(e) => setProfileForm({ ...profileForm, post: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Département</label>
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      value={profileForm.department}
+                      onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '8px' }}>Couleur de l'avatar</label>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    {[
+                      { key: 'bg-blue-600', color: '#2563eb', label: 'Bleu' },
+                      { key: 'bg-purple-600', color: '#9333ea', label: 'Violet' },
+                      { key: 'bg-emerald-600', color: '#059669', label: 'Vert' },
+                      { key: 'bg-red-600', color: '#dc2626', label: 'Rouge' },
+                      { key: 'bg-indigo-600', color: '#4f46e5', label: 'Indigo' }
+                    ].map(item => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setProfileForm({ ...profileForm, avatarColor: item.key })}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: item.color,
+                          border: profileForm.avatarColor === item.key ? '3px solid #000000' : '1px solid var(--border-color)',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                          transition: 'transform 0.1s',
+                          transform: profileForm.avatarColor === item.key ? 'scale(1.1)' : 'none'
+                        }}
+                        title={item.label}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditProfileModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Application Settings */}
+      {showAppSettingsModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: '440px' }}>
+            <div className="modal-header">
+              <span className="modal-title">Paramètres de l'application</span>
+              <button className="modal-close-btn" onClick={() => setShowAppSettingsModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleAppSettingsSubmit}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Durée de la session *</label>
+                  <select
+                    className="form-control"
+                    style={{ backgroundColor: 'white' }}
+                    value={appSettingsForm.sessionDuration}
+                    onChange={(e) => setAppSettingsForm({ ...appSettingsForm, sessionDuration: e.target.value })}
+                  >
+                    <option value="300">5 minutes</option>
+                    <option value="600">10 minutes (Par défaut)</option>
+                    <option value="1800">30 minutes</option>
+                    <option value="3600">1 heure</option>
+                  </select>
+                  <small style={{ color: 'var(--text-muted)', fontSize: '10px', marginTop: '4px', display: 'block' }}>
+                    Le temps après lequel l'utilisateur est déconnecté automatiquement en cas d'inactivité.
+                  </small>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <label style={{ fontWeight: '600' }}>Notifications</label>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input 
+                      type="checkbox" 
+                      id="setting-notif-enable"
+                      checked={appSettingsForm.enableNotifications}
+                      onChange={(e) => setAppSettingsForm({ ...appSettingsForm, enableNotifications: e.target.checked })}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="setting-notif-enable" style={{ marginBottom: 0, cursor: 'pointer', fontSize: '12px' }}>
+                      Activer les notifications du système
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input 
+                      type="checkbox" 
+                      id="setting-notif-sound"
+                      checked={appSettingsForm.notificationSound}
+                      onChange={(e) => setAppSettingsForm({ ...appSettingsForm, notificationSound: e.target.checked })}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="setting-notif-sound" style={{ marginBottom: 0, cursor: 'pointer', fontSize: '12px' }}>
+                      Émettre un son lors d'une notification
+                    </label>
+                  </div>
+                </div>
+
+                <div className="profile-dropdown-divider" style={{ margin: '8px 0' }}></div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input 
+                    type="checkbox" 
+                    id="setting-maintenance"
+                    checked={appSettingsForm.maintenanceMode}
+                    onChange={(e) => setAppSettingsForm({ ...appSettingsForm, maintenanceMode: e.target.checked })}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="setting-maintenance" style={{ marginBottom: 0, cursor: 'pointer', fontSize: '12px', color: '#b91c1c', fontWeight: 'bold' }}>
+                    Mode Maintenance (Simulation)
+                  </label>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowAppSettingsModal(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Help & Support */}
+      {showHelpModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content" style={{ maxWidth: '440px' }}>
+            <div className="modal-header">
+              <span className="modal-title">Aide & Support - IncidentFlow</span>
+              <button className="modal-close-btn" onClick={() => setShowHelpModal(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px', lineHeight: '1.5' }}>
+              <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--primary-50)',
+                  color: 'var(--primary-600)',
+                  marginBottom: '10px'
+                }}>
+                  <Shield size={24} />
+                </div>
+                <h4 style={{ margin: 0, fontSize: '15px', color: 'var(--primary-900)' }}>IncidentFlow Pro v1.0.0</h4>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Système de Gestion d'Incidents avec Keycloak</p>
+              </div>
+
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px', fontSize: '12px' }}>Rôles et Habilitations</strong>
+                <p style={{ color: 'var(--text-muted)', fontSize: '11.5px', margin: 0 }}>
+                  Chaque utilisateur dispose de droits spécifiques selon son rôle (Administrateur, Responsable, Opérateur). Certaines transitions de tickets ou accès aux utilisateurs nécessitent des droits d'administration.
+                </p>
+              </div>
+
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px', fontSize: '12px' }}>Mode Hors-Ligne & Keycloak</strong>
+                <p style={{ color: 'var(--text-muted)', fontSize: '11.5px', margin: 0 }}>
+                  Ce frontend se connecte à Keycloak pour la gestion d'identité et gère une session utilisateur sécurisée. Pour toute réclamation technique, contactez le support informatique.
+                </p>
+              </div>
+
+              <div style={{ backgroundColor: '#f8fafc', padding: '10px', borderRadius: '8px', fontSize: '11px', border: '1px solid var(--border-color)' }}>
+                <strong>Support technique :</strong> support@incidentflow.netmar.com<br />
+                <strong>Documentation :</strong> wiki.incidentflow.internal
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-primary" onClick={() => setShowHelpModal(false)}>Fermer</button>
+            </div>
           </div>
         </div>
       )}
