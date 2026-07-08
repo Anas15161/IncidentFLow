@@ -53,4 +53,11 @@ public class WorkflowController {
         workflowService.deleteWorkflow(id);
         return ResponseEntity.noContent().build();
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<java.util.Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("message", ex.getMessage());
+        return ResponseEntity.badRequest().body(response);
+    }
 }

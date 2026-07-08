@@ -603,7 +603,10 @@ function App() {
         body: JSON.stringify(activeWorkflow)
       });
 
-      if (!res.ok) throw new Error("Erreur lors de la sauvegarde du workflow.");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Erreur lors de la sauvegarde du workflow.");
+      }
 
       fetchWorkflows();
       setSuccessMessage("Workflow configuré enregistré avec succès !");
