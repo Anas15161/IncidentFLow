@@ -66,6 +66,12 @@ public class IncidentService {
         incident.setAuthor(author);
         incident.setStatus("Nouveau");
 
+        // Associer le workflow actif actuel pour la catégorie (Versionning)
+        try {
+            Workflow activeWorkflow = workflowService.getWorkflowByCategoryAndActive(incident.getCategory());
+            incident.setWorkflow(activeWorkflow);
+        } catch (Exception ignored) {}
+
         // Generer le code incident unique (ex: INC-2026-005)
         int year = LocalDateTime.now().getYear();
         String prefix = "INC-" + year + "-";
@@ -158,8 +164,8 @@ public class IncidentService {
         Incident incident = getIncidentByCode(code);
         String oldState = incident.getStatus();
 
-        // 1. Valider la transition via le moteur de workflow
-        workflowService.validateTransition(incident.getCategory(), oldState, toState, user, commentText);
+        // 1. Valider la transition via le moteur de workflow versionné
+        workflowService.validateTransitionForIncident(incident, oldState, toState, user, commentText);
 
         // 2. Mettre a jour le statut
         incident.setStatus(toState);

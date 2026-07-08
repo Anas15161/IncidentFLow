@@ -2,10 +2,9 @@ package com.netmar.incidentflow.service;
 
 import com.netmar.incidentflow.exception.InvalidTransitionException;
 import com.netmar.incidentflow.exception.ResourceNotFoundException;
-import com.netmar.incidentflow.model.User;
-import com.netmar.incidentflow.model.Workflow;
-import com.netmar.incidentflow.model.WorkflowTransition;
+import com.netmar.incidentflow.model.*;
 import com.netmar.incidentflow.repository.WorkflowRepository;
+import com.netmar.incidentflow.repository.IncidentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +14,11 @@ import java.util.List;
 public class WorkflowService {
 
     private final WorkflowRepository workflowRepository;
+    private final IncidentRepository incidentRepository;
 
-    public WorkflowService(WorkflowRepository workflowRepository) {
+    public WorkflowService(WorkflowRepository workflowRepository, IncidentRepository incidentRepository) {
         this.workflowRepository = workflowRepository;
+        this.incidentRepository = incidentRepository;
     }
 
     public List<Workflow> getAllWorkflows() {
@@ -37,7 +38,65 @@ public class WorkflowService {
     @Transactional
     public Workflow saveWorkflow(Workflow workflow) {
         validateWorkflowGraph(workflow);
-        // Associer bidirectionnellement les states et transitions s'ils ne le sont pas
+
+        // Désactiver les autres versions de la même catégorie si celle-ci est active
+        if (workflow.isActive() && workflow.getCategory() != null) {
+            java.util.List<Workflow> others = workflowRepository.findByCategoryOrderByVersionDesc(workflow.getCategory());
+            for (Workflow ow : others) {
+                if (workflow.getId() == null || !ow.getId().equals(workflow.getId())) {
+                    ow.setActive(false);
+                    workflowRepository.save(ow);
+                }
+            }
+        }
+
+        if (workflow.getId() != null) {
+            boolean hasLinkedIncidents = incidentRepository.existsByWorkflowId(workflow.getId());
+            if (hasLinkedIncidents) {
+                Workflow original = workflowRepository.findById(workflow.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Workflow original non trouvé"));
+                
+                original.setActive(false);
+                workflowRepository.save(original);
+
+                // Cloner pour créer une nouvelle version supérieure
+                Workflow newVersion = new Workflow();
+                newVersion.setName(workflow.getName());
+                newVersion.setCategory(workflow.getCategory());
+                newVersion.setVersion(original.getVersion() + 1);
+                newVersion.setActive(true);
+
+                if (workflow.getStates() != null) {
+                    for (WorkflowState state : workflow.getStates()) {
+                        WorkflowState newState = WorkflowState.builder()
+                                .name(state.getName())
+                                .label(state.getLabel())
+                                .colorClass(state.getColorClass())
+                                .active(state.isActive())
+                                .workflow(newVersion)
+                                .build();
+                        newVersion.getStates().add(newState);
+                    }
+                }
+
+                if (workflow.getTransitions() != null) {
+                    for (WorkflowTransition transition : workflow.getTransitions()) {
+                        WorkflowTransition newTransition = WorkflowTransition.builder()
+                                .fromState(transition.getFromState())
+                                .toState(transition.getToState())
+                                .roleRequired(transition.getRoleRequired())
+                                .requiresComment(transition.isRequiresComment())
+                                .workflow(newVersion)
+                                .build();
+                        newVersion.getTransitions().add(newTransition);
+                    }
+                }
+
+                return workflowRepository.save(newVersion);
+            }
+        }
+
+        // Modification en place
         if (workflow.getStates() != null) {
             workflow.getStates().forEach(state -> state.setWorkflow(workflow));
         }
@@ -45,6 +104,48 @@ public class WorkflowService {
             workflow.getTransitions().forEach(transition -> transition.setWorkflow(workflow));
         }
         return workflowRepository.save(workflow);
+    }
+
+    public Workflow getWorkflowByCategoryAndActive(String category) {
+        return workflowRepository.findByCategoryAndActiveTrue(category)
+                .orElseThrow(() -> new ResourceNotFoundException("Aucun workflow actif trouvé pour la catégorie : " + category));
+    }
+
+    public WorkflowTransition validateTransitionForIncident(Incident incident, String fromState, String toState, User user, String comment) {
+        Workflow workflow = incident.getWorkflow();
+        if (workflow == null) {
+            workflow = workflowRepository.findByCategoryAndActiveTrue(incident.getCategory())
+                    .orElseGet(() -> workflowRepository.findByCategory(incident.getCategory())
+                            .orElseThrow(() -> new InvalidTransitionException("Aucun workflow configuré pour la catégorie : " + incident.getCategory())));
+        }
+
+        Workflow workflowFinal = workflow;
+        WorkflowTransition match = workflow.getTransitions().stream()
+                .filter(t -> t.getFromState().equalsIgnoreCase(fromState) && t.getToState().equalsIgnoreCase(toState))
+                .findFirst()
+                .orElseThrow(() -> new InvalidTransitionException(
+                        String.format("Transition de '%s' vers '%s' non autorisée pour la version %d du workflow '%s'.", 
+                                fromState, toState, workflowFinal.getVersion(), workflowFinal.getName())
+                ));
+
+        if (match.getRoleRequired() != null && !match.getRoleRequired().trim().isEmpty()) {
+            if (user == null || user.getRole() == null || !user.getRole().getName().equalsIgnoreCase(match.getRoleRequired().trim())) {
+                throw new InvalidTransitionException(
+                        String.format("Rôle '%s' requis pour effectuer cette transition. Votre rôle : %s.",
+                                match.getRoleRequired(), user != null && user.getRole() != null ? user.getRole().getName() : "Aucun")
+                );
+            }
+        }
+
+        if (match.isRequiresComment()) {
+            if (comment == null || comment.trim().isEmpty()) {
+                throw new InvalidTransitionException(
+                        String.format("Un commentaire est obligatoire pour passer de '%s' vers '%s'.", fromState, toState)
+                );
+            }
+        }
+
+        return match;
     }
 
     public void validateWorkflowGraph(Workflow workflow) {

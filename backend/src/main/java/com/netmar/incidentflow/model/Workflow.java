@@ -18,11 +18,15 @@ public class Workflow {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String category;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int version = 1;
 
     @Column(nullable = false)
     @Builder.Default

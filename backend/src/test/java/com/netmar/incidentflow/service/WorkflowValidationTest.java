@@ -4,6 +4,7 @@ import com.netmar.incidentflow.model.Workflow;
 import com.netmar.incidentflow.model.WorkflowState;
 import com.netmar.incidentflow.model.WorkflowTransition;
 import com.netmar.incidentflow.repository.WorkflowRepository;
+import com.netmar.incidentflow.repository.IncidentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +21,8 @@ public class WorkflowValidationTest {
     @BeforeEach
     public void setUp() {
         WorkflowRepository workflowRepository = mock(WorkflowRepository.class);
-        workflowService = new WorkflowService(workflowRepository);
+        IncidentRepository incidentRepository = mock(IncidentRepository.class);
+        workflowService = new WorkflowService(workflowRepository, incidentRepository);
     }
 
     @Test

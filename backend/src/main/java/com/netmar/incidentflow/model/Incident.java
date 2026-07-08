@@ -58,6 +58,10 @@ public class Incident {
     @JoinColumn(name = "assigned_to_id")
     private User assignedTo;
 
+    @ManyToOne
+    @JoinColumn(name = "workflow_id")
+    private Workflow workflow;
+
     @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Comment> comments = new ArrayList<>();

@@ -11,6 +11,7 @@ import java.util.Optional;
 @Repository
 public interface IncidentRepository extends JpaRepository<Incident, Long>, JpaSpecificationExecutor<Incident> {
     Optional<Incident> findByIncidentCode(String incidentCode);
+    boolean existsByWorkflowId(Long workflowId);
 
     @Query("SELECT MAX(i.incidentCode) FROM Incident i WHERE i.incidentCode LIKE :prefix%")
     String findMaxIncidentCodeByPrefix(@Param("prefix") String prefix);
