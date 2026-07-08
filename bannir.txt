@@ -1,0 +1,43 @@
+### 1. Exposition du Webhook de Réception des Événements ( AuthController.java )
+
+  J'ai ajouté le point d'accès POST  /api/auth/keycloak-event  dans AuthController.java :
+
+  • Interprétation de la charge utile (Payload) : Le contrôleur extrait l'adresse email ou le nom d'utilisateur à partir des
+  propriétés de l'événement ou du sous-objet  details  envoyé par Keycloak. Si seul un identifiant numérique ( userId ) est
+  fourni, il effectue automatiquement une résolution d'adresse email depuis la base de données.
+  • Détection des événements critiques : Si le type d'événement est de nature révocatoire ( LOGOUT ,  DISABLE_USER  ou 
+  DELETE_USER ), le système :
+      1. Enregistre une clé d'invalidation dans Redis ( blacklist:user:<email> ) avec une durée de vie (TTL) d'une heure.
+      2. Si l'événement est  DISABLE_USER  ou  DELETE_USER , il met à jour à  false  le drapeau  active  de l'utilisateur dans
+      PostgreSQL pour une révocation persistante.
+
+
+  ### 2. Filtre d'Interception à Faible Latence ( SessionValidationFilter.java )
+
+  Création d'un filtre personnalisé SessionValidationFilter.java étendant  OncePerRequestFilter  :
+
+  • Lecture sans état : Il extrait l'adresse email de l'appelant actuel (soit depuis les claims du jeton JWT décrypté en
+  production, soit depuis le header  X-Mock-User  utilisé en mode développement).
+  • Vérification ultra-rapide (Redis) : Il interroge Redis pour vérifier l'existence de la clé de blacklist
+  blacklist:user:<email> .
+  • Révocation instantanée : Si l'utilisateur est banni dans Redis, le filtre bloque immédiatement la requête en répondant par
+  un code de statut  403 Forbidden  et un message JSON explicatif, sans jamais interroger la base de données PostgreSQL, ce qui
+  garantit des performances maximales.
+  • Les requêtes de connexion et de webhook sont exclues pour éviter les blocages de boucle.
+
+  ### 3. Enregistrement dans la Chaîne de Sécurité Spring Security ( SecurityConfig.java )
+
+  • Dans SecurityConfig.java, le nouveau filtre  SessionValidationFilter  a été câblé et configuré pour s'exécuter avant le filtre
+  standard d'authentification ( UsernamePasswordAuthenticationFilter ), protégeant ainsi à la fois la chaîne d'authentification
+  simulée ( dev-mock ) et la chaîne de production JWT ( prod ).
+
+  ### 4. Tests Unitaires & Couverture ( SessionValidationFilterTest.java )
+
+  J'ai écrit 3 tests unitaires complets dans SessionValidationFilterTest.java pour garantir le comportement :
+
+  •  testAuthPathBypassed  : Vérifie que le filtre n'interfère pas avec les requêtes d'authentification (comme  /api/auth/login
+  ).
+  •  testUserNotBlacklistedAllowsRequest  : Valide qu'un utilisateur régulier accède librement aux ressources.
+  •  testUserBlacklistedBlocksRequest  : Valide qu'un utilisateur présent dans la blacklist Redis est immédiatement rejeté avec
+  un HTTP  403 Forbidden .
+  • Résultat : Les 14 tests unitaires de l'application passent tous au vert avec succès !
