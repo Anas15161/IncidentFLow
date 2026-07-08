@@ -6,6 +6,15 @@ import {
   Lock, LogOut, Users, Trash2, Edit3, Settings, AlertCircle,
   ChevronDown, HelpCircle
 } from 'lucide-react';
+import ReactFlow, { 
+  MiniMap, 
+  Controls, 
+  Background, 
+  useNodesState, 
+  useEdgesState, 
+  MarkerType
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 import './App.css';
 
 const API_BASE = 'http://localhost:8080/api';
@@ -16,6 +25,70 @@ const USERS = [
   { id: 3, name: "Marie Laurent", firstName: "Marie", lastName: "Laurent", email: "marie.l@netmar.com", role: "Opérateur", department: "Support client", post: "Opératrice Réseau", avatarColor: "bg-emerald-600" },
   { id: 4, name: "Dr. Jean Robert", firstName: "Jean", lastName: "Robert", email: "jean.r@netmar.com", role: "Opérateur médical", department: "Urgences médicales", post: "Médecin Coordinateur", avatarColor: "bg-red-600" }
 ];
+
+const getInitialNodes = (states) => {
+  if (!states) return [];
+  return states.map((state, index) => {
+    const isNouveau = state.name.toLowerCase() === 'nouveau';
+    const isCloture = state.name.toLowerCase() === 'clôturé' || state.name.toLowerCase() === 'cloture';
+    
+    let nodeType = 'default';
+    if (isNouveau) nodeType = 'input';
+    else if (isCloture) nodeType = 'output';
+
+    let x = 250;
+    let y = 150;
+    if (isNouveau) {
+      x = 50;
+      y = 150;
+    } else if (isCloture) {
+      x = 580;
+      y = 150;
+    } else {
+      const others = states.filter(s => {
+        const name = s.name.toLowerCase();
+        return name !== 'nouveau' && name !== 'clôturé' && name !== 'cloture';
+      });
+      const idx = others.findIndex(o => o.name === state.name);
+      x = 220 + (idx * 160);
+      y = 60 + (idx % 2 * 160);
+    }
+    
+    return {
+      id: state.name,
+      type: nodeType,
+      data: { label: `${state.label} (${state.name})` },
+      position: { x, y },
+      style: {
+        background: state.active ? '#f8fafc' : '#e2e8f0',
+        color: '#0f172a',
+        border: '2px solid ' + (isNouveau ? '#10b981' : isCloture ? '#6366f1' : '#3b82f6'),
+        borderRadius: '8px',
+        padding: '10px',
+        fontWeight: 'bold',
+        fontSize: '11px',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+        width: 140
+      }
+    };
+  });
+};
+
+const getInitialEdges = (transitions) => {
+  if (!transitions) return [];
+  return transitions.map((t, idx) => ({
+    id: `e-${t.fromState}-${t.toState}`,
+    source: t.fromState,
+    target: t.toState,
+    animated: true,
+    style: { stroke: '#3b82f6', strokeWidth: 2 },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      color: '#3b82f6'
+    },
+    label: t.roleRequired ? `🔑 ${t.roleRequired}` : ''
+  }));
+};
 
 function App() {
   const getRoleName = (role) => {
@@ -148,6 +221,54 @@ function App() {
   const [newTransTo, setNewTransTo] = useState('');
   const [newTransRole, setNewTransRole] = useState('');
   const [newTransRequiresComment, setNewTransRequiresComment] = useState(false);
+  const [editorMode, setEditorMode] = useState('visual'); // 'visual' or 'textual'
+
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  useEffect(() => {
+    if (activeWorkflow) {
+      setNodes(getInitialNodes(activeWorkflow.states));
+      setEdges(getInitialEdges(activeWorkflow.transitions));
+    }
+  }, [activeWorkflow]);
+
+  const onConnect = (params) => {
+    const { source, target } = params;
+    if (source === target) return;
+    
+    // Check if transition already exists
+    const exists = activeWorkflow.transitions.some(
+      t => t.fromState.toLowerCase() === source.toLowerCase() && t.toState.toLowerCase() === target.toLowerCase()
+    );
+    if (exists) return;
+
+    const newTransition = {
+      fromState: source,
+      toState: target,
+      roleRequired: '',
+      requiresComment: false
+    };
+
+    const updatedWf = {
+      ...activeWorkflow,
+      transitions: [...activeWorkflow.transitions, newTransition]
+    };
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+  };
+
+  const onEdgesDelete = (edgesToDelete) => {
+    let updatedTransitions = [...activeWorkflow.transitions];
+    edgesToDelete.forEach(edge => {
+      updatedTransitions = updatedTransitions.filter(
+        t => !(t.fromState.toLowerCase() === edge.source.toLowerCase() && t.toState.toLowerCase() === edge.target.toLowerCase())
+      );
+    });
+    const updatedWf = { ...activeWorkflow, transitions: updatedTransitions };
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+  };
 
   // Load Session on start
   useEffect(() => {
@@ -1940,7 +2061,47 @@ function App() {
                   ))}
                 </div>
 
+                {/* Visual / Textual Mode Toggle */}
                 {activeWorkflow && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', backgroundColor: '#e2e8f0', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+                    <button 
+                      onClick={() => setEditorMode('visual')}
+                      className="btn" 
+                      style={{ 
+                        backgroundColor: editorMode === 'visual' ? 'white' : 'transparent', 
+                        color: editorMode === 'visual' ? 'var(--primary-700)' : 'var(--text-muted)',
+                        boxShadow: editorMode === 'visual' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        border: 'none',
+                        fontWeight: '700',
+                        padding: '6px 16px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Éditeur Graphique (Visual)
+                    </button>
+                    <button 
+                      onClick={() => setEditorMode('textual')}
+                      className="btn" 
+                      style={{ 
+                        backgroundColor: editorMode === 'textual' ? 'white' : 'transparent', 
+                        color: editorMode === 'textual' ? 'var(--primary-700)' : 'var(--text-muted)',
+                        boxShadow: editorMode === 'textual' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                        border: 'none',
+                        fontWeight: '700',
+                        padding: '6px 16px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Configuration Textuelle
+                    </button>
+                  </div>
+                )}
+
+                {activeWorkflow && editorMode === 'textual' && (
                   <div className="workflow-setup-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                     {/* Left Column: General & States Edit */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -2165,6 +2326,123 @@ function App() {
                               </div>
                             );
                           })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeWorkflow && editorMode === 'visual' && (
+                  <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {/* Visual Editor Card */}
+                    <div className="card" style={{ padding: '24px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+                        <div>
+                          <h3 className="widget-title">Concepteur Visuel Interactif</h3>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Définissez les transitions et organisez vos états graphiquement.</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <span className="badge badge-normal" style={{ fontSize: '10px', fontWeight: 'bold' }}>Actif</span>
+                        </div>
+                      </div>
+
+                      {/* Info and Tips Banner */}
+                      <div style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0', color: '#15803d', padding: '14px', borderRadius: '8px', marginBottom: '16px', fontSize: '11.5px', display: 'flex', flexDirection: 'column', gap: '6px', fontWeight: '700', border: '1px solid' }}>
+                        <div>💡 Glissez-déposez la ligne depuis le point de sortie d'un état vers un autre état pour créer une transition.</div>
+                        <div>💡 Sélectionnez une ligne de transition (lien) et appuyez sur la touche "Suppr" ou "Backspace" pour la supprimer.</div>
+                        <div>💡 Déplacez librement les boîtes d'états pour organiser la présentation spatiale.</div>
+                      </div>
+
+                      {/* React Flow Canvas container */}
+                      <div style={{ width: '100%', height: '480px', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#fafafa', position: 'relative' }}>
+                        <ReactFlow
+                          nodes={nodes}
+                          edges={edges}
+                          onNodesChange={onNodesChange}
+                          onEdgesChange={onEdgesChange}
+                          onConnect={onConnect}
+                          onEdgesDelete={onEdgesDelete}
+                          fitView
+                        >
+                          <Controls />
+                          <MiniMap />
+                          <Background color="#ccc" gap={16} />
+                        </ReactFlow>
+                      </div>
+                    </div>
+
+                    {/* Bottom row: Add states inline in visual mode so they don't have to switch to textual mode! */}
+                    <div className="workflow-setup-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                      {/* Left: Quick Add State */}
+                      <div className="card" style={{ padding: '20px' }}>
+                        <h3 className="widget-title" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>Ajouter un État Graphique</h3>
+                        <form onSubmit={handleAddStateToWorkflow} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label style={{ fontSize: '9px' }}>Clé technique ID</label>
+                              <input 
+                                type="text" 
+                                className="form-control" 
+                                placeholder="Ex: Validation"
+                                value={newStateId}
+                                onChange={(e) => setNewStateId(e.target.value)}
+                                required 
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                              <label style={{ fontSize: '9px' }}>Libellé Affichage</label>
+                              <input 
+                                type="text" 
+                                className="form-control" 
+                                placeholder="Ex: En validation"
+                                value={newStateLabel}
+                                onChange={(e) => setNewStateLabel(e.target.value)}
+                                required 
+                              />
+                            </div>
+                          </div>
+                          <button type="submit" className="btn btn-primary btn-small" style={{ alignSelf: 'flex-end' }}>Ajouter au graphique</button>
+                        </form>
+                      </div>
+
+                      {/* Right: Quick Configure Transition properties (like adding role or comment requirement) */}
+                      <div className="card" style={{ padding: '20px' }}>
+                        <h3 className="widget-title" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>Configuration des Transitions ({activeWorkflow.transitions.length})</h3>
+                        <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {activeWorkflow.transitions.map((t, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px' }}>
+                              <div>
+                                <span style={{ fontWeight: 'bold' }}>{t.fromState} ➔ {t.toState}</span>
+                                <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                  {t.roleRequired ? `🔑 ${t.roleRequired}` : '🔓 Tous'} {t.requiresComment ? ' • 💬 Commentaire requis' : ''}
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: '4px' }}>
+                                <button 
+                                  type="button" 
+                                  className="btn btn-secondary btn-small" 
+                                  style={{ padding: '2px 6px', fontSize: '9px' }}
+                                  onClick={() => {
+                                    const req = !t.requiresComment;
+                                    const updated = activeWorkflow.transitions.map((tr, i) => i === idx ? { ...tr, requiresComment: req } : tr);
+                                    const updatedWf = { ...activeWorkflow, transitions: updated };
+                                    setActiveWorkflow(updatedWf);
+                                    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+                                  }}
+                                >
+                                  💬 Commentaire
+                                </button>
+                                <button 
+                                  type="button" 
+                                  className="icon-btn btn-secondary" 
+                                  onClick={() => handleDeleteTransitionFromWorkflow(t.fromState, t.toState)}
+                                  style={{ color: '#ef4444', border: 'none', padding: '2px' }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>

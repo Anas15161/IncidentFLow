@@ -13,7 +13,8 @@
     "keycloak-js": "^26.2.4",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
