@@ -43,6 +43,13 @@ public class Incident {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "sla_due_at")
+    private LocalDateTime slaDueAt;
+
+    @Column(name = "escalated", nullable = false)
+    @Builder.Default
+    private boolean escalated = false;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
@@ -67,6 +74,19 @@ public class Incident {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (slaDueAt == null) {
+            long hours = 36;
+            if ("Critical".equalsIgnoreCase(priority)) {
+                hours = "Médical".equalsIgnoreCase(category) ? 1 : 2;
+            } else if ("High".equalsIgnoreCase(priority)) {
+                hours = 12;
+            } else if ("Medium".equalsIgnoreCase(priority)) {
+                hours = 36;
+            } else if ("Low".equalsIgnoreCase(priority)) {
+                hours = 72;
+            }
+            slaDueAt = createdAt.plusHours(hours);
+        }
     }
 
     @PreUpdate

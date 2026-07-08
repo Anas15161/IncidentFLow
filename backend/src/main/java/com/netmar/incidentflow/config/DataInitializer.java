@@ -216,7 +216,7 @@ public class DataInitializer implements CommandLineRunner {
 
         // 4. Initialiser quelques incidents factices issus de la maquette
         if (incidentRepository.count() == 0) {
-            // Incident 1
+            // Incident 1: Warning state (15 minutes left)
             Incident inc1 = Incident.builder()
                     .incidentCode("INC-2026-001")
                     .title("Panne du serveur DHCP principal")
@@ -225,6 +225,7 @@ public class DataInitializer implements CommandLineRunner {
                     .priority("Critical")
                     .status("Nouveau")
                     .author(marie)
+                    .slaDueAt(LocalDateTime.now().plusMinutes(15))
                     .build();
 
             inc1.setHistory(List.of(
@@ -232,7 +233,7 @@ public class DataInitializer implements CommandLineRunner {
             ));
             incidentRepository.save(inc1);
 
-            // Incident 2
+            // Incident 2: Normal state (1h30 left)
             Incident inc2 = Incident.builder()
                     .incidentCode("INC-2026-002")
                     .title("Tentative d'intrusion brute force - Pare-feu externe")
@@ -242,6 +243,7 @@ public class DataInitializer implements CommandLineRunner {
                     .status("En cours")
                     .author(sophie)
                     .assignedTo(anas)
+                    .slaDueAt(LocalDateTime.now().plusHours(1).plusMinutes(30))
                     .build();
 
             inc2.setHistory(List.of(
@@ -259,7 +261,7 @@ public class DataInitializer implements CommandLineRunner {
             ));
             incidentRepository.save(inc2);
 
-            // Incident 3 (Cas Médical avec affectation automatique)
+            // Incident 3: Breached state (45 minutes overdue)
             Incident inc3 = Incident.builder()
                     .incidentCode("INC-2026-003")
                     .title("Urgences Médicales - Incident d'inhalation toxique")
@@ -269,6 +271,7 @@ public class DataInitializer implements CommandLineRunner {
                     .status("En cours")
                     .author(marie)
                     .assignedTo(drJean)
+                    .slaDueAt(LocalDateTime.now().minusMinutes(45))
                     .build();
 
             inc3.setHistory(List.of(
@@ -292,6 +295,7 @@ public class DataInitializer implements CommandLineRunner {
                     .status("Résolu")
                     .author(anas)
                     .assignedTo(anas)
+                    .slaDueAt(LocalDateTime.now().plusHours(12))
                     .build();
 
             inc4.setHistory(List.of(
