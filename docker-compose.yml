@@ -37,6 +37,15 @@ services:
       - incidentflow-network
     restart: unless-stopped
 
+  incidentflow-redis:
+    image: redis:7-alpine
+    container_name: incidentflow-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - incidentflow-network
+    restart: unless-stopped
+
   incidentflow-backend:
     build: ./backend
     container_name: incidentflow-backend
@@ -45,10 +54,13 @@ services:
       SPRING_DATASOURCE_USERNAME: IncidentFlow_user
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_PROFILES_ACTIVE: dev-mock
+      SPRING_DATA_REDIS_HOST: incidentflow-redis
+      SPRING_DATA_REDIS_PORT: 6379
     ports:
       - "8080:8080"
     depends_on:
       - incidentflow-postgres
+      - incidentflow-redis
     networks:
       - incidentflow-network
     restart: unless-stopped

@@ -8,6 +8,8 @@ import com.netmar.incidentflow.repository.IncidentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import java.util.List;
 
 @Service
@@ -21,21 +23,25 @@ public class WorkflowService {
         this.incidentRepository = incidentRepository;
     }
 
+    @Cacheable(value = "workflows", key = "'all'")
     public List<Workflow> getAllWorkflows() {
         return workflowRepository.findAll();
     }
 
+    @Cacheable(value = "workflows", key = "#id")
     public Workflow getWorkflowById(Long id) {
         return workflowRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Workflow not found with ID: " + id));
     }
 
+    @Cacheable(value = "workflows-category", key = "#category")
     public Workflow getWorkflowByCategory(String category) {
         return workflowRepository.findByCategory(category)
                 .orElseThrow(() -> new ResourceNotFoundException("No workflow found for category: " + category));
     }
 
     @Transactional
+    @CacheEvict(value = {"workflows", "workflows-category"}, allEntries = true)
     public Workflow saveWorkflow(Workflow workflow) {
         validateWorkflowGraph(workflow);
 
@@ -106,6 +112,7 @@ public class WorkflowService {
         return workflowRepository.save(workflow);
     }
 
+    @Cacheable(value = "workflows-category", key = "#category + '-active'")
     public Workflow getWorkflowByCategoryAndActive(String category) {
         return workflowRepository.findByCategoryAndActiveTrue(category)
                 .orElseThrow(() -> new ResourceNotFoundException("Aucun workflow actif trouvé pour la catégorie : " + category));
@@ -238,6 +245,7 @@ public class WorkflowService {
     }
 
     @Transactional
+    @CacheEvict(value = {"workflows", "workflows-category"}, allEntries = true)
     public void deleteWorkflow(Long id) {
         Workflow workflow = getWorkflowById(id);
         workflowRepository.delete(workflow);
