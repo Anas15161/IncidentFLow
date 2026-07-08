@@ -4,6 +4,7 @@ import com.netmar.incidentflow.model.User;
 import com.netmar.incidentflow.repository.UserRepository;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,10 +19,12 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StringRedisTemplate redisTemplate;
 
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, StringRedisTemplate redisTemplate) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.redisTemplate = redisTemplate;
     }
 
     @PostMapping("/login")
@@ -55,6 +58,53 @@ public class AuthController {
             "user", user,
             "expiresIn", 3600
         ));
+    }
+
+    @PostMapping("/keycloak-event")
+    public ResponseEntity<?> handleKeycloakEvent(@RequestBody Map<String, Object> event) {
+        String type = (String) event.get("type");
+        String email = (String) event.get("email");
+        String userId = (String) event.get("userId");
+
+        if (email == null && event.get("details") instanceof Map) {
+            Map<?, ?> details = (Map<?, ?>) event.get("details");
+            email = (String) details.get("email");
+            if (email == null) {
+                email = (String) details.get("username");
+            }
+        }
+
+        if (email == null && userId != null) {
+            try {
+                Optional<User> u = userRepository.findById(Long.parseLong(userId));
+                if (u.isPresent()) {
+                    email = u.get().getEmail();
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (email == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email utilisateur introuvable dans l'événement."));
+        }
+
+        // Si l'utilisateur est déconnecté ou désactivé
+        if ("LOGOUT".equalsIgnoreCase(type) || "DISABLE_USER".equalsIgnoreCase(type) || "DELETE_USER".equalsIgnoreCase(type)) {
+            String redisKey = "blacklist:user:" + email;
+            try {
+                redisTemplate.opsForValue().set(redisKey, "true", 1, java.util.concurrent.TimeUnit.HOURS);
+            } catch (Exception ignored) {}
+
+            if ("DISABLE_USER".equalsIgnoreCase(type) || "DELETE_USER".equalsIgnoreCase(type)) {
+                Optional<User> userOpt = userRepository.findByEmail(email);
+                if (userOpt.isPresent()) {
+                    User user = userOpt.get();
+                    user.setActive(false);
+                    userRepository.save(user);
+                }
+            }
+        }
+
+        return ResponseEntity.ok(Map.of("message", "Événement Keycloak traité avec succès."));
     }
 
     @PostMapping("/logout")

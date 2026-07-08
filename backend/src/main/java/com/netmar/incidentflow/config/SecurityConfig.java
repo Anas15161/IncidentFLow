@@ -21,6 +21,12 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private final SessionValidationFilter sessionValidationFilter;
+
+    public SecurityConfig(SessionValidationFilter sessionValidationFilter) {
+        this.sessionValidationFilter = sessionValidationFilter;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -32,6 +38,7 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .addFilterBefore(sessionValidationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .anyRequest().permitAll() // Permettre tout en local dev-mock, la gestion des rôles sera simulée
             );
@@ -44,6 +51,7 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .addFilterBefore(sessionValidationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .anyRequest().authenticated()
             )
