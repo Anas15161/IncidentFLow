@@ -1465,6 +1465,12 @@ function App() {
                           {renderSlaBadge(selectedIncident)}
                         </span>
                       </div>
+                      <div className="meta-item">
+                        <span className="meta-label">Version Workflow</span>
+                        <span className="meta-val" style={{ fontWeight: '700', color: 'var(--primary-600)' }}>
+                          {selectedIncident.workflow ? `${selectedIncident.workflow.name} (v${selectedIncident.workflow.version})` : 'Par défaut (v1)'}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="form-group">
@@ -1929,7 +1935,7 @@ function App() {
                         fontSize: '13px'
                       }}
                     >
-                      {wf.category} ({wf.active ? 'Actif' : 'Inactif'})
+                      {wf.category} v{wf.version || 1} {wf.active ? '(Actif)' : '(Archivé)'}
                     </button>
                   ))}
                 </div>
@@ -1940,7 +1946,12 @@ function App() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                       {/* General Parameters */}
                       <div className="card" style={{ padding: '24px' }}>
-                        <h3 className="widget-title" style={{ marginBottom: '16px' }}>Paramètres du Workflow</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <h3 className="widget-title" style={{ margin: 0 }}>Paramètres du Workflow</h3>
+                          <span className="badge" style={{ backgroundColor: activeWorkflow.active ? 'var(--primary-50)' : 'var(--slate-100)', color: activeWorkflow.active ? 'var(--primary-700)' : 'var(--text-muted)', fontWeight: 'bold', border: '1px solid var(--border-color)' }}>
+                            Version {activeWorkflow.version || 1} — {activeWorkflow.active ? 'Actif' : 'Archivé (Historique)'}
+                          </span>
+                        </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
                           <div style={{ flexGrow: 1 }}>
                             <label style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Nom du processus</label>
