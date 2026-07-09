@@ -191,6 +191,14 @@ function App() {
     tags: ''
   });
   const [newIncidentFile, setNewIncidentFile] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editIncidentForm, setEditIncidentForm] = useState({
+    title: '',
+    description: '',
+    category: 'Réseau',
+    priority: 'Medium',
+    assignedToId: ''
+  });
   
   const [newComment, setNewComment] = useState('');
   const [showTransitionModal, setShowTransitionModal] = useState(false);
@@ -707,6 +715,56 @@ function App() {
       setShowCreateModal(false);
       fetchIncidents();
       setSuccessMessage("Incident déclaré avec succès !");
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
+  // Open Edit Incident Modal
+  const handleOpenEditModal = () => {
+    if (!selectedIncident) return;
+    setEditIncidentForm({
+      title: selectedIncident.title,
+      description: selectedIncident.description,
+      category: selectedIncident.category,
+      priority: selectedIncident.priority,
+      assignedToId: selectedIncident.assignedTo ? selectedIncident.assignedTo.id.toString() : ''
+    });
+    setShowEditModal(true);
+  };
+
+  // Submit Edit Incident (PUT)
+  const handleEditIncidentSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    
+    const selectedAssignee = usersList.find(u => u.id.toString() === editIncidentForm.assignedToId);
+    const payload = {
+      title: editIncidentForm.title,
+      description: editIncidentForm.description,
+      category: editIncidentForm.category,
+      priority: editIncidentForm.priority,
+      assignedTo: selectedAssignee ? { id: selectedAssignee.id } : null
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/incidents/${selectedIncident.incidentCode}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Erreur de mise à jour de l'incident.");
+      }
+
+      const updatedInc = await res.json();
+      setSelectedIncident(updatedInc);
+      setShowEditModal(false);
+      fetchIncidents();
+      setSuccessMessage("Incident mis à jour avec succès !");
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
       setErrorMessage(err.message);
@@ -1790,12 +1848,60 @@ function App() {
                 <div className="detail-layout">
                   {/* Left Column: Details & Actions */}
                   <div className="card detail-card">
-                    <div className="detail-header">
+                    <div className="detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
                       <div>
                         <div className="detail-code">{selectedIncident.incidentCode}</div>
-                        <h1 className="detail-title">{selectedIncident.title}</h1>
+                        <h1 className="detail-title" style={{ marginTop: '4px' }}>{selectedIncident.title}</h1>
                       </div>
+                      <button className="btn btn-secondary btn-small" onClick={handleOpenEditModal} style={{ gap: '6px', height: '32px' }}>
+                        <Edit3 size={13} />
+                        Modifier
+                      </button>
                     </div>
+
+                    {/* Stepper horizontal de workflow */}
+                    {selectedIncidentWorkflow && selectedIncidentWorkflow.states && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border-color)', overflowX: 'auto', flexWrap: 'nowrap' }}>
+                        {selectedIncidentWorkflow.states.map((state, idx) => {
+                          const isCurrent = state.name.toLowerCase() === selectedIncident.status.toLowerCase();
+                          const currentStateIndex = selectedIncidentWorkflow.states.findIndex(s => s.name.toLowerCase() === selectedIncident.status.toLowerCase());
+                          const isPassed = idx < currentStateIndex;
+                          return (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center', 
+                                  width: '20px', 
+                                  height: '20px', 
+                                  borderRadius: '50%', 
+                                  fontSize: '10px', 
+                                  fontWeight: '800',
+                                  backgroundColor: isCurrent ? 'var(--primary-600)' : (isPassed ? '#dcfce7' : '#f1f5f9'),
+                                  color: isCurrent ? '#ffffff' : (isPassed ? '#15803d' : '#64748b'),
+                                  border: isCurrent ? '3px solid #dbeafe' : 'none',
+                                  animation: isCurrent ? 'pulse-glow 2s infinite' : 'none'
+                                }}>
+                                  {isPassed ? '✓' : idx + 1}
+                                </span>
+                                <span style={{ 
+                                  fontSize: '11px', 
+                                  fontWeight: '700', 
+                                  color: isCurrent ? 'var(--primary-700)' : (isPassed ? '#166534' : 'var(--text-muted)'),
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {state.name}
+                                </span>
+                              </div>
+                              {idx < selectedIncidentWorkflow.states.length - 1 && (
+                                <span style={{ color: '#cbd5e1', fontSize: '11px', fontWeight: 'bold' }}>→</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <div className="detail-meta-grid">
                       <div className="meta-item">
@@ -2872,6 +2978,99 @@ function App() {
           MODALS & DIALOGS PORTALS
           ========================================== */}
       
+      {/* Modal 0: Edit Incident Modal */}
+      {showEditModal && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <div className="modal-header">
+              <h3>Modifier l'incident</h3>
+              <button className="modal-close-btn" onClick={() => setShowEditModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleEditIncidentSubmit}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Titre de l'incident *</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    required 
+                    value={editIncidentForm.title}
+                    onChange={(e) => setEditIncidentForm({ ...editIncidentForm, title: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label>Catégorie *</label>
+                    <select 
+                      className="form-control" 
+                      value={editIncidentForm.category}
+                      onChange={(e) => setEditIncidentForm({ ...editIncidentForm, category: e.target.value })}
+                      style={{ background: 'white' }}
+                    >
+                      <option value="Réseau">Réseau</option>
+                      <option value="Sécurité">Sécurité</option>
+                      <option value="Système">Système</option>
+                      <option value="Médical">Médical</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Priorité *</label>
+                    <select 
+                      className="form-control" 
+                      value={editIncidentForm.priority}
+                      onChange={(e) => setEditIncidentForm({ ...editIncidentForm, priority: e.target.value })}
+                      style={{ background: 'white' }}
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Critical">Critical</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Assigner à</label>
+                  <select 
+                    className="form-control" 
+                    value={editIncidentForm.assignedToId}
+                    onChange={(e) => setEditIncidentForm({ ...editIncidentForm, assignedToId: e.target.value })}
+                    style={{ background: 'white' }}
+                  >
+                    <option value="">Non assigné</option>
+                    {usersList.map(u => (
+                      <option key={u.id} value={u.id.toString()}>{u.name} ({getRoleName(u.role)})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Description *</label>
+                  <textarea 
+                    className="form-control" 
+                    rows="4" 
+                    required 
+                    value={editIncidentForm.description}
+                    onChange={(e) => setEditIncidentForm({ ...editIncidentForm, description: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>
+                  Annuler
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Enregistrer les modifications
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Modal 1: Create Incident Modal (US-INC-001) */}
       {showCreateModal && (
         <div className="modal-overlay">

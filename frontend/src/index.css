@@ -1052,6 +1052,35 @@ header.topbar {
   color: var(--text-main);
 }
 
+/* Premium Filter Panel & Items */
+.filter-panel-premium {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+  align-items: flex-end;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-item label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0;
+}
+
 /* Donut Chart Styling */
 .donut-segment {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1410,7 +1439,7 @@ header.topbar {
 /* ==========================================================================
    MODAL DIALOG DIALOGS
    ========================================================================== */
-.modal-backdrop {
+.modal-backdrop, .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -1424,7 +1453,7 @@ header.topbar {
   z-index: 100;
 }
 
-.modal-content {
+.modal-content, .modal-card {
   background-color: #ffffff;
   border-radius: 12px;
   width: 100%;
