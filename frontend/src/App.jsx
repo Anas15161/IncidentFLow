@@ -128,6 +128,15 @@ function App() {
   const [maintenanceMode, setMaintenanceMode] = useState(() => {
     return localStorage.getItem('maintenanceMode') === 'true';
   });
+  const [itemsPerPage, setItemsPerPage] = useState(() => {
+    return parseInt(localStorage.getItem('itemsPerPage') || '5');
+  });
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState(() => {
+    return parseInt(localStorage.getItem('autoRefreshInterval') || '0');
+  });
+  const [themeMode, setThemeMode] = useState(() => {
+    return localStorage.getItem('themeMode') || 'light';
+  });
 
   // Edit Profile Form State
   const [profileForm, setProfileForm] = useState({
@@ -144,7 +153,10 @@ function App() {
     sessionDuration: '600',
     enableNotifications: true,
     notificationSound: true,
-    maintenanceMode: false
+    maintenanceMode: false,
+    itemsPerPage: '5',
+    autoRefreshInterval: '0',
+    themeMode: 'light'
   });
 
   // Navigation
@@ -177,7 +189,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('createdAt_desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const incidentsPerPage = 5;
+  const incidentsPerPage = itemsPerPage;
   const [hoveredTrendIndex, setHoveredTrendIndex] = useState(null);
   
   // User Filtering & Search
@@ -238,6 +250,27 @@ function App() {
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  // Apply theme class to document element
+  useEffect(() => {
+    document.documentElement.className = '';
+    if (themeMode === 'dark') {
+      document.documentElement.classList.add('dark-theme');
+    } else if (themeMode === 'glass') {
+      document.documentElement.classList.add('glass-theme');
+    }
+  }, [themeMode]);
+
+  // Periodic auto-refresh for incidents
+  useEffect(() => {
+    if (!isAuthenticated || autoRefreshInterval <= 0) return;
+
+    const interval = setInterval(() => {
+      fetchIncidents();
+    }, autoRefreshInterval * 1000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, autoRefreshInterval]);
 
   useEffect(() => {
     if (activeWorkflow) {
@@ -346,7 +379,10 @@ function App() {
       sessionDuration: sessionDuration.toString(),
       enableNotifications: enableNotifications,
       notificationSound: notificationSound,
-      maintenanceMode: maintenanceMode
+      maintenanceMode: maintenanceMode,
+      itemsPerPage: itemsPerPage.toString(),
+      autoRefreshInterval: autoRefreshInterval.toString(),
+      themeMode: themeMode
     });
     setShowAppSettingsModal(true);
     setShowProfileDropdown(false);
@@ -382,10 +418,21 @@ function App() {
     setNotificationSound(appSettingsForm.notificationSound);
     setMaintenanceMode(appSettingsForm.maintenanceMode);
 
+    const newItems = parseInt(appSettingsForm.itemsPerPage);
+    setItemsPerPage(newItems);
+
+    const newInterval = parseInt(appSettingsForm.autoRefreshInterval);
+    setAutoRefreshInterval(newInterval);
+
+    setThemeMode(appSettingsForm.themeMode);
+
     localStorage.setItem('sessionDuration', appSettingsForm.sessionDuration);
     localStorage.setItem('enableNotifications', appSettingsForm.enableNotifications.toString());
     localStorage.setItem('notificationSound', appSettingsForm.notificationSound.toString());
     localStorage.setItem('maintenanceMode', appSettingsForm.maintenanceMode.toString());
+    localStorage.setItem('itemsPerPage', appSettingsForm.itemsPerPage);
+    localStorage.setItem('autoRefreshInterval', appSettingsForm.autoRefreshInterval);
+    localStorage.setItem('themeMode', appSettingsForm.themeMode);
 
     setShowAppSettingsModal(false);
     setSuccessMessage("Paramètres mis à jour avec succès !");
@@ -3648,6 +3695,56 @@ function App() {
             <form onSubmit={handleAppSettingsSubmit}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className="form-group">
+                  <label>Thème visuel *</label>
+                  <select
+                    className="form-control"
+                    style={{ backgroundColor: 'white' }}
+                    value={appSettingsForm.themeMode}
+                    onChange={(e) => setAppSettingsForm({ ...appSettingsForm, themeMode: e.target.value })}
+                  >
+                    <option value="light">Mode Clair (Par défaut)</option>
+                    <option value="dark">Mode Sombre</option>
+                    <option value="glass">Glassmorphism Futuriste</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Pagination (Incidents par page) *</label>
+                  <select
+                    className="form-control"
+                    style={{ backgroundColor: 'white' }}
+                    value={appSettingsForm.itemsPerPage}
+                    onChange={(e) => setAppSettingsForm({ ...appSettingsForm, itemsPerPage: e.target.value })}
+                  >
+                    <option value="5">5 incidents</option>
+                    <option value="10">10 incidents</option>
+                    <option value="20">20 incidents</option>
+                    <option value="50">50 incidents</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Mise à jour en temps réel *</label>
+                  <select
+                    className="form-control"
+                    style={{ backgroundColor: 'white' }}
+                    value={appSettingsForm.autoRefreshInterval}
+                    onChange={(e) => setAppSettingsForm({ ...appSettingsForm, autoRefreshInterval: e.target.value })}
+                  >
+                    <option value="0">Désactivé</option>
+                    <option value="15">Toutes les 15 secondes</option>
+                    <option value="30">Toutes les 30 secondes</option>
+                    <option value="60">Toutes les minutes</option>
+                    <option value="300">Toutes les 5 minutes</option>
+                  </select>
+                  <small style={{ color: 'var(--text-muted)', fontSize: '10px', marginTop: '4px', display: 'block' }}>
+                    Fréquence de rechargement automatique en arrière-plan de la liste des incidents.
+                  </small>
+                </div>
+
+                <div className="profile-dropdown-divider" style={{ margin: '4px 0' }}></div>
+
+                <div className="form-group">
                   <label>Durée de la session *</label>
                   <select
                     className="form-control"
@@ -3695,7 +3792,7 @@ function App() {
                   </div>
                 </div>
 
-                <div className="profile-dropdown-divider" style={{ margin: '8px 0' }}></div>
+                <div className="profile-dropdown-divider" style={{ margin: '4px 0' }}></div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input 

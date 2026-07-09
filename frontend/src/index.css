@@ -1526,3 +1526,78 @@ header.topbar {
   color: #64748b;
   border: 1px solid #cbd5e1;
 }
+
+/* Dark Theme Variables & Adjustments */
+html.dark-theme {
+  --bg-main: #0f172a;
+  --card-bg: #1e293b;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+html.dark-theme .card, html.dark-theme .dashboard-card {
+  background-color: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+html.dark-theme .datagrid th {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border-bottom: 2px solid #334155;
+}
+html.dark-theme .datagrid td {
+  border-bottom: 1px solid #334155;
+  color: #cbd5e1;
+}
+html.dark-theme .filter-panel-premium {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+html.dark-theme .filter-select, html.dark-theme .form-control {
+  background-color: #0f172a;
+  color: #f1f5f9;
+  border-color: #334155;
+}
+html.dark-theme .topbar {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+html.dark-theme .sidebar {
+  background-color: #0f172a;
+  border-right: 1px solid #334155;
+}
+html.dark-theme .sidebar-logo {
+  color: #ffffff;
+}
+
+/* Glass Theme Variables & Adjustments */
+html.glass-theme {
+  --bg-main: linear-gradient(135deg, #e0f2fe 0%, #f1f5f9 100%);
+  --card-bg: rgba(255, 255, 255, 0.45);
+  --border-color: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #e0f2fe 0%, #f1f5f9 100%);
+  min-height: 100vh;
+}
+html.glass-theme .card, html.glass-theme .dashboard-card {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+}
+html.glass-theme .filter-panel-premium {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+html.glass-theme .sidebar {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.4);
+}
+html.glass-theme .topbar {
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+}
