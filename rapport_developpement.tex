@@ -153,4 +153,19 @@ Le problème a été résolu en appliquant une stratégie de chargement immédia
 \section{Conclusion}
 Le projet IncidentFlow a franchi toutes ses phases clés de développement avec succès. La stack est robuste, conteneurisée, et offre une interface moderne, fluide et premium avec un moteur de workflow fonctionnel. Les prochaines étapes consisteront à déployer l'application sur un environnement de staging.
 
+---
+
+\section{Annexe : Historique des Commits de la Session}
+Voici le détail chronologique des commits poussés sur la branche \texttt{main} lors de cette session de développement :
+
+\begin{itemize}
+    \item \textbf{Commit 0b09416} (\textit{Redesign Dashboard \& Fix Keycloak}) : Refonte complète de la page d'accueil avec des KPI Cards à dégradés, un graphique à courbe SVG animée avec mouse tracking, et correction du crash Keycloak (\texttt{--import-realm}).
+    \item \textbf{Commit c3b921a} (\textit{Rapports PDF \& Recherche d'Incidents}) : Intégration de la recherche textuelle rapide, affichage de compteurs de résultats filtrés, ajout d'une colonne d'actions avec bouton de consultation, et réécriture du contrôleur d'export de PDF en Java avec la librairie OpenPDF (styles zébrés et bannières professionnels).
+    \item \textbf{Commit a847df0} (\textit{Stepper de Workflow \& Édition}) : Implémentation du stepper horizontal de suivi d'étapes de workflow dans la page de détails de l'incident (glowing pulse sur l'état actif), ajout de la boîte modale d'édition d'incident (mise à jour du titre, description, priorité, assignataire), et correction de l'alignement CSS des modaux.
+    \item \textbf{Commit 1d13b23} (\textit{Gestion des Utilisateurs}) : Mise en place d'un filtre par rôles et d'une barre de recherche utilisateur, KPI récapitulatifs, coloration thématique des badges de rôles (rouge pour admin, bleu pour support, gris pour utilisateur standard), et animations au survol des lignes.
+    \item \textbf{Commit 44fc11e} (\textit{Paramètres Avancés \& Thèmes}) : Ajout du sélecteur de thèmes dans les paramètres (Clair, Sombre, Glassmorphic), configuration de la pagination dynamique pour la liste des incidents, et programmation de l'intervalle de rafraîchissement en arrière-plan.
+    \item \textbf{Commit 8a2e734} (\textit{Correction Erreur 500}) : Correction de l'erreur \texttt{LazyInitializationException} dans le modèle \texttt{Workflow.java} en appliquant la stratégie \texttt{fetch = FetchType.EAGER} sur les relations \texttt{states} et \texttt{transitions}, complétée par une purge du cache Redis.
+    \item \textbf{Commit cbc66b6} (\textit{Rapport de Développement}) : Création du présent rapport au format LaTeX pour documenter toutes les avancées du projet.
+\end{itemize}
+
 \end{document}
