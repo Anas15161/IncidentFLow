@@ -1,0 +1,156 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{graphicx}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Rapport de Developpement - IncidentFlow},
+    pdfpagemode=FullScreen,
+}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{IncidentFlow - Rapport de Développement}
+\lfoot{Page \thepage}
+
+\title{Rapport de Développement - Projet IncidentFlow}
+\author{Équipe de Développement \& DevOps}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction et Contexte}
+Le projet \textbf{IncidentFlow} est une plateforme moderne de gestion d'incidents (ITSM) orientée processus, intégrant un moteur de workflows dynamique. Le système a été développé pour faciliter la déclaration, l'assignation, le suivi en temps réel et la clôture d'incidents selon des règles métiers paramétrables. 
+
+\subsection{Architecture Globale}
+L'architecture d'IncidentFlow repose sur une stack robuste et conteneurisée :
+\begin{itemize}
+    \item \textbf{Base de données} : PostgreSQL pour la persistance relationnelle.
+    \item \textbf{Gestion des accès} : Keycloak comme serveur OpenID Connect (OIDC) pour l'authentification unifiée.
+    \item \textbf{Cache et Messagerie} : Redis pour l'optimisation des requêtes et le cache des workflows.
+    \item \textbf{Backend} : Spring Boot (Java 17, JPA/Hibernate, Spring Security) exposant une API REST.
+    \item \textbf{Frontend} : React (Vite, React Flow, Lucide Icons, Vanilla CSS).
+\end{itemize}
+
+---
+
+\section{Infrastructure et Conteneurisation (Docker)}
+La première phase du projet a consisté à concevoir l'orchestration des services via \texttt{docker-compose.yml} afin de garantir un environnement de développement reproductible.
+
+\subsection{Services Configurés}
+\begin{enumerate}
+    \item \textbf{PostgreSQL} : Écoute sur le port local \texttt{5433} en évitant les conflits avec des serveurs hôtes.
+    \item \textbf{Redis} : Écoute sur le port \texttt{6380} pour le cache applicatif.
+    \item \textbf{Keycloak} : Déployé pour importer automatiquement les realms et configurer la sécurité OIDC.
+    \item \textbf{Spring Boot Backend} : Compile le projet et s'exécute sur le port \texttt{8080}.
+\end{enumerate}
+
+\subsection{Résolution du crash Keycloak}
+Lors de l'initialisation, le conteneur Keycloak rencontrait un crash récurrent dû à un paramètre invalide (\texttt{--import-realms}). Nous avons corrigé cette directive par \texttt{--import-realm} dans la configuration de démarrage du conteneur, permettant le chargement correct du realm de sécurité.
+
+---
+
+\section{Développement du Backend (Spring Boot)}
+Le backend expose des routes de gestion des incidents, des commentaires, des pièces jointes et des workflows.
+
+\subsection{Moteur de Workflows}
+Les workflows définissent les états (ex: Nouveau, Assigné, En cours, Résolu, Clôturé) et les transitions autorisées. Une transition peut être restreinte à un rôle spécifique (ex: seul un Administrateur peut clôturer un incident).
+
+\subsection{Génération de Rapports PDF}
+Initialement textuel, le système de rapports a été enrichi par un export PDF professionnel intégré côté serveur via la bibliothèque \textbf{OpenPDF}. Le contrôleur Java génère un document structuré contenant un en-tête thématique sombre, des largeurs de colonnes calculées, des polices typographiques adaptées et un style alterné (effet zébré) pour une lisibilité maximale des incidents.
+
+---
+
+\section{Développement du Frontend (React)}
+Le frontend a été configuré avec Vite pour un rechargement à chaud (HMR) performant sur le port \texttt{3001}.
+
+\subsection{Visualisation Interactive}
+Grâce à \textbf{React Flow}, les administrateurs peuvent configurer et visualiser les workflows sous forme de graphes nodaux interactifs (les états devenant des nœuds et les transitions des liaisons directionnelles).
+
+\subsection{Abonnements et Sécurité}
+Le frontend interagit avec le serveur Keycloak en s'appuyant sur un profil de simulation \texttt{dev-mock} au niveau du backend pour faciliter les phases de développement.
+
+---
+
+\section{Améliorations Récentes et Optimisations}
+Dans les dernières étapes de développement, l'ergonomie globale de l'application a été entièrement revue.
+
+\subsection{Tableau de Bord Premium}
+\begin{itemize}
+    \item \textbf{Graphique de tendance SVG interactif} : Remplacement de l'histogramme de base par une courbe de tendance à aire lissée (SVG) sur 7 jours avec suivi du curseur au survol de la souris.
+    \item \textbf{Filtres croisés} : Cliquer sur la légende des priorités ou les points du graphique filtre automatiquement la liste des incidents.
+    \item \textbf{Animations} : Transition fluide via cubic-bezier (\texttt{animate-fade-in}) sur tous les onglets.
+\end{itemize}
+
+\subsection{Gestion des Incidents et des Utilisateurs}
+\begin{itemize}
+    \item \textbf{Panneau de recherche rapide} : Insertion d'un filtre textuel dynamique avec icône loupe et bouton de nettoyage.
+    \item \textbf{Bandeau de statistiques résultats} : Affichage dynamique du nombre de résultats trouvés et classification par priorité/statut.
+    \item \textbf{Stepper de progression} : Intégration d'un stepper horizontal dans les détails d'un incident montrant visuellement l'avancée de l'incident dans le workflow.
+    \item \textbf{Badges colorés} : Coloration thématique des rôles (Rouge pour l'Admin, Bleu pour le Support, Gris pour l'Utilisateur).
+\end{itemize}
+
+\subsection{Paramètres de l'Application}
+Création de trois nouveaux contrôleurs de paramètres globaux :
+\begin{itemize}
+    \item \textbf{Mode Sombre \& Glassmorphism} : Application de thèmes de couleurs persistants au niveau de l'élément racine HTML.
+    \item \textbf{Pagination active} : Taille de page dynamique (5, 10, 20 ou 50 éléments).
+    \item \textbf{Auto-refresh} : Intervalle d'interrogation en arrière-plan pour les mises à jour en temps réel.
+\end{itemize}
+
+---
+
+\section{Résolution des Anomalies (Debugging)}
+\subsection{Erreur 500 sur les Workflows}
+Un problème d'affichage des workflows est apparu suite à une erreur HTTP 500 sur les requêtes \texttt{/api/workflows}. La trace indiquait une exception \texttt{LazyInitializationException} de Hibernate. 
+
+Le problème a été résolu en appliquant une stratégie de chargement immédiat (\texttt{fetch = FetchType.EAGER}) sur les collections \texttt{states} et \texttt{transitions} dans la classe d'entité \texttt{Workflow.java}. Suite à la recompilation, le cache Redis a été vidé à l'aide de la commande \texttt{FLUSHALL} afin d'évincer les anciens enregistrements mis en cache, rétablissant ainsi l'accès normal à la page.
+
+---
+
+\section{Conclusion}
+Le projet IncidentFlow a franchi toutes ses phases clés de développement avec succès. La stack est robuste, conteneurisée, et offre une interface moderne, fluide et premium avec un moteur de workflow fonctionnel. Les prochaines étapes consisteront à déployer l'application sur un environnement de staging.
+
+\end{document}
