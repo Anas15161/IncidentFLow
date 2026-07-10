@@ -172,6 +172,7 @@ function App() {
   const [previewError, setPreviewError] = useState(null);
   const [editingAttachmentId, setEditingAttachmentId] = useState(null);
   const [editingAttachmentName, setEditingAttachmentName] = useState("");
+  const [commentTab, setCommentTab] = useState('write');
   
   // Dropdowns & UI toggles
   const [showNotifications, setShowNotifications] = useState(false);
@@ -1130,6 +1131,7 @@ function App() {
       if (!res.ok) throw new Error("Impossible d'ajouter le commentaire.");
       
       setNewComment('');
+      setCommentTab('write');
       loadIncidentDetail(selectedIncident.incidentCode);
     } catch (err) {
       setErrorMessage(err.message);
@@ -1266,6 +1268,111 @@ function App() {
     } catch (err) {
       alert("Erreur: " + err.message);
     }
+  };
+
+  // Markdown parser for rich comments formatting
+  const parseMarkdown = (text) => {
+    if (!text) return "";
+    
+    // Escape HTML to prevent XSS
+    let html = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    
+    // Code blocks: ```code```
+    html = html.replace(/```([\s\S]+?)```/g, (match, code) => {
+      return `<pre style="background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-family: monospace; overflow-x: auto; font-size: 12px; margin: 8px 0; color: #0f172a; line-height: 1.4;"><code>${code.trim()}</code></pre>`;
+    });
+
+    // Inline code: `code`
+    html = html.replace(/`([^`\n]+?)`/g, '<code style="background: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #e11d48;">$1</code>');
+
+    // Bold: **text** or __text__
+    html = html.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__([\s\S]+?)__/g, '<strong>$1</strong>');
+
+    // Italic: *text* or _text_
+    html = html.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
+    html = html.replace(/_([\s\S]+?)_/g, '<em>$1</em>');
+
+    // Bullet lists: Lines starting with "- " or "* "
+    const lines = html.split('\n');
+    let inList = false;
+    let listProcessedLines = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const match = line.match(/^(\s*)[-*]\s+(.+)$/);
+      if (match) {
+        if (!inList) {
+          listProcessedLines.push('<ul style="margin: 6px 0; padding-left: 20px; list-style-type: disc;">');
+          inList = true;
+        }
+        listProcessedLines.push(`<li style="margin: 3px 0;">${match[2]}</li>`);
+      } else {
+        if (inList) {
+          listProcessedLines.push('</ul>');
+          inList = false;
+        }
+        listProcessedLines.push(line);
+      }
+    }
+    if (inList) {
+      listProcessedLines.push('</ul>');
+    }
+    html = listProcessedLines.join('\n');
+
+    // Paragraphs / line breaks (preserving newlines in text block)
+    html = html.replace(/\n/g, '<br />');
+    
+    // Clean up br inside pre/code blocks
+    html = html.replace(/(<pre.*?>[\s\S]*?<\/pre>)/g, (match) => {
+      return match.replace(/<br \/>/g, '\n');
+    });
+    // Clean up br inside ul/li blocks
+    html = html.replace(/(<ul.*?>[\s\S]*?<\/ul>)/g, (match) => {
+      return match.replace(/<br \/>/g, '');
+    });
+
+    return html;
+  };
+
+  // Helper to insert markdown tags at selection in comments editor
+  const handleInsertMarkdown = (type) => {
+    const textarea = document.getElementById('comment-editor-textarea');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+    
+    let replacement = "";
+    switch (type) {
+      case 'bold':
+        replacement = `**${selectedText || "texte en gras"}**`;
+        break;
+      case 'italic':
+        replacement = `*${selectedText || "texte en italique"}*`;
+        break;
+      case 'list':
+        replacement = `\n- ${selectedText || "élément"}`;
+        break;
+      case 'code':
+        replacement = `\n\`\`\`\n${selectedText || "bloc de code"}\n\`\`\`\n`;
+        break;
+      default:
+        break;
+    }
+
+    const newValue = text.substring(0, start) + replacement + text.substring(end);
+    setNewComment(newValue);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + replacement.length, start + replacement.length);
+    }, 50);
   };
 
   // Drag and drop event handlers
@@ -2291,7 +2398,11 @@ function App() {
                               </span>
                               <span className="comment-date">{formatDate(comment.date)}</span>
                             </div>
-                            <div className="comment-body">{comment.content}</div>
+                            <div 
+                              className="comment-body" 
+                              style={{ fontSize: '13px', lineHeight: '1.5', marginTop: '6px', color: 'var(--text-color)' }}
+                              dangerouslySetInnerHTML={{ __html: parseMarkdown(comment.content) }} 
+                            />
                           </div>
                         ))}
                         
@@ -2302,18 +2413,131 @@ function App() {
                         )}
                       </div>
 
-                      <form className="comment-input-box" onSubmit={handleAddCommentSubmit}>
-                        <textarea 
-                          placeholder="Écrire un commentaire collaboratif..."
-                          className="comment-textarea"
-                          value={newComment}
-                          onChange={(e) => setNewComment(e.target.value)}
-                        />
-                        <button type="submit" className="btn btn-primary btn-small" style={{ alignSelf: 'flex-end' }}>
-                          <Send size={12} />
-                          Envoyer
-                        </button>
-                      </form>
+                      <div className="comment-editor-container" style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff', marginTop: '15px' }}>
+                        {/* Editor Tabs & Toolbar */}
+                        <div className="editor-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                          <div className="editor-tabs" style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setCommentTab('write')}
+                              className={`tab-btn ${commentTab === 'write' ? 'active' : ''}`}
+                              style={{ 
+                                padding: '4px 10px', 
+                                fontSize: '12px', 
+                                fontWeight: '600',
+                                border: 'none', 
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                backgroundColor: commentTab === 'write' ? 'var(--primary-100, #e0f2fe)' : 'transparent',
+                                color: commentTab === 'write' ? 'var(--primary-700, #0369a1)' : 'var(--text-muted, #64748b)'
+                              }}
+                            >
+                              Éditeur
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCommentTab('preview')}
+                              className={`tab-btn ${commentTab === 'preview' ? 'active' : ''}`}
+                              style={{ 
+                                padding: '4px 10px', 
+                                fontSize: '12px', 
+                                fontWeight: '600',
+                                border: 'none', 
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                backgroundColor: commentTab === 'preview' ? 'var(--primary-100, #e0f2fe)' : 'transparent',
+                                color: commentTab === 'preview' ? 'var(--primary-700, #0369a1)' : 'var(--text-muted, #64748b)'
+                              }}
+                            >
+                              Aperçu
+                            </button>
+                          </div>
+                          
+                          {commentTab === 'write' && (
+                            <div className="editor-toolbar" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleInsertMarkdown('bold')}
+                                title="Gras (**texte**)"
+                                style={{ border: 'none', background: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                              >
+                                <strong>B</strong>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleInsertMarkdown('italic')}
+                                title="Italique (*texte*)"
+                                style={{ border: 'none', background: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', alignItems: 'center' }}
+                              >
+                                <em>I</em>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleInsertMarkdown('list')}
+                                title="Liste à puces (- item)"
+                                style={{ border: 'none', background: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                              >
+                                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>•—</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleInsertMarkdown('code')}
+                                title="Bloc de code (```)"
+                                style={{ border: 'none', background: 'none', padding: '4px 6px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '11px', backgroundColor: '#f1f5f9', borderRadius: '4px', display: 'flex', alignItems: 'center', fontWeight: 'bold' }}
+                              >
+                                &lt;/&gt;
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Editor Body */}
+                        <form onSubmit={handleAddCommentSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+                          {commentTab === 'write' ? (
+                            <textarea
+                              id="comment-editor-textarea"
+                              placeholder="Écrire un commentaire en Markdown collaboratif (ex: **gras**, - liste, ```code```)..."
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              style={{ 
+                                width: '100%', 
+                                minHeight: '100px', 
+                                border: 'none', 
+                                outline: 'none', 
+                                padding: '12px', 
+                                fontSize: '13px', 
+                                resize: 'vertical',
+                                color: 'var(--text-color, #1e293b)'
+                              }}
+                            />
+                          ) : (
+                            <div 
+                              style={{ 
+                                padding: '12px', 
+                                minHeight: '100px', 
+                                fontSize: '13px', 
+                                backgroundColor: '#fafafa', 
+                                overflowY: 'auto',
+                                color: 'var(--text-color, #1e293b)',
+                                lineHeight: '1.5'
+                              }}
+                              dangerouslySetInnerHTML={{ __html: parseMarkdown(newComment) || '<span style="color: var(--text-muted); font-style: italic;">Rien à prévisualiser pour le moment.</span>' }}
+                            />
+                          )}
+                          
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 12px', borderTop: '1px solid var(--border-color)', backgroundColor: '#f8fafc' }}>
+                            <button 
+                              type="submit" 
+                              className="btn btn-primary btn-small"
+                              disabled={!newComment.trim()}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                            >
+                              <Send size={12} />
+                              Envoyer
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
 
                     {/* Attachments Section */}
