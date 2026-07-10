@@ -173,6 +173,7 @@ function App() {
   const [editingAttachmentId, setEditingAttachmentId] = useState(null);
   const [editingAttachmentName, setEditingAttachmentName] = useState("");
   const [commentTab, setCommentTab] = useState('write');
+  const [tickerTime, setTickerTime] = useState(Date.now());
   
   // Dropdowns & UI toggles
   const [showNotifications, setShowNotifications] = useState(false);
@@ -412,6 +413,14 @@ function App() {
       active = false;
     };
   }, [previewFile]);
+
+  // Global ticking clock for active count downs (SLA etc.) to prevent multiple intervals
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerTime(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Open Edit Profile modal and set form fields
   const handleOpenEditProfile = () => {
@@ -1463,14 +1472,18 @@ function App() {
     }
 
     const dueTime = new Date(inc.slaDueAt).getTime();
-    const now = new Date().getTime();
-    const diffMs = dueTime - now;
+    const diffMs = dueTime - tickerTime;
 
     if (diffMs < 0) {
-      const overdueMins = Math.abs(Math.round(diffMs / 60000));
-      const hours = Math.floor(overdueMins / 60);
-      const mins = overdueMins % 60;
-      const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
+      const overdueMs = Math.abs(diffMs);
+      const secs = Math.floor((overdueMs / 1000) % 60);
+      const mins = Math.floor((overdueMs / (1000 * 60)) % 60);
+      const hours = Math.floor(overdueMs / (1000 * 60 * 60));
+      
+      const timeStr = hours > 0 
+        ? `${hours}h ${mins}m ${secs}s` 
+        : `${mins}m ${secs}s`;
+
       return (
         <span className="badge pulse-active-glow" style={{ backgroundColor: '#fef2f2', color: '#991b1b', borderColor: '#fca5a5', fontWeight: 'bold' }} title={`Dépassé de ${timeStr}`}>
           ⚠ SLA Dépassé (-{timeStr})
@@ -1478,14 +1491,27 @@ function App() {
       );
     }
 
-    const remainingMins = Math.round(diffMs / 60000);
-    const hours = Math.floor(remainingMins / 60);
-    const mins = remainingMins % 60;
-    const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins} min`;
+    const remainingSecs = Math.floor((diffMs / 1000) % 60);
+    const remainingMins = Math.floor((diffMs / (1000 * 60)) % 60);
+    const remainingHours = Math.floor(diffMs / (1000 * 60 * 60));
 
-    if (remainingMins <= 30) {
+    const totalMinutes = Math.floor(diffMs / 60000);
+
+    const timeStr = remainingHours > 0
+      ? `${remainingHours}h ${remainingMins}m ${remainingSecs}s`
+      : `${remainingMins}m ${remainingSecs}s`;
+
+    if (totalMinutes < 15) {
       return (
-        <span className="badge pulse-active-glow" style={{ backgroundColor: '#fff7ed', color: '#c2410c', borderColor: '#fdba74', fontWeight: 'bold' }}>
+        <span className="badge animate-pulse-red" style={{ fontWeight: 'bold' }}>
+          ⏱ Échéance ({timeStr})
+        </span>
+      );
+    }
+
+    if (totalMinutes <= 30) {
+      return (
+        <span className="badge" style={{ backgroundColor: '#fff7ed', color: '#c2410c', borderColor: '#fdba74', fontWeight: 'bold' }}>
           ⏱ Échéance ({timeStr})
         </span>
       );
@@ -2196,7 +2222,7 @@ function App() {
                 {/* SLA Warning Banner */}
                 {selectedIncident.status !== 'Résolu' && selectedIncident.status !== 'Clôturé' && selectedIncident.slaDueAt && (() => {
                   const dueTime = new Date(selectedIncident.slaDueAt).getTime();
-                  const diffMs = dueTime - new Date().getTime();
+                  const diffMs = dueTime - tickerTime;
                   if (diffMs < 0) {
                     return (
                       <div className="card" style={{ backgroundColor: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '700' }}>

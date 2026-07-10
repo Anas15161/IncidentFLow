@@ -5,3 +5,11 @@
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+@keyframes pulse-red {
+  0%, 100% { background-color: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+  50% { background-color: #ef4444; border-color: #dc2626; color: #ffffff; }
+}
+.animate-pulse-red {
+  animation: pulse-red 1s infinite;
+}
