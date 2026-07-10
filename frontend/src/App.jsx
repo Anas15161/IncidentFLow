@@ -164,6 +164,14 @@ function App() {
   const [selectedIncidentCode, setSelectedIncidentCode] = useState(null);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [selectedIncidentWorkflow, setSelectedIncidentWorkflow] = useState(null);
+  const [isDraggingUpload, setIsDraggingUpload] = useState(false);
+  const [isDraggingCreate, setIsDraggingCreate] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
+  const [editingAttachmentId, setEditingAttachmentId] = useState(null);
+  const [editingAttachmentName, setEditingAttachmentName] = useState("");
   
   // Dropdowns & UI toggles
   const [showNotifications, setShowNotifications] = useState(false);
@@ -358,6 +366,51 @@ function App() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showProfileDropdown, showNotifications]);
+
+  // Load and cache attachment preview as a Blob URL (fixes localhost / auth issues)
+  useEffect(() => {
+    if (!previewFile) {
+      if (previewBlobUrl) {
+        URL.revokeObjectURL(previewBlobUrl);
+        setPreviewBlobUrl(null);
+      }
+      setPreviewError(null);
+      return;
+    }
+
+    let active = true;
+    const fetchPreview = async () => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      try {
+        const res = await fetch(`${API_BASE}/incidents/attachments/${previewFile.id}`, {
+          headers: getHeaders()
+        });
+        if (!res.ok) {
+          throw new Error(`Impossible de charger l'aperçu (${res.status})`);
+        }
+        const blob = await res.blob();
+        if (active) {
+          const url = URL.createObjectURL(blob);
+          setPreviewBlobUrl(url);
+        }
+      } catch (err) {
+        if (active) {
+          setPreviewError(err.message || "Erreur de chargement");
+        }
+      } finally {
+        if (active) {
+          setPreviewLoading(false);
+        }
+      }
+    };
+
+    fetchPreview();
+
+    return () => {
+      active = false;
+    };
+  }, [previewFile]);
 
   // Open Edit Profile modal and set form fields
   const handleOpenEditProfile = () => {
@@ -1084,8 +1137,7 @@ function App() {
   };
 
   // Upload file attachment (US-INC-007)
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
+  const uploadFile = async (file) => {
     if (!file) return;
     setErrorMessage('');
     
@@ -1109,6 +1161,151 @@ function App() {
       loadIncidentDetail(selectedIncident.incidentCode);
     } catch (err) {
       setErrorMessage(err.message);
+    }
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    uploadFile(file);
+  };
+
+  const handleDownloadAttachment = async (file) => {
+    try {
+      const res = await fetch(`${API_BASE}/incidents/attachments/${file.id}`, {
+        headers: getHeaders()
+      });
+      if (!res.ok) throw new Error("Erreur de téléchargement");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Erreur lors du téléchargement : " + err.message);
+    }
+  };
+
+  const handleStartRename = (file) => {
+    setEditingAttachmentId(file.id);
+    setEditingAttachmentName(file.filename);
+  };
+
+  const handleCancelRename = () => {
+    setEditingAttachmentId(null);
+    setEditingAttachmentName("");
+  };
+
+  const handleSaveRename = async (file) => {
+    if (!editingAttachmentName.trim()) {
+      alert("Le nom du fichier ne peut pas être vide.");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/incidents/attachments/${file.id}/rename`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ filename: editingAttachmentName.trim() })
+      });
+      if (!res.ok) {
+        throw new Error("Erreur lors du renommage");
+      }
+      const updatedAttachment = await res.json();
+      
+      setSelectedIncident(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          attachments: prev.attachments.map(att => att.id === file.id ? updatedAttachment : att)
+        };
+      });
+
+      fetchIncidents();
+
+      setEditingAttachmentId(null);
+      setEditingAttachmentName("");
+      setSuccessMessage("Pièce jointe renommée avec succès !");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      
+      loadIncidentDetail(selectedIncident.incidentCode);
+    } catch (err) {
+      alert("Erreur: " + err.message);
+    }
+  };
+
+  const handleDeleteAttachment = async (file) => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer la pièce jointe "${file.filename}" ?`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/incidents/attachments/${file.id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+      if (!res.ok) {
+        throw new Error("Erreur lors de la suppression");
+      }
+
+      setSelectedIncident(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          attachments: prev.attachments.filter(att => att.id !== file.id)
+        };
+      });
+
+      fetchIncidents();
+
+      setSuccessMessage("Pièce jointe supprimée avec succès !");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      
+      loadIncidentDetail(selectedIncident.incidentCode);
+    } catch (err) {
+      alert("Erreur: " + err.message);
+    }
+  };
+
+  // Drag and drop event handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDragEnterUpload = (e) => {
+    e.preventDefault();
+    setIsDraggingUpload(true);
+  };
+
+  const handleDragLeaveUpload = (e) => {
+    e.preventDefault();
+    setIsDraggingUpload(false);
+  };
+
+  const handleDropUpload = (e) => {
+    e.preventDefault();
+    setIsDraggingUpload(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      uploadFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleDragEnterCreate = (e) => {
+    e.preventDefault();
+    setIsDraggingCreate(true);
+  };
+
+  const handleDragLeaveCreate = (e) => {
+    e.preventDefault();
+    setIsDraggingCreate(false);
+  };
+
+  const handleDropCreate = (e) => {
+    e.preventDefault();
+    setIsDraggingCreate(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setNewIncidentFile(e.dataTransfer.files[0]);
     }
   };
 
@@ -2125,29 +2322,85 @@ function App() {
                       
                       <div className="attachments-list">
                         {selectedIncident.attachments.map((file, idx) => (
-                          <div className="attachment-item" key={idx}>
-                            <div className="attachment-info-box">
+                          <div className="attachment-item" key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px' }}>
+                            <div className="attachment-info-box" style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, marginRight: '10px' }}>
                               <Paperclip size={14} className="file-icon" />
-                              <div>
-                                <a 
-                                  href={`${API_BASE}/incidents/attachments/${file.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="file-name"
-                                >
-                                  {file.filename}
-                                </a>
-                                <div className="file-size">{file.fileSize}</div>
-                              </div>
+                              {editingAttachmentId === file.id ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                                  <input
+                                    type="text"
+                                    value={editingAttachmentName}
+                                    onChange={(e) => setEditingAttachmentName(e.target.value)}
+                                    className="form-control"
+                                    style={{ padding: '4px 8px', fontSize: '12px', height: 'auto', margin: 0, flex: 1 }}
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleSaveRename(file);
+                                      if (e.key === 'Escape') handleCancelRename();
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveRename(file)}
+                                    className="btn btn-primary"
+                                    style={{ padding: '4px 8px', fontSize: '11px', height: 'auto', minHeight: 'unset' }}
+                                  >
+                                    OK
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelRename}
+                                    className="btn btn-secondary"
+                                    style={{ padding: '4px 8px', fontSize: '11px', height: 'auto', minHeight: 'unset' }}
+                                  >
+                                    Annuler
+                                  </button>
+                                </div>
+                              ) : (
+                                <div>
+                                  <span 
+                                    onClick={() => setPreviewFile(file)}
+                                    className="file-name"
+                                    style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary-600)', fontWeight: 'bold' }}
+                                    title="Cliquer pour prévisualiser"
+                                  >
+                                    {file.filename}
+                                  </span>
+                                  <div className="file-size">{file.fileSize}</div>
+                                </div>
+                              )}
                             </div>
-                            <a 
-                              href={`${API_BASE}/incidents/attachments/${file.id}`}
-                              className="icon-btn btn-small"
-                              title="Télécharger"
-                              download
-                            >
-                              <Download size={14} />
-                            </a>
+                            {editingAttachmentId !== file.id && (
+                              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                                <button 
+                                  type="button"
+                                  onClick={() => handleDownloadAttachment(file)}
+                                  className="icon-btn btn-small"
+                                  title="Télécharger"
+                                  style={{ border: 'none', background: 'none', color: 'var(--slate-700)', cursor: 'pointer', padding: '4px' }}
+                                >
+                                  <Download size={14} />
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => handleStartRename(file)}
+                                  className="icon-btn btn-small"
+                                  title="Renommer"
+                                  style={{ border: 'none', background: 'none', color: 'var(--slate-700)', cursor: 'pointer', padding: '4px' }}
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => handleDeleteAttachment(file)}
+                                  className="icon-btn btn-small"
+                                  title="Supprimer"
+                                  style={{ border: 'none', background: 'none', color: 'var(--red-600)', cursor: 'pointer', padding: '4px' }}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
 
@@ -2158,9 +2411,26 @@ function App() {
                         )}
                       </div>
 
-                      <label className="upload-zone" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
-                        <Paperclip size={14} />
-                        <span>Cliquer pour téléverser un fichier log/pièce</span>
+                      <label 
+                        className={`upload-zone ${isDraggingUpload ? 'dragging' : ''}`} 
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          gap: '8px', 
+                          cursor: 'pointer',
+                          border: isDraggingUpload ? '2px dashed var(--primary-600)' : '2px dashed var(--border-color)',
+                          backgroundColor: isDraggingUpload ? 'var(--primary-50)' : '#f8fafc',
+                          transition: 'all 0.2s ease',
+                          padding: '16px'
+                        }}
+                        onDragOver={handleDragOver}
+                        onDragEnter={handleDragEnterUpload}
+                        onDragLeave={handleDragLeaveUpload}
+                        onDrop={handleDropUpload}
+                      >
+                        <Paperclip size={14} style={{ color: isDraggingUpload ? 'var(--primary-600)' : 'inherit' }} />
+                        <span>{isDraggingUpload ? "Déposer le fichier ici..." : "Glisser-déposer ou cliquer pour téléverser un fichier"}</span>
                         <input 
                           type="file" 
                           style={{ display: 'none' }} 
@@ -3298,8 +3568,24 @@ function App() {
 
                 <div className="form-group">
                   <label>Pièce jointe (facultatif)</label>
-                  <label className="upload-zone" style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                    <Paperclip size={20} style={{ marginBottom: '8px', color: 'var(--primary-500)' }} />
+                  <label 
+                    className={`upload-zone ${isDraggingCreate ? 'dragging' : ''}`} 
+                    style={{ 
+                      padding: '24px 16px', 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      cursor: 'pointer',
+                      border: isDraggingCreate ? '2px dashed var(--primary-600)' : '2px dashed var(--border-color)',
+                      backgroundColor: isDraggingCreate ? 'var(--primary-50)' : '#f8fafc',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnterCreate}
+                    onDragLeave={handleDragLeaveCreate}
+                    onDrop={handleDropCreate}
+                  >
+                    <Paperclip size={20} style={{ marginBottom: '8px', color: isDraggingCreate ? 'var(--primary-600)' : 'var(--primary-500)' }} />
                     <span style={{ fontWeight: 'bold' }}>{newIncidentFile ? `Fichier sélectionné : ${newIncidentFile.name}` : "Glisser-déposer ou cliquer pour téléverser"}</span>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Fichiers logs, captures d'écran (.txt, .log, .png, .jpg)</span>
                     <input 
@@ -3309,14 +3595,26 @@ function App() {
                     />
                   </label>
                   {newIncidentFile && (
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary btn-small" 
-                      onClick={() => setNewIncidentFile(null)} 
-                      style={{ marginTop: '8px', color: '#ef4444', width: 'fit-content' }}
-                    >
-                      Supprimer la pièce jointe
-                    </button>
+                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {newIncidentFile.type.startsWith('image/') && (
+                        <div style={{ display: 'flex', justifyContent: 'center', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '6px', backgroundColor: '#fafafa' }}>
+                          <img 
+                            src={URL.createObjectURL(newIncidentFile)} 
+                            alt="Aperçu" 
+                            style={{ maxHeight: '120px', maxWidth: '100%', borderRadius: '4px', objectFit: 'contain' }} 
+                          />
+                        </div>
+                      )}
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary btn-small" 
+                        onClick={() => setNewIncidentFile(null)} 
+                        style={{ color: '#ef4444', width: 'fit-content', alignSelf: 'center', gap: '4px' }}
+                      >
+                        <X size={14} />
+                        Supprimer la pièce jointe
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -3864,6 +4162,118 @@ function App() {
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-primary" onClick={() => setShowHelpModal(false)}>Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Preview Modal */}
+      {previewFile && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal-content" style={{ maxWidth: '800px', width: '90%', padding: '0px', overflow: 'hidden' }}>
+            <div className="modal-header" style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Paperclip size={16} style={{ color: 'var(--primary-600)' }} />
+                <span className="modal-title" style={{ fontSize: '15px' }}>Prévisualisation : {previewFile.filename}</span>
+              </div>
+              <button className="modal-close-btn" onClick={() => setPreviewFile(null)} style={{ border: 'none', background: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+            </div>
+            
+            <div className="modal-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', minHeight: '300px', maxHeight: '75vh', overflow: 'auto' }}>
+              {previewLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                  <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--primary-600)' }} />
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Chargement de l'aperçu...</p>
+                </div>
+              ) : previewError ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', color: 'var(--red-600)', padding: '20px', textAlign: 'center' }}>
+                  <AlertCircle size={32} />
+                  <p style={{ margin: 0, fontWeight: 'bold' }}>{previewError}</p>
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary btn-small" 
+                    style={{ marginTop: '10px' }} 
+                    onClick={() => {
+                      // retry fetching by resetting previewFile
+                      const current = previewFile;
+                      setPreviewFile(null);
+                      setTimeout(() => setPreviewFile(current), 50);
+                    }}
+                  >
+                    Réessayer
+                  </button>
+                </div>
+              ) : previewBlobUrl ? (
+                (() => {
+                  const isImage = previewFile.contentType && previewFile.contentType.startsWith('image/');
+                  const isPdf = previewFile.contentType === 'application/pdf' || previewFile.filename.toLowerCase().endsWith('.pdf');
+                  const isText = previewFile.contentType && (previewFile.contentType.startsWith('text/') || previewFile.filename.toLowerCase().endsWith('.log') || previewFile.filename.toLowerCase().endsWith('.txt'));
+
+                  if (isImage) {
+                    return (
+                      <img 
+                        src={previewBlobUrl} 
+                        alt={previewFile.filename} 
+                        style={{ maxWidth: '100%', maxHeight: '65vh', borderRadius: '4px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                      />
+                    );
+                  } else if (isPdf) {
+                    return (
+                      <object 
+                        data={previewBlobUrl} 
+                        type="application/pdf" 
+                        style={{ width: '100%', height: '65vh', borderRadius: '4px' }}
+                      >
+                        <iframe 
+                          src={previewBlobUrl} 
+                          style={{ width: '100%', height: '65vh', border: 'none' }}
+                          title={previewFile.filename}
+                        />
+                      </object>
+                    );
+                  } else if (isText) {
+                    return (
+                      <iframe 
+                        src={previewBlobUrl} 
+                        style={{ width: '100%', height: '60vh', border: 'none', backgroundColor: '#ffffff', borderRadius: '4px', padding: '10px' }}
+                        title={previewFile.filename}
+                      />
+                    );
+                  } else {
+                    return (
+                      <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <div style={{ fontSize: '48px', marginBottom: '12px' }}>📁</div>
+                        <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-color)' }}>Aucun aperçu disponible pour ce type de fichier.</p>
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Format : {previewFile.contentType || 'Inconnu'}</p>
+                        <a 
+                          href={previewBlobUrl} 
+                          className="btn btn-primary" 
+                          style={{ marginTop: '16px', display: 'inline-flex' }}
+                          download={previewFile.filename}
+                        >
+                          <Download size={14} style={{ marginRight: '6px' }} />
+                          Télécharger le fichier
+                        </a>
+                      </div>
+                    );
+                  }
+                })()
+              ) : null}
+            </div>
+            
+            <div className="modal-footer" style={{ padding: '12px 20px', backgroundColor: '#f8fafc', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              {previewBlobUrl && (
+                <a 
+                  href={previewBlobUrl}
+                  className="btn btn-secondary" 
+                  style={{ display: 'inline-flex', alignItems: 'center' }}
+                  download={previewFile.filename}
+                >
+                  <Download size={14} style={{ marginRight: '6px' }} />
+                  Télécharger
+                </a>
+              )}
+              <button type="button" className="btn btn-primary" onClick={() => setPreviewFile(null)}>Fermer</button>
             </div>
           </div>
         </div>

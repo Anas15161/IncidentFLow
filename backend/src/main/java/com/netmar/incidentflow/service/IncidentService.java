@@ -4,6 +4,7 @@ import com.netmar.incidentflow.exception.ResourceNotFoundException;
 import com.netmar.incidentflow.model.*;
 import com.netmar.incidentflow.repository.IncidentRepository;
 import com.netmar.incidentflow.repository.UserRepository;
+import com.netmar.incidentflow.repository.AttachmentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,13 +18,16 @@ public class IncidentService {
     private final IncidentRepository incidentRepository;
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
+    private final AttachmentRepository attachmentRepository;
 
     public IncidentService(IncidentRepository incidentRepository,
                            UserRepository userRepository,
-                           WorkflowService workflowService) {
+                           WorkflowService workflowService,
+                           AttachmentRepository attachmentRepository) {
         this.incidentRepository = incidentRepository;
         this.userRepository = userRepository;
         this.workflowService = workflowService;
+        this.attachmentRepository = attachmentRepository;
     }
 
     public List<Incident> getIncidents(String category, String priority, String status, Long assignedToId, String search) {
@@ -237,5 +241,51 @@ public class IncidentService {
 
         incidentRepository.save(incident);
         return attachment;
+    }
+
+    @Transactional
+    public void deleteAttachment(Long id, User user) {
+        Attachment attachment = attachmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Piece jointe introuvable avec l'ID: " + id));
+
+        Incident incident = attachment.getIncident();
+        incident.getAttachments().remove(attachment);
+
+        IncidentHistory history = IncidentHistory.builder()
+                .action("Pièce jointe supprimée : " + attachment.getFilename())
+                .username(user != null ? user.getName() : "Système")
+                .incident(incident)
+                .build();
+        incident.getHistory().add(history);
+
+        incidentRepository.save(incident);
+
+        // Supprimer le fichier sur le disque
+        try {
+            java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(attachment.getFilePath()));
+        } catch (java.io.IOException e) {
+            System.err.println("Impossible de supprimer le fichier physique: " + attachment.getFilePath() + " - " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public Attachment renameAttachment(Long id, String newName, User user) {
+        Attachment attachment = attachmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Piece jointe introuvable avec l'ID: " + id));
+
+        String oldName = attachment.getFilename();
+        attachment.setFilename(newName);
+        
+        Incident incident = attachment.getIncident();
+        
+        IncidentHistory history = IncidentHistory.builder()
+                .action("Pièce jointe renommée de '" + oldName + "' vers '" + newName + "'")
+                .username(user != null ? user.getName() : "Système")
+                .incident(incident)
+                .build();
+        incident.getHistory().add(history);
+
+        incidentRepository.save(incident);
+        return attachmentRepository.save(attachment);
     }
 }

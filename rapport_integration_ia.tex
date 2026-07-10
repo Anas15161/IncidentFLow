@@ -1,0 +1,193 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- PACKAGES DE BASE ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{enumitem}
+
+% --- CONFIGURATION DES COULEURS ---
+\definecolor{primary}{HTML}{1D4ED8}     % Bleu primaire
+\definecolor{secondary}{HTML}{0A2647}   % Bleu nuit
+\definecolor{darkslate}{HTML}{1E293B}   % Slate 800
+\definecolor{lightbg}{HTML}{F8FAFC}     % Slate 50
+\definecolor{bordercolor}{HTML}{E2E8F0} % Slate 200
+\definecolor{accentcolor}{HTML}{059669} % Vert émeraude
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    filecolor=primary,      
+    urlcolor=primary,
+    pdftitle={Rapport Technique - Classification Intelligente des Incidents par IA},
+    pdfpagemode=FullScreen,
+}
+
+% --- CONFIGURATION DE LISTINGS (CODE) ---
+\lstset{
+    backgroundcolor=\color{lightbg},
+    basicstyle=\ttfamily\footnotesize\color{darkslate},
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    commentstyle=\color{gray},
+    frame=single,
+    keepspaces=true,
+    keywordstyle=\color{primary},
+    numbers=left,
+    numbersep=5pt,
+    numberstyle=\tiny\color{gray},
+    rulecolor=\color{bordercolor},
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    stringstyle=\color{accentcolor}
+}
+
+% --- EN-TÊTES ET PIEDS DE PAGE ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{secondary}{\textbf{IncidentFlow}}}
+\rhead{Intégration d'IA pour la classification}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- INFORMATIONS DU DOCUMENT ---
+\title{
+    \vspace{1cm}
+    \textcolor{secondary}{\textbf{\Huge IncidentFlow}}\\[0.5cm]
+    \textcolor{primary}{\Large Rapport Technique \& Spécifications}\\[1.5cm]
+    \textbf{\Large Classification et Tri Intelligent des Incidents par Intelligence Artificielle (Perspectives d'Évolution)}\\[2cm]
+}
+\author{
+    \textbf{Anas Haddou} \\
+    \textit{Élève Ingénieur en Génie Informatique} \\[1cm]
+    \textbf{Projet} : IncidentFlow (Application de Gestion d'Incidents)
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+
+% --- SECTION 1 : INTRODUCTION & PROBLEMATIQUE ---
+\section{Introduction et Problématique}
+Dans un centre de services ou un département de support informatique moderne, l'efficacité opérationnelle repose sur la rapidité et l'exactitude du traitement des incidents. Traditionnellement, l'utilisateur final déclare un incident en remplissant un formulaire générique, puis qualifie lui-même la catégorie, la priorité et le groupe de support destinataire. 
+
+Cette qualification manuelle présente plusieurs faiblesses critiques :
+\begin{itemize}
+    \item \textbf{Erreurs d'affectation} : Les utilisateurs ne connaissent pas toujours l'organisation interne du support (ex: faire la différence entre un problème de réseau géré par l'administration système ou par le support client).
+    \item \textbf{Subjectivité de la priorité} : Les utilisateurs ont tendance à surévaluer la priorité de leur ticket (souvent catégorisée en "Critique" ou "Haute" sans critères objectifs).
+    \item \textbf{Perte de temps} : Les agents de support passent une part significative de leur temps à requalifier les tickets et à les réaffecter vers les bons services.
+\end{itemize}
+
+L'intégration d'un module de \textbf{Classification Intelligente} vise à résoudre ces problématiques en s'appuyant sur les capacités de compréhension sémantique de l'Intelligence Artificielle pour guider et assister l'utilisateur dès la saisie de l'incident.
+
+\section{Objectifs Fonctionnels}
+L'assistance par IA se matérialise par trois fonctionnalités majeures :
+\begin{enumerate}
+    \item \textbf{Analyse Sémantique en Temps Réel} : Analyse du titre et de la description textuelle de l'incident saisis par l'utilisateur pour en extraire l'intention et le contexte.
+    \item \textbf{Suggestion Automatique de la Catégorie et de la Priorité} : Évaluation logique et objective de la criticité de l'incident et association à une catégorie prédéfinie en base de données.
+    \item \textbf{Aide à l'Affectation (Routage Automatique)} : Recommandation immédiate du groupe de support (ex: Informatique, Sécurité SSI, Support Client) le plus apte à résoudre l'incident.
+\end{enumerate}
+
+\section{Architecture Technique et Solution Ciblée}
+Pour garantir la faisabilité et la légèreté de l'implémentation, nous ciblons l'utilisation de l'API distante \textbf{Google Gemini} via la plateforme \textbf{Google AI Studio}.
+
+\subsection{Utilisation du Niveau Gratuit de Gemini (Google AI Studio)}
+Le choix s'est porté sur le modèle \textbf{Gemini 1.5 Flash} en version gratuite pour plusieurs raisons :
+\begin{itemize}
+    \item \textbf{Quotas généreux} : Le plan gratuit autorise jusqu'à \textbf{15 requêtes par minute (RPM)} et \textbf{1 500 requêtes par jour (RPD)}. Ce dimensionnement est idéal pour le prototypage, la phase de développement et la soutenance du projet.
+    \item \textbf{Coût nul} : Aucun budget d'infrastructure ou d'API n'est requis.
+    \item \textbf{Latence faible} : Gemini 1.5 Flash est optimisé pour les tâches de classification rapide avec un temps de réponse moyen de 1,5 à 2 secondes.
+\end{itemize}
+
+\subsection{Comparatif des Approches IA}
+\begin{table}[h]
+    \centering
+    \caption{Comparatif des approches d'intégration IA}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Critère} & \textbf{Option A : Google Gemini (Gratuit)} & \textbf{Option B : Ollama (Modèle Local)} \\
+        \midrule
+        \textbf{Coût} & Gratuit (sans carte de crédit) & Gratuit (open-source) \\
+        \textbf{Matériel requis} & Aucun (calculé dans le Cloud) & Serveur dédié avec GPU et RAM $\ge$ 16 Go \\
+        \textbf{Mise en œuvre} & Très simple (Framework Spring AI) & Plus complexe (déploiement de conteneur) \\
+        \textbf{Confidentialité} & Données envoyées au Cloud Google & Données restent 100\% locales \\
+        \textbf{Limites (Quotas)} & 15 RPM / 1 500 RPD & Aucune limite (dépend de la machine) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Flux de Données et Spécifications API}
+
+Le backend Spring Boot agit comme une passerelle sécurisée entre l'interface utilisateur React et l'API Gemini.
+
+\subsection{Spécification de l'API Interne}
+\begin{itemize}
+    \item \textbf{Méthode} : \texttt{POST}
+    \item \textbf{Endpoint} : \texttt{/api/ai/suggest}
+    \item \textbf{Corps de la Requête (JSON)} :
+\begin{lstlisting}[language=json]
+{
+  "title": "Panne d'acces au VPN de l'entreprise",
+  "description": "Impossible de me connecter au VPN depuis ce matin, j'obtiens une erreur d'authentification SSL."
+}
+\end{lstlisting}
+    \item \textbf{Réponse attendue (JSON structuré)} :
+\begin{lstlisting}[language=json]
+{
+  "category": "Reseau & Securite",
+  "priority": "Haute",
+  "supportGroup": "Securite SSI",
+  "justification": "L'incident concerne un probleme d'acces securise externe (VPN) impactant l'authentification."
+}
+\end{lstlisting}
+\end{itemize}
+
+\subsection{Prompt Engineering Structuré}
+Pour forcer le modèle d'IA à retourner un format JSON strict et réutilisable, le prompt système envoyé par le backend contient les contraintes métiers :
+\begin{lstlisting}[language=Java]
+String systemPrompt = "Tu es un assistant de support technique..."
+    + "Choisis la categorie parmi cette liste uniquement : " + listCategories
+    + "Choisis le groupe de support parmi cette liste : " + listGroups
+    + "Determine la priorite (Faible, Moyenne, Haute, Critique)."
+    + "Renvoie exclusivement un objet JSON valide...";
+\end{lstlisting}
+
+\newpage
+\section{Gestion des Performances, Latence et Résilience}
+La dépendance à une API externe gratuite impose d'implémenter des mécanismes de protection pour ne pas pénaliser l'expérience utilisateur et les performances globales du serveur.
+
+\subsection{Stratégies de Gestion de la Latence et de Charge}
+\begin{enumerate}
+    \item \textbf{Appels Asynchrones et Non-Bloquants} : L'interface React interroge le backend de manière asynchrone via des appels non bloquants (\texttt{fetch}). L'utilisateur peut continuer à saisir d'autres informations dans le formulaire en parallèle.
+    \item \textbf{Déclenchement sur Action Explicite (Frontend)} : Au lieu d'appeler l'IA à chaque frappe de clavier, l'analyse est déclenchée uniquement lorsque l'utilisateur clique sur un bouton dédié \texttt{"Suggérer par IA"}. Cela permet de préserver le quota gratuit de 15 requêtes par minute.
+    \item \textbf{Mise en Cache Redis (Backend)} : Redis stocke l'empreinte de la description de l'incident et sa suggestion associée. Si deux utilisateurs décrivent le même problème (ex: "Panne générale de messagerie"), le serveur renvoie la réponse mise en cache en moins de 5 ms, économisant ainsi un appel à l'API Gemini.
+\end{enumerate}
+
+\subsection{Tolérance aux Pannes et Résilience}
+\begin{itemize}
+    \item \textbf{Gestion des exceptions} : Si l'appel à l'API Gemini échoue (limite de requêtes dépassée, déconnexion internet), le backend intercepte l'erreur via un bloc \texttt{try-catch} et renvoie une réponse par défaut (ou un code de statut adapté).
+    \item \textbf{Continuité de Service} : L'indisponibilité de l'IA ne bloque aucunement l'application. Les sélections manuelles des listes déroulantes restent entièrement fonctionnelles pour l'utilisateur.
+\end{itemize}
+
+\section{Conclusion et Perspectives}
+L'intégration de la classification intelligente par IA dans \textbf{IncidentFlow} apporte une valeur ajoutée majeure pour le produit final en réduisant les erreurs d'affectation de tickets et en optimisant le temps de traitement des équipes de support. 
+
+Grâce à l'utilisation intelligente des quotas gratuits de **Google AI Studio** combinée avec le cache **Redis**, le coût de mise en œuvre est nul et les performances du serveur restent parfaitement préservées. Cette fonctionnalité, initialement hors périmètre de la V1, s'intègre naturellement comme une perspective d'évolution réaliste et prête à être implémentée.
+
+\end{document}

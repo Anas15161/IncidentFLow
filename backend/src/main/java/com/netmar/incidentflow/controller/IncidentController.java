@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/incidents")
@@ -163,14 +164,33 @@ public class IncidentController {
 
                 return ResponseEntity.ok()
                         .contentType(MediaType.parseMediaType(contentType))
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + attachment.getFilename() + "\"")
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + attachment.getFilename() + "\"")
                         .body(resource);
             } else {
                 throw new ResourceNotFoundException("Fichier introuvable sur le disque: " + attachment.getFilePath());
             }
+        } catch (ResourceNotFoundException ex) {
+            throw ex;
         } catch (Exception ex) {
             throw new RuntimeException("Erreur lors de la lecture du fichier", ex);
         }
+    }
+
+    @DeleteMapping("/attachments/{id}")
+    public ResponseEntity<Void> deleteAttachment(@PathVariable Long id) {
+        User currentUser = userService.getCurrentUser();
+        incidentService.deleteAttachment(id, currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/attachments/{id}/rename")
+    public Attachment renameAttachment(@PathVariable Long id, @RequestBody Map<String, String> requestBody) {
+        User currentUser = userService.getCurrentUser();
+        String newName = requestBody.get("filename");
+        if (newName == null || newName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Le nom du fichier ne peut pas être vide.");
+        }
+        return incidentService.renameAttachment(id, newName.trim(), currentUser);
     }
 
     @GetMapping("/export/csv")

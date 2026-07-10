@@ -34,6 +34,24 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        // Ensure uploads directory exists and has the pre-seeded file
+        java.io.File uploadsDir = new java.io.File("uploads");
+        if (!uploadsDir.exists()) {
+            uploadsDir.mkdirs();
+        }
+        java.io.File preseededFile = new java.io.File(uploadsDir, "logs_firewall_ssh.txt");
+        if (!preseededFile.exists()) {
+            try (java.io.FileWriter writer = new java.io.FileWriter(preseededFile)) {
+                writer.write("Jun 15 08:23:11 firewall-core sshd[12455]: Invalid user admin from 192.168.1.150 port 55432\n");
+                writer.write("Jun 15 08:23:14 firewall-core sshd[12455]: Connection closed by authenticating user admin 192.168.1.150 port 55432 [preauth]\n");
+                writer.write("Jun 15 08:24:02 firewall-core sshd[12460]: Invalid user admin from 192.168.1.150 port 55438\n");
+                writer.write("Jun 15 08:24:05 firewall-core sshd[12460]: Connection closed by authenticating user admin 192.168.1.150 port 55438 [preauth]\n");
+                writer.write("Jun 15 08:25:00 firewall-core sshd[12472]: Invalid user test from 192.168.1.150 port 55442\n");
+                writer.write("Jun 15 08:25:01 firewall-core sshd[12472]: Connection closed by authenticating user test 192.168.1.150 port 55442 [preauth]\n");
+                writer.write("Jun 15 08:26:30 firewall-core sshd[12480]: Connection closed by authenticating user admin 192.168.1.150 port 55450 [preauth]\n");
+            }
+        }
+
         // 1. Initialiser les roles
         if (roleRepository.count() == 0) {
             roleRepository.save(Role.builder().name("Administrateur").build());
@@ -257,7 +275,13 @@ public class DataInitializer implements CommandLineRunner {
             ));
 
             inc2.setAttachments(List.of(
-                    Attachment.builder().filename("logs_firewall_ssh.txt").filePath("/uploads/logs_firewall_ssh.txt").fileSize("42 KB").contentType("text/plain").incident(inc2).build()
+                    Attachment.builder()
+                        .filename("logs_firewall_ssh.txt")
+                        .filePath(new java.io.File("uploads/logs_firewall_ssh.txt").getAbsolutePath())
+                        .fileSize("42 KB")
+                        .contentType("text/plain")
+                        .incident(inc2)
+                        .build()
             ));
             incidentRepository.save(inc2);
 
