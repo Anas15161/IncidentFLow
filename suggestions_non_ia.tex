@@ -1,0 +1,123 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+
+% Couleurs
+\definecolor{primary}{HTML}{1D4ED8}
+\definecolor{secondary}{HTML}{0F172A}
+\definecolor{lightbg}{HTML}{F8FAFC}
+\definecolor{codecolor}{HTML}{0F172A}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary,
+    pdftitle={IncidentFlow - Documentation des Améliorations Non-IA},
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textbf{IncidentFlow}}
+\rhead{Améliorations Fonctionnelles (Non-IA)}
+\cfoot{\thepage}
+
+\title{
+    \textbf{\Huge IncidentFlow}\\[0.5cm]
+    \Large Plateforme Collaborative de Gestion d'Incidents\\[1.5cm]
+    \textbf{\Large Rapport d'Implémentation des Améliorations Fonctionnelles et Techniques (Hors-IA)}
+    \vspace{1cm}
+}
+\author{\textbf{Anas HADDOU} \\ Élève Ingénieur en Génie Informatique}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+\tableofcontents
+\clearpage
+
+\section{Introduction}
+Dans le cadre de l'optimisation continue de la plateforme \textbf{IncidentFlow}, plusieurs évolutions fonctionnelles et correctifs techniques hors-IA ont été implémentés. L'objectif principal est de renforcer la robustesse de l'application, de fluidifier l'expérience utilisateur (UX) pour les agents de support, et de garantir une gestion rigoureuse de la sécurité et des performances.
+
+Ce document présente les détails d'architecture et d'implémentation de ces quatre améliorations majeures.
+
+\section{Correction et Sécurisation de l'Aperçu PDF}
+\subsection{Problématique d'origine}
+L'aperçu des pièces jointes PDF au sein de la boîte modale échouait avec une erreur de type \texttt{localhost}. Cet échec était causé par deux facteurs clés :
+\begin{itemize}
+    \item L'URL de téléchargement était écrite en dur sur \texttt{localhost:8080}, provoquant des blocages d'accès (CORS) ou des erreurs de connexion lorsque l'application était consultée depuis une adresse IP ou un nom de domaine distant.
+    \item L'intégration directe d'une URL d'API dans un élément \texttt{<iframe>} ou \texttt{<object>} empêchait la transmission des en-têtes d'authentification requis (token JWT de session et identité de l'utilisateur simulé), renvoyant ainsi une erreur 401 ou 500.
+\end{itemize}
+
+\subsection{Solution technique implémentée}
+Pour résoudre ces limitations, un flux d'aperçu découplé et authentifié a été mis en œuvre :
+\begin{enumerate}
+    \item \textbf{Requête Ajax Authentifiée} : Le frontend React effectue un appel \texttt{fetch} en arrière-plan vers l'API d'IncidentFlow en insérant les en-têtes requis :
+    \begin{itemize}
+        \item \texttt{Authorization: Bearer <token>}
+        \item \texttt{X-Mock-User: <email>}
+    \end{itemize}
+    \item \textbf{Encapsulation par Blob} : La réponse brute de l'API est convertie en objet binaire \texttt{Blob}.
+    \item \textbf{Object URL Local} : Une URL d'objet locale temporaire est générée à l'aide de la méthode du navigateur \texttt{URL.createObjectURL(blob)}.
+    \item \textbf{Affichage et Nettoyage} : L'URL \texttt{blob:} est passée à l'élément \texttt{<object>} / \texttt{<iframe>}. Le cycle de vie de la modale révoque automatiquement cette URL lors de sa fermeture pour libérer la mémoire vive du navigateur.
+\end{enumerate}
+
+\section{Gestion Avancée des Pièces Jointes : Suppression et Renommer}
+\subsection{Côté Backend (Spring Boot)}
+L'entité \texttt{Attachment} a été dotée de capacités de modification et de cycle de vie complet. Les fonctionnalités suivantes ont été implémentées dans \texttt{IncidentService} :
+\begin{itemize}
+    \item \textbf{Suppression (\texttt{deleteAttachment})} : L'attachement est supprimé de la base de données relationnelle PostgreSQL, un enregistrement d'action est consigné dans l'historique de l'incident au nom de l'agent effectuant l'opération, et le fichier est physiquement effacé du répertoire \texttt{uploads/} sur le serveur.
+    \item \textbf{Renommer (\texttt{renameAttachment})} : Permet la modification logique du nom utilisateur du fichier. Le nom physique reste inchangé (nom unique généré par UUID lors de l'upload) pour garantir l'intégrité du système de fichiers et éviter toute collision.
+\end{itemize}
+Deux endpoints REST associés ont été configurés dans le contrôleur \texttt{IncidentController} :
+\begin{itemize}
+    \item \texttt{DELETE /api/incidents/attachments/\{id\}}
+    \item \texttt{PUT /api/incidents/attachments/\{id\}/rename}
+\end{itemize}
+
+\subsection{Côté Frontend (Vite/React)}
+Des boutons d'action d'édition (✏️) et de suppression (🗑️) ont été intégrés à la liste des pièces jointes du panneau latéral. Le renommage est implémenté sous forme d'une zone de saisie textuelle inline (\textit{saisie directe en place}), offrant une transition visuelle de qualité professionnelle.
+
+\section{Éditeur de Commentaires en Markdown Simplifié}
+\subsection{Description et Fonctionnalités}
+Les techniciens de support ont fréquemment besoin de structurer leurs commentaires pour partager des diagnostics (blocs de code d'erreurs, commandes système, listes d'étapes). Un éditeur Markdown simplifié a été développé, offrant :
+\begin{itemize}
+    \item Une barre d'outils interactive (Gras, Italique, Liste à puces, Bloc de code de diagnostic).
+    \item Un système à double onglet : \textbf{Éditeur} (mode saisie brute) et \textbf{Aperçu} (rendu en temps réel des balises formatées).
+\end{itemize}
+
+\subsection{Analyseur de syntaxe Markdown (Parser)}
+Un parser Regex ultra-léger et sécurisé a été codé pour convertir le Markdown en HTML structuré. Il intègre un échappement automatique préalable de l'ensemble des balises HTML saisies par l'utilisateur, éliminant tout risque de faille XSS (Cross-Site Scripting).
+
+\section{Compte à Rebours Actif pour les SLAs}
+\subsection{Problématique de Performance des Timers}
+L'affichage d'un minuteur actif actualisé à la seconde pour chaque incident visible pose des défis de performance majeurs. L'utilisation d'un timer (\texttt{setInterval}) indépendant par incident multiplierait les rafraîchissements React asynchrones et saturerait le CPU et la batterie du client.
+
+\subsection{Architecture Optimisée à Horloge Unique}
+Pour éliminer cet inconvénient, l'application utilise une architecture synchronisée à \textbf{horloge globale unique} :
+\begin{itemize}
+    \item Un unique intervalle racine est démarré au chargement du tableau de bord. Cet intervalle actualise un état central représentant l'horodatage courant exact toutes les secondes.
+    \item Les badges d'incidents calculent dynamiquement la différence de temps par rapport à ce signal d'horloge commun lors du rendu général.
+    \item \textbf{Impact Design \& UX} : Les couleurs du badge SLA évoluent en temps réel selon la proximité de l'échéance :
+    \begin{itemize}
+        \item Vert : SLA respecté ou temps restant confortable ($> 30$ min).
+        \item Orange : SLA proche (entre 15 et 30 min).
+        \item Rouge Pulsant/Clignotant : Alerte critique active (moins de 15 minutes restants) grâce à une animation CSS pulsée fluide, attirant l'attention de l'opérateur.
+        \item Rouge sombre : SLA dépassé.
+    \end{itemize}
+\end{itemize}
+
+\end{document}
