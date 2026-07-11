@@ -135,4 +135,23 @@ Afin d'offrir une navigation ultra-rapide et l'exécution d'actions directement 
     \item \textbf{Navigation Clavier Complète} : L'opérateur peut naviguer entre les résultats à l'aide des flèches directionnelles (\texttt{Up}/\texttt{Down}), valider son choix avec la touche \texttt{Enter} ou fermer la palette via la touche \texttt{Escape}.
 \end{itemize}
 
+\section{Journal d'Audit Visuel (Timeline Historique)}
+\subsection{Description et Impact Design}
+Afin de rendre le suivi des incidents plus lisible et professionnel, le tableau d'historique statique a été transformé en une ligne de temps (timeline) verticale interactive de style Git ou réseau social. Chaque action (changement d'état, assignation, pièce jointe, commentaire) est représentée par une icône et un code couleur spécifiques.
+
+\subsection{Implémentation Technique}
+\begin{itemize}
+    \item \textbf{Connecteur Vertical Fluide} : Utilisation de bordures CSS absolues pour dessiner le fil conducteur reliant les étapes temporelles de l'incident.
+    \item \textbf{Catégorisation et Iconographie Dynamique} : Développement d'un helper React déterminant de manière dynamique la couleur et l'icône de l'événement à partir du texte de l'action :
+    \begin{itemize}
+        \item \textit{Changement de statut} : Vert avec icône d'activité (\texttt{Activity}).
+        \item \textit{Affectation/Assignation} : Violet avec icône d'ajout d'utilisateur (\texttt{UserPlus}).
+        \item \textit{Ajout de fichier} : Bleu avec icône d'upload (\texttt{FileUp}).
+        \item \textit{Commentaire collaboratif} : Gris ardoise avec icône de message (\texttt{MessageSquare}).
+        \item \textit{Création/Déclaration} : Cyan avec icône de plus (\texttt{PlusCircle}).
+        \item \textit{Modifications de fichiers (renommage/suppression)} : Jaune ou rouge avec icônes appropriées (\texttt{Edit3}/\texttt{Trash2}).
+    \end{itemize}
+    \item \textbf{Micro-animations au survol} : Effets de transition doux sur les badges d'icônes et affichage structuré des métadonnées (auteur de l'action et horodatage formaté).
+\end{itemize}
+
 \end{document}

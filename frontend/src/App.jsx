@@ -4,7 +4,7 @@ import {
   Search, User, Plus, X, Bell, Paperclip, Download, Send, 
   Globe, Cpu, Stethoscope, ArrowLeft, Eye, RefreshCw, Layers,
   Lock, LogOut, Users, Trash2, Edit3, Settings, AlertCircle,
-  ChevronDown, HelpCircle
+  ChevronDown, HelpCircle, MessageSquare, PlusCircle, UserPlus, FileUp
 } from 'lucide-react';
 import ReactFlow, { 
   MiniMap, 
@@ -471,6 +471,96 @@ function App() {
     }
 
     return items;
+  };
+
+  // Helper to categorize timeline logs and return icons/colors
+  const getTimelineItemDetails = (action) => {
+    const act = action.toLowerCase();
+    
+    // Status Change
+    if (act.includes('statut') || act.includes('passé à') || act.includes('transition')) {
+      return {
+        icon: <Activity size={14} />,
+        color: '#22c55e', // green
+        bgColor: '#f0fdf4',
+        borderColor: '#bbf7d0',
+        title: 'Changement de Statut'
+      };
+    }
+    
+    // Assignee
+    if (act.includes('assigné') || act.includes('responsable') || act.includes('affecté')) {
+      return {
+        icon: <UserPlus size={14} />,
+        color: '#a855f7', // purple
+        bgColor: '#faf5ff',
+        borderColor: '#e9d5ff',
+        title: 'Affectation'
+      };
+    }
+    
+    // Attachment upload
+    if (act.includes('pièce jointe ajoutée') || act.includes('fichier téléversé') || act.includes('attachment added') || act.includes('pièce jointe téléversée')) {
+      return {
+        icon: <FileUp size={14} />,
+        color: '#3b82f6', // blue
+        bgColor: '#eff6ff',
+        borderColor: '#bfdbfe',
+        title: 'Ajout de Fichier'
+      };
+    }
+
+    // Attachment delete or rename
+    if (act.includes('pièce jointe supprimée') || act.includes('suppression de la pièce jointe') || act.includes('attachment deleted')) {
+      return {
+        icon: <Trash2 size={14} />,
+        color: '#ef4444', // red
+        bgColor: '#fef2f2',
+        borderColor: '#fca5a5',
+        title: 'Suppression de Fichier'
+      };
+    }
+
+    if (act.includes('pièce jointe renommée') || act.includes('renommage de la pièce jointe') || act.includes('attachment renamed')) {
+      return {
+        icon: <Edit3 size={14} />,
+        color: '#eab308', // yellow/amber
+        bgColor: '#fef9c3',
+        borderColor: '#fef08a',
+        title: 'Renommage de Fichier'
+      };
+    }
+    
+    // Comment
+    if (act.includes('commentaire')) {
+      return {
+        icon: <MessageSquare size={14} />,
+        color: '#64748b', // slate
+        bgColor: '#f8fafc',
+        borderColor: '#e2e8f0',
+        title: 'Commentaire'
+      };
+    }
+
+    // Created / Declared
+    if (act.includes('créé') || act.includes('déclaré') || act.includes('création') || act.includes('signalé')) {
+      return {
+        icon: <PlusCircle size={14} />,
+        color: '#06b6d4', // cyan
+        bgColor: '#ecfeff',
+        borderColor: '#c5f6fa',
+        title: 'Incident Déclaré'
+      };
+    }
+    
+    // Default
+    return {
+      icon: <Clock size={14} />,
+      color: '#64748b',
+      bgColor: '#f8fafc',
+      borderColor: '#e2e8f0',
+      title: 'Action Consignée'
+    };
   };
 
   // Universal Command Palette toggle shortcut listener (Ctrl + K or Cmd + K)
@@ -2495,14 +2585,49 @@ function App() {
                     {/* Timeline History */}
                     <div className="card" style={{ padding: '20px' }}>
                       <h3 className="widget-title">Journal d'historique</h3>
-                      <div className="timeline-list">
-                        {selectedIncident.history.map((log, idx) => (
-                          <div className="timeline-item" key={idx}>
-                            <div className="timeline-dot" />
-                            <div className="timeline-action">{log.action}</div>
-                            <div className="timeline-meta">Par {log.username} • {formatDate(log.date)}</div>
-                          </div>
-                        ))}
+                      <div className="timeline-list" style={{ position: 'relative', paddingLeft: '32px', borderLeft: '2px solid var(--border-color, #e2e8f0)', marginLeft: '12px', display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '15px' }}>
+                        {selectedIncident.history.map((log, idx) => {
+                          const details = getTimelineItemDetails(log.action);
+                          return (
+                            <div className="timeline-item" key={idx} style={{ position: 'relative' }}>
+                              {/* Icon badge absolute on the connector line */}
+                              <div 
+                                style={{ 
+                                  position: 'absolute', 
+                                  left: '-45px', 
+                                  top: '0px',
+                                  width: '24px', 
+                                  height: '24px', 
+                                  borderRadius: '50%', 
+                                  backgroundColor: details.bgColor, 
+                                  border: `2px solid ${details.borderColor}`,
+                                  color: details.color,
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                                  zIndex: 2,
+                                  transition: 'all 0.2s ease'
+                                }}
+                                title={details.title}
+                              >
+                                {details.icon}
+                              </div>
+                              
+                              {/* Content box */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-color, #1e293b)', lineHeight: '1.4' }}>
+                                  {log.action}
+                                </div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted, #64748b)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontWeight: '500' }}>Par {log.username}</span>
+                                  <span>•</span>
+                                  <span>{formatDate(log.date)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
