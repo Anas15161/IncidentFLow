@@ -1473,7 +1473,7 @@ function App() {
   const handleDeleteComment = async (commentId) => {
     if (!window.confirm("Voulez-vous vraiment supprimer ce commentaire ?")) return;
     try {
-      const res = await fetch(`${API_BASE}/comments/${commentId}`, {
+      const res = await fetch(`${API_BASE}/incidents/comments/${commentId}`, {
         method: 'DELETE',
         headers: getHeaders()
       });
@@ -1512,7 +1512,7 @@ function App() {
   const handleSaveEditComment = async (commentId) => {
     if (!editingCommentContent.trim()) return;
     try {
-      const res = await fetch(`${API_BASE}/comments/${commentId}`, {
+      const res = await fetch(`${API_BASE}/incidents/comments/${commentId}`, {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify({ content: editingCommentContent })
