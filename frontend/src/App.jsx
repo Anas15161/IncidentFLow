@@ -174,6 +174,9 @@ function App() {
   const [editingAttachmentName, setEditingAttachmentName] = useState("");
   const [commentTab, setCommentTab] = useState('write');
   const [tickerTime, setTickerTime] = useState(Date.now());
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [commandPaletteQuery, setCommandPaletteQuery] = useState("");
+  const [commandPaletteSelectedIndex, setCommandPaletteSelectedIndex] = useState(0);
   
   // Dropdowns & UI toggles
   const [showNotifications, setShowNotifications] = useState(false);
@@ -421,6 +424,100 @@ function App() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Get filtered items for the Command Palette (Ctrl+K)
+  const getCommandPaletteItems = () => {
+    const items = [];
+    const query = commandPaletteQuery.toLowerCase().trim();
+
+    // Static commands list
+    const commands = [
+      { id: 'cmd-new', type: 'command', label: 'Déclarer un incident', shortcut: '> new', action: () => { setShowCreateModal(true); } },
+      { id: 'nav-dash', type: 'nav', label: 'Aller au Tableau de bord', shortcut: '> dashboard', action: () => { setCurrentView('dashboard'); } },
+      { id: 'nav-inc', type: 'nav', label: 'Aller à la liste des Incidents', shortcut: '> incidents', action: () => { setCurrentView('incidents'); } },
+      { id: 'nav-wf', type: 'nav', label: 'Aller aux Workflows', shortcut: '> workflows', action: () => { setCurrentView('workflows'); } },
+      { id: 'nav-user', type: 'nav', label: 'Aller à la gestion des Utilisateurs', shortcut: '> users', action: () => { setCurrentView('users'); } },
+      { id: 'cmd-theme', type: 'command', label: 'Changer le Thème (Clair/Sombre)', shortcut: '> theme', action: () => { setThemeMode(prev => prev === 'dark' ? 'light' : 'dark'); } },
+      { id: 'cmd-logout', type: 'command', label: 'Se déconnecter de la session', shortcut: '> logout', action: () => { handleLogout(); } }
+    ];
+
+    if (query.startsWith('>')) {
+      const subQuery = query.substring(1).trim();
+      const filteredCmds = commands.filter(c => 
+        c.shortcut.toLowerCase().includes(subQuery) || c.label.toLowerCase().includes(subQuery)
+      );
+      items.push(...filteredCmds);
+    } else {
+      // Show commands that match the search query
+      const filteredCmds = commands.filter(c => 
+        c.label.toLowerCase().includes(query) || c.shortcut.toLowerCase().includes(query)
+      );
+      items.push(...filteredCmds);
+
+      // Show incidents that match the search query (code or title)
+      if (query.length > 0) {
+        const filteredIncidents = incidents.filter(inc => 
+          inc.incidentCode.toLowerCase().includes(query) || 
+          inc.title.toLowerCase().includes(query)
+        ).slice(0, 5).map(inc => ({
+          id: `inc-${inc.incidentCode}`,
+          type: 'incident',
+          label: `${inc.incidentCode} : ${inc.title}`,
+          status: inc.status,
+          action: () => { handleSelectIncident(inc.incidentCode); }
+        }));
+        items.push(...filteredIncidents);
+      }
+    }
+
+    return items;
+  };
+
+  // Universal Command Palette toggle shortcut listener (Ctrl + K or Cmd + K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(prev => !prev);
+        setCommandPaletteQuery("");
+        setCommandPaletteSelectedIndex(0);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Keyboard navigation shortcuts listener for active Command Palette
+  useEffect(() => {
+    if (!showCommandPalette) return;
+
+    const handlePaletteKeys = (e) => {
+      const items = getCommandPaletteItems();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowCommandPalette(false);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setCommandPaletteSelectedIndex(prev => 
+          prev < items.length - 1 ? prev + 1 : 0
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setCommandPaletteSelectedIndex(prev => 
+          prev > 0 ? prev - 1 : items.length - 1
+        );
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (items[commandPaletteSelectedIndex]) {
+          items[commandPaletteSelectedIndex].action();
+          setShowCommandPalette(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handlePaletteKeys);
+    return () => window.removeEventListener('keydown', handlePaletteKeys);
+  }, [showCommandPalette, commandPaletteQuery, commandPaletteSelectedIndex, incidents]);
 
   // Open Edit Profile modal and set form fields
   const handleOpenEditProfile = () => {
@@ -4524,6 +4621,169 @@ function App() {
                 </a>
               )}
               <button type="button" className="btn btn-primary" onClick={() => setPreviewFile(null)}>Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Command Palette Modal */}
+      {showCommandPalette && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => setShowCommandPalette(false)}
+          style={{ zIndex: 1200, display: 'flex', alignItems: 'flex-start', paddingTop: '10vh' }}
+        >
+          <div 
+            className="modal-content command-palette-modal" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              maxWidth: '600px', 
+              width: '90%', 
+              padding: '0px', 
+              borderRadius: '12px', 
+              overflow: 'hidden', 
+              boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+              backgroundColor: 'var(--card-bg, #ffffff)',
+              border: '1px solid var(--border-color)'
+            }}
+          >
+            {/* Input box */}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--border-color)', gap: '12px' }}>
+              <Search size={18} style={{ color: 'var(--text-muted, #64748b)' }} />
+              <input 
+                type="text" 
+                placeholder="Rechercher un incident, naviguer ou taper '>' pour des commandes rapides..." 
+                value={commandPaletteQuery}
+                onChange={(e) => {
+                  setCommandPaletteQuery(e.target.value);
+                  setCommandPaletteSelectedIndex(0);
+                }}
+                style={{ 
+                  flex: 1, 
+                  border: 'none', 
+                  outline: 'none', 
+                  fontSize: '14px', 
+                  background: 'transparent',
+                  color: 'var(--text-color, #1e293b)'
+                }}
+                autoFocus
+              />
+              <span style={{ fontSize: '10px', backgroundColor: 'var(--slate-100, #f1f5f9)', color: 'var(--text-muted, #64748b)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontWeight: 'bold' }}>ESC</span>
+            </div>
+
+            {/* Results list */}
+            <div style={{ maxHeight: '350px', overflowY: 'auto', padding: '8px' }}>
+              {(() => {
+                const items = getCommandPaletteItems();
+                if (items.length === 0) {
+                  return (
+                    <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted, #64748b)', fontSize: '13px' }}>
+                      Aucun résultat correspondant à votre recherche.
+                    </div>
+                  );
+                }
+
+                const commands = items.filter(i => i.type === 'command' || i.type === 'nav');
+                const incidents = items.filter(i => i.type === 'incident');
+
+                let absoluteIndex = 0;
+
+                return (
+                  <div>
+                    {commands.length > 0 && (
+                      <div>
+                        <div style={{ padding: '6px 12px', fontSize: '10px', fontWeight: 'bold', color: 'var(--primary-600, #0284c7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Actions & Navigation</div>
+                        {commands.map((item) => {
+                          const isSelected = absoluteIndex === commandPaletteSelectedIndex;
+                          const currentIndex = absoluteIndex;
+                          absoluteIndex++;
+
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => {
+                                item.action();
+                                setShowCommandPalette(false);
+                              }}
+                              onMouseEnter={() => setCommandPaletteSelectedIndex(currentIndex)}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                backgroundColor: isSelected ? 'var(--primary-50, #f0f9ff)' : 'transparent',
+                                borderLeft: isSelected ? '3px solid var(--primary-600)' : '3px solid transparent'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontSize: '14px' }}>{item.type === 'nav' ? '🧭' : '⚡'}</span>
+                                <span style={{ fontSize: '13px', fontWeight: isSelected ? '600' : 'normal', color: isSelected ? 'var(--primary-900, #0c4a6e)' : 'var(--text-color, #1e293b)' }}>
+                                  {item.label}
+                                </span>
+                              </div>
+                              <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-muted)', backgroundColor: 'var(--slate-100)', padding: '2px 6px', borderRadius: '4px' }}>
+                                {item.shortcut}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {incidents.length > 0 && (
+                      <div style={{ marginTop: '8px' }}>
+                        <div style={{ padding: '6px 12px', fontSize: '10px', fontWeight: 'bold', color: 'var(--primary-600, #0284c7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Incidents Correspondants</div>
+                        {incidents.map((item) => {
+                          const isSelected = absoluteIndex === commandPaletteSelectedIndex;
+                          const currentIndex = absoluteIndex;
+                          absoluteIndex++;
+
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => {
+                                item.action();
+                                setShowCommandPalette(false);
+                              }}
+                              onMouseEnter={() => setCommandPaletteSelectedIndex(currentIndex)}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                backgroundColor: isSelected ? 'var(--primary-50, #f0f9ff)' : 'transparent',
+                                borderLeft: isSelected ? '3px solid var(--primary-600)' : '3px solid transparent'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontSize: '14px' }}>📋</span>
+                                <span style={{ fontSize: '13px', fontWeight: isSelected ? '600' : 'normal', color: isSelected ? 'var(--primary-900, #0c4a6e)' : 'var(--text-color, #1e293b)' }}>
+                                  {item.label}
+                                </span>
+                              </div>
+                              <span className={`badge-small status-${item.status.toLowerCase().replace(' ', '-')}`} style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}>
+                                {item.status}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer / Shortcuts Info */}
+            <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-color)', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '14px', fontSize: '10px', color: 'var(--text-muted, #64748b)' }}>
+              <span>↑↓ pour naviguer</span>
+              <span>↵ pour valider</span>
+              <span>ESC pour fermer</span>
             </div>
           </div>
         </div>

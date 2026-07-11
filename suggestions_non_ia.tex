@@ -120,4 +120,19 @@ Pour éliminer cet inconvénient, l'application utilise une architecture synchro
     \end{itemize}
 \end{itemize}
 
+\section{Palette de Commandes Universelle (Command Palette)}
+\subsection{Description et Raccourci Clavier}
+Afin d'offrir une navigation ultra-rapide et l'exécution d'actions directement depuis le clavier, une palette de commandes universelle a été intégrée. Cette barre de recherche globale s'active instantanément à l'aide du raccourci clavier \texttt{Ctrl + K} ou \texttt{Cmd + K} depuis n'importe quel écran de l'application.
+
+\subsection{Implémentation Technique}
+\begin{itemize}
+    \item \textbf{Écouteur d'Événements Global} : Configuration d'un écouteur global sur l'événement \texttt{keydown} pour intercepter le raccourci clavier et désactiver le comportement par défaut du navigateur (ouverture de la recherche native).
+    \item \textbf{Filtrage Intelligent des Commandes et Recherche} :
+    \begin{itemize}
+        \item Les commandes système sont accessibles via le préfixe \texttt{>} (ex : \texttt{> new} pour déclarer un incident, \texttt{> theme} pour changer de thème, \texttt{> dashboard} pour naviguer).
+        \item Sans préfixe, l'utilisateur effectue une recherche floue en direct sur le code de l'incident (ex : \texttt{INC-2026}) ou sur les mots-clés du titre.
+    \end{itemize}
+    \item \textbf{Navigation Clavier Complète} : L'opérateur peut naviguer entre les résultats à l'aide des flèches directionnelles (\texttt{Up}/\texttt{Down}), valider son choix avec la touche \texttt{Enter} ou fermer la palette via la touche \texttt{Escape}.
+\end{itemize}
+
 \end{document}
