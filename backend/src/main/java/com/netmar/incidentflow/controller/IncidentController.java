@@ -193,6 +193,19 @@ public class IncidentController {
         return incidentService.renameAttachment(id, newName.trim(), currentUser);
     }
 
+    @PutMapping("/comments/{id}")
+    public Comment updateComment(@PathVariable Long id, @RequestBody CommentRequest request) {
+        User currentUser = userService.getCurrentUser();
+        return incidentService.updateComment(id, request.getContent(), currentUser);
+    }
+
+    @DeleteMapping("/comments/{id}")
+    public ResponseEntity<Void> deleteComment(@PathVariable Long id) {
+        User currentUser = userService.getCurrentUser();
+        incidentService.deleteComment(id, currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/export/csv")
     public ResponseEntity<String> exportCsv(
             @RequestParam(required = false) String category,

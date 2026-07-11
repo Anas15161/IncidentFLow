@@ -5,6 +5,7 @@ import com.netmar.incidentflow.model.*;
 import com.netmar.incidentflow.repository.IncidentRepository;
 import com.netmar.incidentflow.repository.UserRepository;
 import com.netmar.incidentflow.repository.AttachmentRepository;
+import com.netmar.incidentflow.repository.CommentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,15 +20,18 @@ public class IncidentService {
     private final UserRepository userRepository;
     private final WorkflowService workflowService;
     private final AttachmentRepository attachmentRepository;
+    private final CommentRepository commentRepository;
 
     public IncidentService(IncidentRepository incidentRepository,
                            UserRepository userRepository,
                            WorkflowService workflowService,
-                           AttachmentRepository attachmentRepository) {
+                           AttachmentRepository attachmentRepository,
+                           CommentRepository commentRepository) {
         this.incidentRepository = incidentRepository;
         this.userRepository = userRepository;
         this.workflowService = workflowService;
         this.attachmentRepository = attachmentRepository;
+        this.commentRepository = commentRepository;
     }
 
     public List<Incident> getIncidents(String category, String priority, String status, Long assignedToId, String search) {
@@ -287,5 +291,50 @@ public class IncidentService {
 
         incidentRepository.save(incident);
         return attachmentRepository.save(attachment);
+    }
+
+    @Transactional
+    public Comment updateComment(Long commentId, String content, User user) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commentaire introuvable avec l'ID: " + commentId));
+
+        if (user == null || !comment.getAuthor().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Vous n'êtes pas autorisé à modifier ce commentaire");
+        }
+
+        comment.setContent(content);
+        
+        Incident incident = comment.getIncident();
+        IncidentHistory history = IncidentHistory.builder()
+                .action("Commentaire modifié")
+                .username(user.getName())
+                .incident(incident)
+                .build();
+        incident.getHistory().add(history);
+
+        incidentRepository.save(incident);
+        return commentRepository.save(comment);
+    }
+
+    @Transactional
+    public void deleteComment(Long commentId, User user) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commentaire introuvable avec l'ID: " + commentId));
+
+        if (user == null || !comment.getAuthor().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Vous n'êtes pas autorisé à supprimer ce commentaire");
+        }
+
+        Incident incident = comment.getIncident();
+        incident.getComments().remove(comment);
+
+        IncidentHistory history = IncidentHistory.builder()
+                .action("Commentaire supprimé")
+                .username(user.getName())
+                .incident(incident)
+                .build();
+        incident.getHistory().add(history);
+
+        incidentRepository.save(incident);
     }
 }

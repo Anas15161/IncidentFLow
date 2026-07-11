@@ -154,4 +154,24 @@ Afin de rendre le suivi des incidents plus lisible et professionnel, le tableau 
     \item \textbf{Micro-animations au survol} : Effets de transition doux sur les badges d'icônes et affichage structuré des métadonnées (auteur de l'action et horodatage formaté).
 \end{itemize}
 
+\section{Gestion Complète des Commentaires : Modification et Suppression}
+\subsection{Description et Règles Métier}
+Afin d'offrir une flexibilité maximale aux agents lors des échanges collaboratifs, la possibilité de modifier ou de supprimer un commentaire existant a été ajoutée. Ces actions sont soumises à une règle de sécurité stricte : seul l'auteur d'un commentaire est autorisé à le modifier ou à le supprimer.
+
+\subsection{Implémentation Technique}
+\begin{itemize}
+    \item \textbf{Côté Backend (Spring Boot)} :
+    \begin{itemize}
+        \item Injection de \texttt{CommentRepository} pour gérer le cycle de vie direct des commentaires.
+        \item Implémentation des méthodes transactionnelles \texttt{updateComment} et \texttt{deleteComment} dans le service, avec vérification systématique de l'identité de l'auteur (\texttt{comment.getAuthor().getId() == currentUser.getId()}).
+        \item Exposition de deux endpoints REST sécurisés : \texttt{PUT /api/incidents/comments/\{id\}} et \texttt{DELETE /api/incidents/comments/\{id\}}.
+        \item Enregistrement automatique de l'action dans le journal d'historique de l'incident (ex: "Commentaire modifié", "Commentaire supprimé").
+    \end{itemize}
+    \item \textbf{Côté Frontend (Vite/React)} :
+    \begin{itemize}
+        \item Ajout des boutons d'actions contextuels (icônes \texttt{Edit3} et \texttt{Trash2}) visibles uniquement pour l'auteur du commentaire (\texttt{currentUser.email == comment.author.email}).
+        \item Intégration d'un éditeur inline en place lors de la modification, réutilisant l'éditeur Markdown avec sa barre d'outils et son onglet d'aperçu dynamique.
+    \end{itemize}
+\end{itemize}
+
 \end{document}

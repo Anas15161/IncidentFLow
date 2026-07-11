@@ -177,6 +177,9 @@ function App() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [commandPaletteQuery, setCommandPaletteQuery] = useState("");
   const [commandPaletteSelectedIndex, setCommandPaletteSelectedIndex] = useState(0);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
+  const [editingCommentTab, setEditingCommentTab] = useState('write');
   
   // Dropdowns & UI toggles
   const [showNotifications, setShowNotifications] = useState(false);
@@ -1466,6 +1469,105 @@ function App() {
     }
   };
 
+  // Delete Comment helper
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce commentaire ?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+      
+      if (!res.ok) throw new Error("Impossible de supprimer le commentaire.");
+      
+      setSelectedIncident(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          comments: prev.comments.filter(c => c.id !== commentId)
+        };
+      });
+      
+      fetchIncidents();
+      setSuccessMessage("Commentaire supprimé !");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      loadIncidentDetail(selectedIncident.incidentCode);
+    } catch (err) {
+      alert("Erreur: " + err.message);
+    }
+  };
+
+  // Edit Comment handlers
+  const handleStartEditComment = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentContent(comment.content);
+    setEditingCommentTab('write');
+  };
+
+  const handleCancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentContent("");
+  };
+
+  const handleSaveEditComment = async (commentId) => {
+    if (!editingCommentContent.trim()) return;
+    try {
+      const res = await fetch(`${API_BASE}/comments/${commentId}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ content: editingCommentContent })
+      });
+      
+      if (!res.ok) throw new Error("Impossible de modifier le commentaire.");
+      
+      setEditingCommentId(null);
+      setEditingCommentContent("");
+      
+      setSuccessMessage("Commentaire modifié !");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      loadIncidentDetail(selectedIncident.incidentCode);
+    } catch (err) {
+      alert("Erreur: " + err.message);
+    }
+  };
+
+  // Helper to insert markdown tags at selection in comment edit editor
+  const handleInsertEditMarkdown = (type) => {
+    const textarea = document.getElementById('comment-edit-textarea');
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+    
+    let replacement = "";
+    switch (type) {
+      case 'bold':
+        replacement = `**${selectedText || "texte en gras"}**`;
+        break;
+      case 'italic':
+        replacement = `*${selectedText || "texte en italique"}*`;
+        break;
+      case 'list':
+        replacement = `\n- ${selectedText || "élément"}`;
+        break;
+      case 'code':
+        replacement = `\n\`\`\`\n${selectedText || "bloc de code"}\n\`\`\`\n`;
+        break;
+      default:
+        break;
+    }
+
+    const newValue = text.substring(0, start) + replacement + text.substring(end);
+    setEditingCommentContent(newValue);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + replacement.length, start + replacement.length);
+    }, 50);
+  };
+
   // Markdown parser for rich comments formatting
   const parseMarkdown = (text) => {
     if (!text) return "";
@@ -2635,24 +2737,186 @@ function App() {
                     <div className="card" style={{ padding: '20px' }}>
                       <h3 className="widget-title">Commentaires ({selectedIncident.comments.length})</h3>
                       <div className="comments-section">
-                        {selectedIncident.comments.map((comment, idx) => (
-                          <div className="comment-card" key={idx}>
-                            <div className="comment-header">
-                              <span className="comment-author">
-                                <span className={`avatar-circle ${comment.author.avatarColor}`} style={{ width: '18px', height: '18px', fontSize: '8px' }}>
-                                  {comment.author.name.split(' ').map(n => n[0]).join('')}
+                        {selectedIncident.comments.map((comment, idx) => {
+                          if (editingCommentId === comment.id) {
+                            return (
+                              <div className="comment-card" key={idx} style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px' }}>
+                                <div className="comment-editor-container" style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff', marginTop: '5px' }}>
+                                  {/* Edit Tabs & Toolbar */}
+                                  <div className="editor-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                                    <div className="editor-tabs" style={{ display: 'flex', gap: '4px' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingCommentTab('write')}
+                                        className={`tab-btn ${editingCommentTab === 'write' ? 'active' : ''}`}
+                                        style={{ 
+                                          padding: '4px 10px', 
+                                          fontSize: '11px', 
+                                          fontWeight: '600',
+                                          border: 'none', 
+                                          borderRadius: '4px',
+                                          cursor: 'pointer',
+                                          backgroundColor: editingCommentTab === 'write' ? 'var(--primary-100, #e0f2fe)' : 'transparent',
+                                          color: editingCommentTab === 'write' ? 'var(--primary-700, #0369a1)' : 'var(--text-muted, #64748b)'
+                                        }}
+                                      >
+                                        Modifier
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingCommentTab('preview')}
+                                        className={`tab-btn ${editingCommentTab === 'preview' ? 'active' : ''}`}
+                                        style={{ 
+                                          padding: '4px 10px', 
+                                          fontSize: '11px', 
+                                          fontWeight: '600',
+                                          border: 'none', 
+                                          borderRadius: '4px',
+                                          cursor: 'pointer',
+                                          backgroundColor: editingCommentTab === 'preview' ? 'var(--primary-100, #e0f2fe)' : 'transparent',
+                                          color: editingCommentTab === 'preview' ? 'var(--primary-700, #0369a1)' : 'var(--text-muted, #64748b)'
+                                        }}
+                                      >
+                                        Aperçu
+                                      </button>
+                                    </div>
+                                    
+                                    {editingCommentTab === 'write' && (
+                                      <div className="editor-toolbar" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleInsertEditMarkdown('bold')}
+                                          title="Gras (**texte**)"
+                                          style={{ border: 'none', background: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                                        >
+                                          <strong>B</strong>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleInsertEditMarkdown('italic')}
+                                          title="Italique (*texte*)"
+                                          style={{ border: 'none', background: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', alignItems: 'center' }}
+                                        >
+                                          <em>I</em>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleInsertEditMarkdown('list')}
+                                          title="Liste à puces (- item)"
+                                          style={{ border: 'none', background: 'none', padding: '4px', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                                        >
+                                          <span style={{ fontSize: '13px', fontWeight: 'bold' }}>•—</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleInsertEditMarkdown('code')}
+                                          title="Bloc de code (```)"
+                                          style={{ border: 'none', background: 'none', padding: '4px 6px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '11px', backgroundColor: '#f1f5f9', borderRadius: '4px', display: 'flex', alignItems: 'center', fontWeight: 'bold' }}
+                                        >
+                                          &lt;/&gt;
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Edit Textarea / Preview */}
+                                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    {editingCommentTab === 'write' ? (
+                                      <textarea
+                                        id="comment-edit-textarea"
+                                        value={editingCommentContent}
+                                        onChange={(e) => setEditingCommentContent(e.target.value)}
+                                        style={{ 
+                                          width: '100%', 
+                                          minHeight: '80px', 
+                                          border: 'none', 
+                                          outline: 'none', 
+                                          padding: '10px', 
+                                          fontSize: '13px', 
+                                          resize: 'vertical',
+                                          color: 'var(--text-color, #1e293b)'
+                                        }}
+                                      />
+                                    ) : (
+                                      <div 
+                                        style={{ 
+                                          padding: '10px', 
+                                          minHeight: '80px', 
+                                          fontSize: '13px', 
+                                          backgroundColor: '#fafafa', 
+                                          overflowY: 'auto',
+                                          color: 'var(--text-color, #1e293b)',
+                                          lineHeight: '1.5'
+                                        }}
+                                        dangerouslySetInnerHTML={{ __html: parseMarkdown(editingCommentContent) || '<span style="color: var(--text-muted); font-style: italic;">Rien à prévisualiser.</span>' }}
+                                      />
+                                    )}
+                                    
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '8px', borderTop: '1px solid var(--border-color)', backgroundColor: '#f8fafc' }}>
+                                      <button 
+                                        type="button" 
+                                        className="btn btn-secondary btn-small"
+                                        onClick={handleCancelEditComment}
+                                      >
+                                        Annuler
+                                      </button>
+                                      <button 
+                                        type="button" 
+                                        className="btn btn-primary btn-small"
+                                        disabled={!editingCommentContent.trim()}
+                                        onClick={() => handleSaveEditComment(comment.id)}
+                                      >
+                                        Sauvegarder
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="comment-card" key={idx}>
+                              <div className="comment-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span className="comment-author">
+                                  <span className={`avatar-circle ${comment.author.avatarColor}`} style={{ width: '18px', height: '18px', fontSize: '8px' }}>
+                                    {comment.author.name ? comment.author.name.split(' ').map(n => n[0]).join('') : 'U'}
+                                  </span>
+                                  {comment.author.name}
                                 </span>
-                                {comment.author.name}
-                              </span>
-                              <span className="comment-date">{formatDate(comment.date)}</span>
+                                
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <span className="comment-date" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(comment.date)}</span>
+                                  {currentUser && currentUser.email === comment.author.email && (
+                                    <div className="comment-actions" style={{ display: 'flex', gap: '6px' }}>
+                                      <button 
+                                        type="button"
+                                        onClick={() => handleStartEditComment(comment)}
+                                        title="Modifier le commentaire"
+                                        style={{ border: 'none', background: 'none', padding: '2px', cursor: 'pointer', color: 'var(--text-muted)', display: 'inline-flex' }}
+                                      >
+                                        <Edit3 size={12} />
+                                      </button>
+                                      <button 
+                                        type="button"
+                                        onClick={() => handleDeleteComment(comment.id)}
+                                        title="Supprimer le commentaire"
+                                        style={{ border: 'none', background: 'none', padding: '2px', cursor: 'pointer', color: 'var(--red-600, #dc2626)', display: 'inline-flex' }}
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div 
+                                className="comment-body" 
+                                style={{ fontSize: '13px', lineHeight: '1.5', marginTop: '6px', color: 'var(--text-color)' }}
+                                dangerouslySetInnerHTML={{ __html: parseMarkdown(comment.content) }} 
+                              />
                             </div>
-                            <div 
-                              className="comment-body" 
-                              style={{ fontSize: '13px', lineHeight: '1.5', marginTop: '6px', color: 'var(--text-color)' }}
-                              dangerouslySetInnerHTML={{ __html: parseMarkdown(comment.content) }} 
-                            />
-                          </div>
-                        ))}
+                          );
+                        })}
                         
                         {selectedIncident.comments.length === 0 && (
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '10px' }}>
