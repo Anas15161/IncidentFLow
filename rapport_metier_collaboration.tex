@@ -1,0 +1,147 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+
+% Couleurs
+\definecolor{primary}{HTML}{1D4ED8}
+\definecolor{secondary}{HTML}{0F172A}
+\definecolor{lightbg}{HTML}{F8FAFC}
+\definecolor{codecolor}{HTML}{0F172A}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary,
+    pdftitle={IncidentFlow - Spécifications des Fonctionnalités Métier \& Collaboration},
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textbf{IncidentFlow}}
+\rhead{Spécifications Métier \& Collaboration}
+\cfoot{\thepage}
+
+\title{
+    \textbf{\Huge IncidentFlow}\\[0.5cm]
+    \Large Plateforme de Gestion d'Incidents ITIL\\[1.5cm]
+    \textbf{\Large Rapport de Spécifications Techniques et Fonctionnelles :\\ Fonctionnalités Métier et Collaboratives (Hors-IA)}
+    \vspace{1cm}
+}
+\author{\textbf{Anas HADDOU} \\ Élève Ingénieur en Génie Informatique}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+\tableofcontents
+\clearpage
+
+\section{Introduction}
+Dans le cadre de l'alignement de l'application \textbf{IncidentFlow} sur les bonnes pratiques ITIL v4, l'expérience collaborative des techniciens et des managers représente un enjeu clé de productivité. Ce document définit les spécifications détaillées pour trois fonctionnalités majeures conçues pour fluidifier la communication inter-équipes et pérenniser le tri et la recherche d'incidents :
+\begin{enumerate}
+    \item \textbf{Le Système d'Observateurs (Watchers / Abonnés)} ;
+    \item \textbf{Les Mentions \texttt{@} dans les Commentaires} ;
+    \item \textbf{Les Vues Filtrées Sauvegardées (Saved Views / Filtres Persistants)}.
+\end{enumerate}
+
+---
+
+\section{Système d'Observateurs (Watchers / Abonnés)}
+\subsection{Description et Objectif Métier}
+Par défaut, un incident concerne le déclarant (auteur) et le responsable assigné. Cependant, la résolution d'incidents critiques (P1/P2) nécessite souvent la supervision de tiers : managers de la sécurité, ingénieurs système experts, ou coordinateurs. 
+
+Le système d'observateurs permet à n'importe quel membre de l'équipe de s'abonner (``Watcher'') à un incident. Cela lui donne le droit de suivre l'avancement en temps réel sans pour autant altérer l'assignation principale du ticket.
+
+\subsection{Modèle de Données (Base de Données)}
+Une relation \textbf{Many-to-Many} est établie entre l'entité \texttt{Incident} et l'entité \texttt{User}. Une table de jointure \texttt{incident\_watchers} assure la persistance de cette association.
+\begin{lstlisting}[language=SQL, caption=Schema SQL de la table de jointure, label=sql-watchers]
+CREATE TABLE incident_watchers (
+    incident_id BIGINT REFERENCES incidents(id) ON DELETE CASCADE,
+    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    PRIMARY KEY (incident_id, user_id)
+);
+\end{lstlisting}
+
+\subsection{Endpoints REST (Backend Spring Boot)}
+\begin{itemize}
+    \item \texttt{POST /api/incidents/\{code\}/watch} : Ajoute l'utilisateur actuellement authentifié à la liste des observateurs.
+    \item \texttt{POST /api/incidents/\{code\}/unwatch} : Retire l'utilisateur connecté de la liste des observateurs.
+    \item \texttt{GET /api/incidents/\{code\}/watchers} : Récupère la liste des utilisateurs abonnés.
+\end{itemize}
+
+\subsection{Intégration UI/UX}
+* **Bouton d'abonnement rapide** : Une icône en forme d'œil (👁) ou de cloche (🔔) dans le panneau de détails pour s'abonner en un clic.
+* **Panneau d'abonnés** : Affichage des avatars circulaires des observateurs avec possibilité d'ajouter ou retirer des personnes directement depuis le groupe de support.
+
+---
+
+\section{Mentions \texttt{@} dans les Commentaires}
+\subsection{Description et Objectif Métier}
+Lorsqu'un technicien rédige un diagnostic, il a fréquemment besoin d'interpeller un collègue (ex: \textit{« @SophieMartin peux-tu jeter un œil à ce log de pare-feu ? »}). Cette fonctionnalité permet de notifier de façon ciblée et instantanée un membre de l'équipe sur un point précis.
+
+\subsection{Analyseur de Mentions (Markdown \& Notification Engine)}
+\begin{enumerate}
+    \item \textbf{Côté Frontend (Saisie)} : Lors de la saisie du symbole \texttt{@} dans la zone de texte du commentaire, une suggestion dynamique (popover) liste les collaborateurs du projet en filtrant par nom.
+    \item \textbf{Côté Backend (Traitement)} : À la réception du commentaire, le serveur exécute une recherche par expression régulière (Regex) pour identifier le motif \texttt{@([a-zA-Z.]+)}.
+    \item \textbf{Notification ciblée} : Pour chaque utilisateur mentionné identifié, un événement est publié dans le système de notifications (\textit{Spring Events} ou \textit{Redis Pub/Sub}) pour pousser une alerte temps réel (WebSocket) et envoyer un e-mail contextuel.
+\end{enumerate}
+
+\subsection{Rendu Markdown}
+Le parser Markdown du frontend remplace dynamiquement le motif du texte par un badge CSS stylisé :
+\begin{lstlisting}[language=HTML, caption=Exemple de rendu HTML généré, label=html-mention]
+<span class="mention-tag" style="background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
+    @Anas Haddou
+</span>
+\end{lstlisting}
+
+---
+
+\section{Vues Filtrées Sauvegardées (Saved Views / Filtres Persistants)}
+\subsection{Description et Objectif Métier}
+Afin d'éviter aux techniciens de configurer répétitivement les mêmes filtres complexes (ex: Catégorie = Réseau, Priorité = Critique, Assignation = Moi), cette fonctionnalité leur permet de sauvegarder une requête sous forme d'onglet raccourci permanent.
+
+\subsection{Structure de Persistance}
+Une entité \texttt{SavedView} est créée en base de données, liée à l'utilisateur :
+\begin{lstlisting}[language=Java, caption=Entite JPA SavedView, label=java-savedview]
+@Entity
+@Table(name = "saved_views")
+public class SavedView {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String filtersJson; // Contient les filtres serialises
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id")
+    private User user;
+}
+\end{lstlisting}
+
+\subsection{Endpoints REST (Backend)}
+* \texttt{GET /api/saved-views} : Récupère les vues sauvegardées de l'utilisateur connecté.
+* \texttt{POST /api/saved-views} : Sauvegarde une nouvelle vue avec son nom et ses critères.
+* \texttt{DELETE /api/saved-views/\{id\}} : Supprime une vue sauvegardée.
+
+\subsection{Intégration UI/UX}
+* **Bouton ``Sauvegarder la vue''** : Présent à côté de la barre de recherche globale lorsque des filtres sont actifs.
+* **Barre d'onglets de navigation rapide** : Affichée en haut de la liste d'incidents (ex: \textit{[Tous], [Mes tickets critiques], [Réseau en attente]}), permettant de basculer instantanément d'une vue à l'autre.
+
+\end{document}
