@@ -2245,7 +2245,7 @@ function App() {
           <div style={{ position: 'absolute', top: '15%', left: '20%', width: '350px', height: '350px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.14) 0%, rgba(59, 130, 246, 0) 70%)', filter: 'blur(45px)', zIndex: 0, pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: '15%', right: '20%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.14) 0%, rgba(168, 85, 247, 0) 70%)', filter: 'blur(55px)', zIndex: 0, pointerEvents: 'none' }} />
 
-          <div className="card" style={{ width: '100%', maxWidth: '420px', padding: '36px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', borderRadius: '20px', background: 'rgba(30, 41, 59, 0.65)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)', zIndex: 1 }}>
+          <div className="card" style={{ width: '100%', maxWidth: '480px', padding: '44px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', borderRadius: '20px', background: 'rgba(30, 41, 59, 0.65)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)', zIndex: 1 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
               <div className="brand-icon animate-pulse-red" style={{ width: '48px', height: '48px', marginBottom: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)' }}>
                 <Activity className="text-white" size={24} />
