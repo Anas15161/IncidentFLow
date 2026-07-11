@@ -2681,41 +2681,24 @@ function App() {
 
                     {/* Stepper horizontal de workflow */}
                     {selectedIncidentWorkflow && selectedIncidentWorkflow.states && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid var(--border-color)', overflowX: 'auto', flexWrap: 'nowrap' }}>
+                      <div className="workflow-stepper-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', padding: '12px 16px', backgroundColor: 'var(--body-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', overflowX: 'auto', flexWrap: 'nowrap' }}>
                         {selectedIncidentWorkflow.states.map((state, idx) => {
                           const isCurrent = state.name.toLowerCase() === selectedIncident.status.toLowerCase();
                           const currentStateIndex = selectedIncidentWorkflow.states.findIndex(s => s.name.toLowerCase() === selectedIncident.status.toLowerCase());
                           const isPassed = idx < currentStateIndex;
+                          const stepStatusClass = isCurrent ? 'current' : (isPassed ? 'passed' : 'upcoming');
                           return (
                             <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  width: '20px', 
-                                  height: '20px', 
-                                  borderRadius: '50%', 
-                                  fontSize: '10px', 
-                                  fontWeight: '800',
-                                  backgroundColor: isCurrent ? 'var(--primary-600)' : (isPassed ? '#dcfce7' : '#f1f5f9'),
-                                  color: isCurrent ? '#ffffff' : (isPassed ? '#15803d' : '#64748b'),
-                                  border: isCurrent ? '3px solid #dbeafe' : 'none',
-                                  animation: isCurrent ? 'pulse-glow 2s infinite' : 'none'
-                                }}>
+                                <span className={`stepper-circle ${stepStatusClass}`}>
                                   {isPassed ? '✓' : idx + 1}
                                 </span>
-                                <span style={{ 
-                                  fontSize: '11px', 
-                                  fontWeight: '700', 
-                                  color: isCurrent ? 'var(--primary-700)' : (isPassed ? '#166534' : 'var(--text-muted)'),
-                                  whiteSpace: 'nowrap'
-                                }}>
+                                <span className={`stepper-label ${stepStatusClass}`}>
                                   {state.name}
                                 </span>
                               </div>
                               {idx < selectedIncidentWorkflow.states.length - 1 && (
-                                <span style={{ color: '#cbd5e1', fontSize: '11px', fontWeight: 'bold' }}>→</span>
+                                <span style={{ color: 'var(--border-color)', fontSize: '11px', fontWeight: 'bold' }}>→</span>
                               )}
                             </div>
                           );
@@ -3698,38 +3681,16 @@ function App() {
 
                 {/* Visual / Textual Mode Toggle */}
                 {activeWorkflow && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', backgroundColor: '#e2e8f0', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+                  <div className="editor-mode-toggle-container">
                     <button 
                       onClick={() => setEditorMode('visual')}
-                      className="btn" 
-                      style={{ 
-                        backgroundColor: editorMode === 'visual' ? 'white' : 'transparent', 
-                        color: editorMode === 'visual' ? 'var(--primary-700)' : 'var(--text-muted)',
-                        boxShadow: editorMode === 'visual' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                        border: 'none',
-                        fontWeight: '700',
-                        padding: '6px 16px',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        cursor: 'pointer'
-                      }}
+                      className={`btn editor-mode-toggle-btn ${editorMode === 'visual' ? 'active' : ''}`}
                     >
                       Éditeur Graphique (Visual)
                     </button>
                     <button 
                       onClick={() => setEditorMode('textual')}
-                      className="btn" 
-                      style={{ 
-                        backgroundColor: editorMode === 'textual' ? 'white' : 'transparent', 
-                        color: editorMode === 'textual' ? 'var(--primary-700)' : 'var(--text-muted)',
-                        boxShadow: editorMode === 'textual' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                        border: 'none',
-                        fontWeight: '700',
-                        padding: '6px 16px',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        cursor: 'pointer'
-                      }}
+                      className={`btn editor-mode-toggle-btn ${editorMode === 'textual' ? 'active' : ''}`}
                     >
                       Configuration Textuelle
                     </button>

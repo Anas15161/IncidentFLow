@@ -10,6 +10,7 @@
   
   --sidebar-bg: #0a2647;
   --body-bg: #f8fafc;
+  --card-bg: #ffffff;
   --text-main: #1e293b;
   --text-muted: #64748b;
   --border-color: #e2e8f0;
@@ -1529,11 +1530,17 @@ header.topbar {
 
 /* Dark Theme Variables & Adjustments */
 html.dark-theme {
+  --body-bg: #0f172a;
   --bg-main: #0f172a;
   --card-bg: #1e293b;
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
   --border-color: #334155;
+  --sidebar-bg: #0f172a;
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+html.dark-theme body {
   background-color: #0f172a;
   color: #f1f5f9;
 }
@@ -1541,6 +1548,10 @@ html.dark-theme .card, html.dark-theme .dashboard-card {
   background-color: #1e293b;
   border-color: #334155;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+html.dark-theme .datagrid-container {
+  background-color: #1e293b;
+  border-color: #334155;
 }
 html.dark-theme .datagrid th {
   background-color: #1e293b;
@@ -1551,6 +1562,12 @@ html.dark-theme .datagrid td {
   border-bottom: 1px solid #334155;
   color: #cbd5e1;
 }
+html.dark-theme .datagrid tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+html.dark-theme .datagrid tr.hoverable:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
 html.dark-theme .filter-panel-premium {
   background-color: #1e293b;
   border-color: #334155;
@@ -1559,6 +1576,10 @@ html.dark-theme .filter-select, html.dark-theme .form-control {
   background-color: #0f172a;
   color: #f1f5f9;
   border-color: #334155;
+}
+html.dark-theme .form-control-static {
+  background-color: #1e293b;
+  color: #cbd5e1;
 }
 html.dark-theme .topbar {
   background-color: #1e293b;
@@ -1571,6 +1592,185 @@ html.dark-theme .sidebar {
 html.dark-theme .sidebar-logo {
   color: #ffffff;
 }
+html.dark-theme .profile-dropdown-menu {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+html.dark-theme .profile-dropdown-menu button {
+  color: #cbd5e1;
+}
+html.dark-theme .profile-dropdown-menu button:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+html.dark-theme .btn-secondary {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+html.dark-theme .btn-secondary:hover {
+  background-color: #334155;
+  border-color: #475569;
+  color: #ffffff;
+}
+html.dark-theme .kpi-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+html.dark-theme .comment-card {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-color: #334155;
+}
+html.dark-theme .comment-body {
+  color: #cbd5e1;
+}
+html.dark-theme .comment-textarea {
+  background-color: #0f172a;
+  color: #f1f5f9;
+  border-color: #334155;
+}
+html.dark-theme .comment-editor-container {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+html.dark-theme .editor-header {
+  background-color: #0f172a !important;
+  border-bottom-color: #334155 !important;
+}
+html.dark-theme .comment-editor-container > div:last-child {
+  background-color: #0f172a !important;
+  border-top-color: #334155 !important;
+}
+html.dark-theme .attachment-item {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  border-color: #334155 !important;
+}
+html.dark-theme .upload-zone {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+  border-color: #334155 !important;
+}
+html.dark-theme .upload-zone:hover {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border-color: var(--primary-500) !important;
+}
+html.dark-theme .modal-backdrop, html.dark-theme .modal-overlay {
+  background-color: rgba(15, 23, 42, 0.7);
+}
+html.dark-theme .modal-content, html.dark-theme .modal-card {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+html.dark-theme .modal-title {
+  color: #ffffff;
+}
+html.dark-theme .modal-header, html.dark-theme .modal-footer {
+  border-color: #334155;
+}
+
+/* Horizontal Workflow Stepper Styles */
+.stepper-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 800;
+  transition: all 0.3s;
+}
+.stepper-circle.current {
+  background-color: var(--primary-600);
+  color: #ffffff;
+  border: 3px solid #dbeafe;
+  animation: pulse-glow 2s infinite;
+}
+.stepper-circle.passed {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+.stepper-circle.upcoming {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.stepper-label {
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+.stepper-label.current {
+  color: var(--primary-700);
+}
+.stepper-label.passed {
+  color: #166534;
+}
+.stepper-label.upcoming {
+  color: var(--text-muted);
+}
+
+/* Dark theme stepper overrides */
+html.dark-theme .stepper-circle.passed {
+  background-color: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+html.dark-theme .stepper-circle.upcoming {
+  background-color: #0f172a;
+  color: #94a3b8;
+}
+html.dark-theme .stepper-circle.current {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+html.dark-theme .stepper-label.current {
+  color: #60a5fa;
+}
+html.dark-theme .stepper-label.passed {
+  color: #34d399;
+}
+
+/* Visual / Textual Toggle Styles */
+.editor-mode-toggle-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: #e2e8f0;
+  padding: 4px;
+  border-radius: 8px;
+  width: fit-content;
+}
+.editor-mode-toggle-btn {
+  background-color: transparent;
+  color: var(--text-muted);
+  border: none;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: none;
+  transition: all 0.2s;
+}
+.editor-mode-toggle-btn.active {
+  background-color: #ffffff;
+  color: var(--primary-700);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Dark theme toggle overrides */
+html.dark-theme .editor-mode-toggle-container {
+  background-color: #0f172a;
+}
+html.dark-theme .editor-mode-toggle-btn.active {
+  background-color: #1e293b;
+  color: #60a5fa;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
 
 /* Glass Theme Variables & Adjustments */
 html.glass-theme {
