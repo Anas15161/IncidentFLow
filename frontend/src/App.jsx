@@ -60,8 +60,8 @@ const getInitialNodes = (states) => {
       data: { label: `${state.label} (${state.name})` },
       position: { x, y },
       style: {
-        background: state.active ? '#f8fafc' : '#e2e8f0',
-        color: '#0f172a',
+        background: state.active ? 'var(--card-bg)' : 'var(--border-color)',
+        color: 'var(--text-main)',
         border: '2px solid ' + (isNouveau ? '#10b981' : isCloture ? '#6366f1' : '#3b82f6'),
         borderRadius: '8px',
         padding: '10px',
@@ -541,8 +541,8 @@ function App() {
       return {
         icon: <MessageSquare size={14} />,
         color: '#64748b', // slate
-        bgColor: '#f8fafc',
-        borderColor: '#e2e8f0',
+        bgColor: 'var(--body-bg)',
+        borderColor: 'var(--border-color)',
         title: 'Commentaire'
       };
     }
@@ -552,8 +552,8 @@ function App() {
       return {
         icon: <PlusCircle size={14} />,
         color: '#06b6d4', // cyan
-        bgColor: '#ecfeff',
-        borderColor: '#c5f6fa',
+        bgColor: 'var(--body-bg)',
+        borderColor: 'var(--border-color)',
         title: 'Incident Déclaré'
       };
     }
@@ -562,8 +562,8 @@ function App() {
     return {
       icon: <Clock size={14} />,
       color: '#64748b',
-      bgColor: '#f8fafc',
-      borderColor: '#e2e8f0',
+      bgColor: 'var(--body-bg)',
+      borderColor: 'var(--border-color)',
       title: 'Action Consignée'
     };
   };
@@ -2859,9 +2859,9 @@ function App() {
                           if (editingCommentId === comment.id) {
                             return (
                               <div className="comment-card" key={idx} style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '12px' }}>
-                                <div className="comment-editor-container" style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff', marginTop: '5px' }}>
+                                <div className="comment-editor-container" style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--card-bg)', marginTop: '5px' }}>
                                   {/* Edit Tabs & Toolbar */}
-                                  <div className="editor-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                                  <div className="editor-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--body-bg)', padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
                                     <div className="editor-tabs" style={{ display: 'flex', gap: '4px' }}>
                                       <button
                                         type="button"
@@ -2970,7 +2970,7 @@ function App() {
                                       />
                                     )}
                                     
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '8px', borderTop: '1px solid var(--border-color)', backgroundColor: '#f8fafc' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '8px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--body-bg)' }}>
                                       <button 
                                         type="button" 
                                         className="btn btn-secondary btn-small"
@@ -3043,9 +3043,9 @@ function App() {
                         )}
                       </div>
 
-                      <div className="comment-editor-container" style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff', marginTop: '15px' }}>
+                      <div className="comment-editor-container" style={{ border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--card-bg)', marginTop: '15px' }}>
                         {/* Editor Tabs & Toolbar */}
-                        <div className="editor-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                        <div className="editor-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--body-bg)', padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
                           <div className="editor-tabs" style={{ display: 'flex', gap: '4px' }}>
                             <button
                               type="button"
@@ -3155,7 +3155,7 @@ function App() {
                             />
                           )}
                           
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 12px', borderTop: '1px solid var(--border-color)', backgroundColor: '#f8fafc' }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 12px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--body-bg)' }}>
                             <button 
                               type="submit" 
                               className="btn btn-primary btn-small"
@@ -3274,7 +3274,7 @@ function App() {
                           gap: '8px', 
                           cursor: 'pointer',
                           border: isDraggingUpload ? '2px dashed var(--primary-600)' : '2px dashed var(--border-color)',
-                          backgroundColor: isDraggingUpload ? 'var(--primary-50)' : '#f8fafc',
+                          backgroundColor: isDraggingUpload ? 'rgba(59, 130, 246, 0.15)' : 'var(--body-bg)',
                           transition: 'all 0.2s ease',
                           padding: '16px'
                         }}
@@ -3746,7 +3746,7 @@ function App() {
                           {activeWorkflow.states.map(state => {
                             const isSystem = ["Nouveau", "Clôturé"].includes(state.name);
                             return (
-                              <div key={state.id || state.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                              <div key={state.id || state.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--body-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                                 <div>
                                   <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>ID : {state.name} {isSystem && '(Système)'}</span>
                                   <input 
@@ -3758,7 +3758,7 @@ function App() {
                                       setActiveWorkflow(updatedWf);
                                       setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
                                     }}
-                                    style={{ border: 'none', borderBottom: '1px dashed #cbd5e1', outline: 'none', fontWeight: 'bold', fontSize: '13px', display: 'block', backgroundColor: 'transparent', marginTop: '4px' }}
+                                    style={{ border: 'none', borderBottom: '1px dashed var(--border-color)', outline: 'none', fontWeight: 'bold', fontSize: '13px', display: 'block', backgroundColor: 'transparent', marginTop: '4px' }}
                                   />
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -3793,7 +3793,7 @@ function App() {
                         </div>
 
                         {/* Add state inline form */}
-                        <form onSubmit={handleAddStateToWorkflow} style={{ marginTop: '16px', padding: '16px', backgroundColor: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <form onSubmit={handleAddStateToWorkflow} style={{ marginTop: '16px', padding: '16px', backgroundColor: 'var(--body-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           <h4 style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={14} /> Ajouter un État</h4>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -3831,7 +3831,7 @@ function App() {
                         <h3 className="widget-title" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>Transitions Autorisées</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {activeWorkflow.transitions.map((t, idx) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--body-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                               <div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '13px' }}>
                                   <span>{t.fromState}</span>
@@ -3861,7 +3861,7 @@ function App() {
                         </div>
 
                         {/* Add transition inline form */}
-                        <form onSubmit={handleAddTransitionToWorkflow} style={{ marginTop: '16px', padding: '16px', backgroundColor: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <form onSubmit={handleAddTransitionToWorkflow} style={{ marginTop: '16px', padding: '16px', backgroundColor: 'var(--body-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           <h4 style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={14} /> Définir une Transition</h4>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -3910,11 +3910,11 @@ function App() {
                       {/* Graphic Visualizer help */}
                       <div className="card" style={{ padding: '24px' }}>
                         <h3 className="widget-title" style={{ marginBottom: '10px' }}>Aperçu Visuel du Processus</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: 'var(--body-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                           {activeWorkflow.states.filter(s => s.active).map(state => {
                             const destinations = activeWorkflow.transitions.filter(t => t.fromState === state.name).map(t => t.toState);
                             return (
-                              <div key={state.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px', fontSize: '11.5px' }}>
+                              <div key={state.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', fontSize: '11.5px' }}>
                                 <span className={`badge ${state.colorClass}`} style={{ fontSize: '9px', padding: '2px 6px' }}>{state.label}</span>
                                 <span style={{ color: 'var(--text-muted)', fontWeight: 'bold' }}>
                                   {destinations.length === 0 ? '🏁 État final' : `➔ ${destinations.join(', ')}`}
@@ -3931,11 +3931,11 @@ function App() {
                 {activeWorkflow && editorMode === 'visual' && (
                   <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {/* Visual Editor Card */}
-                    <div className="card" style={{ padding: '24px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+                    <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', minHeight: '520px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <h3 className="widget-title">Concepteur Visuel Interactif</h3>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Définissez les transitions et organisez vos états graphiquement.</span>
+                          <h3 className="widget-title" style={{ margin: 0 }}>Graphe Relationnel d'États</h3>
+                          <p style={{ margin: 0, fontSize: '10px', color: 'var(--text-muted)' }}>Moteur de routage interactif React Flow</p>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <span className="badge badge-normal" style={{ fontSize: '10px', fontWeight: 'bold' }}>Actif</span>
@@ -3950,7 +3950,7 @@ function App() {
                       </div>
 
                       {/* React Flow Canvas container */}
-                      <div style={{ width: '100%', height: '480px', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#fafafa', position: 'relative' }}>
+                      <div style={{ width: '100%', height: '480px', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--body-bg)', position: 'relative' }}>
                         <ReactFlow
                           nodes={nodes}
                           edges={edges}
@@ -4400,32 +4400,28 @@ function App() {
 
                 <div className="form-group">
                   <label>Pièce jointe (facultatif)</label>
-                  <label 
-                    className={`upload-zone ${isDraggingCreate ? 'dragging' : ''}`} 
-                    style={{ 
-                      padding: '24px 16px', 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      alignItems: 'center', 
-                      cursor: 'pointer',
-                      border: isDraggingCreate ? '2px dashed var(--primary-600)' : '2px dashed var(--border-color)',
-                      backgroundColor: isDraggingCreate ? 'var(--primary-50)' : '#f8fafc',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onDragOver={handleDragOver}
-                    onDragEnter={handleDragEnterCreate}
+                  <div 
+                    onDragOver={handleDragOverCreate}
                     onDragLeave={handleDragLeaveCreate}
                     onDrop={handleDropCreate}
+                    style={{ 
+                      border: '2px dashed var(--border-color)', 
+                      borderRadius: '8px', 
+                      padding: '24px', 
+                      textAlign: 'center', 
+                      cursor: 'pointer',
+                      backgroundColor: isDraggingCreate ? 'rgba(59, 130, 246, 0.15)' : 'var(--body-bg)',
+                    }}
                   >
                     <Paperclip size={20} style={{ marginBottom: '8px', color: isDraggingCreate ? 'var(--primary-600)' : 'var(--primary-500)' }} />
                     <span style={{ fontWeight: 'bold' }}>{newIncidentFile ? `Fichier sélectionné : ${newIncidentFile.name}` : "Glisser-déposer ou cliquer pour téléverser"}</span>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Fichiers logs, captures d'écran (.txt, .log, .png, .jpg)</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>Fichiers logs, captures d'écran (.txt, .log, .png, .jpg)</span>
                     <input 
                       type="file" 
                       style={{ display: 'none' }} 
                       onChange={(e) => setNewIncidentFile(e.target.files[0])}
                     />
-                  </label>
+                  </div>
                   {newIncidentFile && (
                     <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {newIncidentFile.type.startsWith('image/') && (
@@ -4778,11 +4774,11 @@ function App() {
                   <label style={{ display: 'block', marginBottom: '8px' }}>Couleur de l'avatar</label>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     {[
-                      { key: 'bg-blue-600', color: '#2563eb', label: 'Bleu' },
-                      { key: 'bg-purple-600', color: '#9333ea', label: 'Violet' },
-                      { key: 'bg-emerald-600', color: '#059669', label: 'Vert' },
-                      { key: 'bg-red-600', color: '#dc2626', label: 'Rouge' },
-                      { key: 'bg-indigo-600', color: '#4f46e5', label: 'Indigo' }
+                      { key: 'bg-blue-600', value: '#2563eb', label: 'Bleu' },
+                      { key: 'bg-purple-600', value: '#9333ea', label: 'Violet' },
+                      { key: 'bg-emerald-600', value: '#059669', label: 'Vert' },
+                      { key: 'bg-red-600', value: '#dc2626', label: 'Rouge' },
+                      { key: 'bg-indigo-600', value: '#4f46e5', label: 'Indigo' }
                     ].map(item => (
                       <button
                         key={item.key}
@@ -4828,7 +4824,6 @@ function App() {
                   <label>Thème visuel *</label>
                   <select
                     className="form-control"
-                    style={{ backgroundColor: 'white' }}
                     value={appSettingsForm.themeMode}
                     onChange={(e) => setAppSettingsForm({ ...appSettingsForm, themeMode: e.target.value })}
                   >
@@ -4842,7 +4837,6 @@ function App() {
                   <label>Pagination (Incidents par page) *</label>
                   <select
                     className="form-control"
-                    style={{ backgroundColor: 'white' }}
                     value={appSettingsForm.itemsPerPage}
                     onChange={(e) => setAppSettingsForm({ ...appSettingsForm, itemsPerPage: e.target.value })}
                   >
@@ -4857,7 +4851,6 @@ function App() {
                   <label>Mise à jour en temps réel *</label>
                   <select
                     className="form-control"
-                    style={{ backgroundColor: 'white' }}
                     value={appSettingsForm.autoRefreshInterval}
                     onChange={(e) => setAppSettingsForm({ ...appSettingsForm, autoRefreshInterval: e.target.value })}
                   >
@@ -4878,7 +4871,6 @@ function App() {
                   <label>Durée de la session *</label>
                   <select
                     className="form-control"
-                    style={{ backgroundColor: 'white' }}
                     value={appSettingsForm.sessionDuration}
                     onChange={(e) => setAppSettingsForm({ ...appSettingsForm, sessionDuration: e.target.value })}
                   >
@@ -4987,7 +4979,7 @@ function App() {
                 </p>
               </div>
 
-              <div style={{ backgroundColor: '#f8fafc', padding: '10px', borderRadius: '8px', fontSize: '11px', border: '1px solid var(--border-color)' }}>
+              <div style={{ backgroundColor: 'var(--body-bg)', padding: '10px', borderRadius: '8px', fontSize: '11px', border: '1px solid var(--border-color)' }}>
                 <strong>Support technique :</strong> support@incidentflow.netmar.com<br />
                 <strong>Documentation :</strong> wiki.incidentflow.internal
               </div>
@@ -5011,7 +5003,7 @@ function App() {
               <button className="modal-close-btn" onClick={() => setPreviewFile(null)} style={{ border: 'none', background: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
             </div>
             
-            <div className="modal-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9', minHeight: '300px', maxHeight: '75vh', overflow: 'auto' }}>
+            <div className="modal-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: 'var(--body-bg)', minHeight: '300px', maxHeight: '75vh', overflow: 'auto' }}>
               {previewLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                   <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--primary-600)' }} />
@@ -5093,7 +5085,7 @@ function App() {
               ) : null}
             </div>
             
-            <div className="modal-footer" style={{ padding: '12px 20px', backgroundColor: '#f8fafc', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div className="modal-footer" style={{ padding: '12px 20px', backgroundColor: 'var(--body-bg)', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               {previewBlobUrl && (
                 <a 
                   href={previewBlobUrl}
@@ -5148,11 +5140,11 @@ function App() {
                   outline: 'none', 
                   fontSize: '14px', 
                   background: 'transparent',
-                  color: 'var(--text-color, #1e293b)'
+                  color: 'var(--text-main)'
                 }}
                 autoFocus
               />
-              <span style={{ fontSize: '10px', backgroundColor: 'var(--slate-100, #f1f5f9)', color: 'var(--text-muted, #64748b)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontWeight: 'bold' }}>ESC</span>
+              <span style={{ fontSize: '10px', backgroundColor: 'var(--body-bg)', color: 'var(--text-muted, #64748b)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontWeight: 'bold' }}>ESC</span>
             </div>
 
             {/* Results list */}
@@ -5241,13 +5233,13 @@ function App() {
                                 borderRadius: '8px',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s ease',
-                                backgroundColor: isSelected ? 'var(--primary-50, #f0f9ff)' : 'transparent',
+                                backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
                                 borderLeft: isSelected ? '3px solid var(--primary-600)' : '3px solid transparent'
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <span style={{ fontSize: '14px' }}>📋</span>
-                                <span style={{ fontSize: '13px', fontWeight: isSelected ? '600' : 'normal', color: isSelected ? 'var(--primary-900, #0c4a6e)' : 'var(--text-color, #1e293b)' }}>
+                                <span style={{ fontSize: '13px', fontWeight: isSelected ? '600' : 'normal', color: isSelected ? 'var(--primary-500)' : 'var(--text-main)' }}>
                                   {item.label}
                                 </span>
                               </div>
@@ -5265,7 +5257,7 @@ function App() {
             </div>
 
             {/* Footer / Shortcuts Info */}
-            <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-color)', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '14px', fontSize: '10px', color: 'var(--text-muted, #64748b)' }}>
+            <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--body-bg)', display: 'flex', justifyContent: 'flex-end', gap: '14px', fontSize: '10px', color: 'var(--text-muted, #64748b)' }}>
               <span>↑↓ pour naviguer</span>
               <span>↵ pour valider</span>
               <span>ESC pour fermer</span>
