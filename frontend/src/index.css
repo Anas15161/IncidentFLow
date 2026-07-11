@@ -1771,6 +1771,16 @@ html.dark-theme .editor-mode-toggle-btn.active {
   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
+/* Dark theme donut legend overrides */
+html.dark-theme .donut-legend-item {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+html.dark-theme .donut-legend-item:hover {
+  background-color: #334155;
+  border-color: #475569;
+}
+
 
 /* Glass Theme Variables & Adjustments */
 html.glass-theme {

@@ -1858,7 +1858,7 @@ function App() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', width: '100%' }}>
         <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-          <circle cx="70" cy="70" r="50" fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
+          <circle cx="70" cy="70" r="50" fill="transparent" stroke="var(--border-color)" strokeWidth="12" />
           {segments.map((seg, idx) => {
             const percentage = seg.count / total;
             const angle = percentage * 360;
@@ -2122,7 +2122,7 @@ function App() {
           flexDirection: 'column', 
           gap: '12px', 
           padding: '16px', 
-          backgroundColor: '#f8fafc', 
+          backgroundColor: 'var(--card-bg)', 
           borderRadius: '12px', 
           border: '1px solid var(--border-color)', 
           width: '180px', 
@@ -3866,7 +3866,7 @@ function App() {
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                             <div className="form-group" style={{ marginBottom: 0 }}>
                               <label style={{ fontSize: '9px' }}>État Origine</label>
-                              <select className="form-control" value={newTransFrom} onChange={(e) => setNewTransFrom(e.target.value)} required style={{ background: 'white' }}>
+                              <select className="form-control" value={newTransFrom} onChange={(e) => setNewTransFrom(e.target.value)} required style={{ background: 'var(--card-bg)' }}>
                                 <option value="">Choisir...</option>
                                 {activeWorkflow.states.filter(s => s.active).map(s => (
                                   <option key={s.name} value={s.name}>{s.label}</option>
@@ -3875,7 +3875,7 @@ function App() {
                             </div>
                             <div className="form-group" style={{ marginBottom: 0 }}>
                               <label style={{ fontSize: '9px' }}>État Destination</label>
-                              <select className="form-control" value={newTransTo} onChange={(e) => setNewTransTo(e.target.value)} required style={{ background: 'white' }}>
+                              <select className="form-control" value={newTransTo} onChange={(e) => setNewTransTo(e.target.value)} required style={{ background: 'var(--card-bg)' }}>
                                 <option value="">Choisir...</option>
                                 {activeWorkflow.states.filter(s => s.active).map(s => (
                                   <option key={s.name} value={s.name}>{s.label}</option>
@@ -3885,7 +3885,7 @@ function App() {
                           </div>
                           <div className="form-group" style={{ marginBottom: 0 }}>
                             <label style={{ fontSize: '9px' }}>Rôle Autorisé</label>
-                            <select className="form-control" value={newTransRole} onChange={(e) => setNewTransRole(e.target.value)} style={{ background: 'white' }}>
+                            <select className="form-control" value={newTransRole} onChange={(e) => setNewTransRole(e.target.value)} style={{ background: 'var(--card-bg)' }}>
                               <option value="">Tous les utilisateurs</option>
                               <option value="Administrateur">Administrateur</option>
                               <option value="Responsable">Responsable</option>
@@ -4241,7 +4241,7 @@ function App() {
                       className="form-control" 
                       value={editIncidentForm.category}
                       onChange={(e) => setEditIncidentForm({ ...editIncidentForm, category: e.target.value })}
-                      style={{ background: 'white' }}
+                      style={{ background: 'var(--card-bg)' }}
                     >
                       <option value="Réseau">Réseau</option>
                       <option value="Sécurité">Sécurité</option>
@@ -4256,7 +4256,7 @@ function App() {
                       className="form-control" 
                       value={editIncidentForm.priority}
                       onChange={(e) => setEditIncidentForm({ ...editIncidentForm, priority: e.target.value })}
-                      style={{ background: 'white' }}
+                      style={{ background: 'var(--card-bg)' }}
                     >
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
@@ -4272,7 +4272,7 @@ function App() {
                     className="form-control" 
                     value={editIncidentForm.assignedToId}
                     onChange={(e) => setEditIncidentForm({ ...editIncidentForm, assignedToId: e.target.value })}
-                    style={{ background: 'white' }}
+                    style={{ background: 'var(--card-bg)' }}
                   >
                     <option value="">Non assigné</option>
                     {usersList.map(u => (
@@ -4335,7 +4335,7 @@ function App() {
                       className="form-control" 
                       value={newIncident.category}
                       onChange={(e) => setNewIncident({ ...newIncident, category: e.target.value })}
-                      style={{ background: 'white' }}
+                      style={{ background: 'var(--card-bg)' }}
                     >
                       <option value="Réseau">Réseau</option>
                       <option value="Sécurité">Sécurité</option>
@@ -4350,7 +4350,7 @@ function App() {
                       className="form-control" 
                       value={newIncident.priority}
                       onChange={(e) => setNewIncident({ ...newIncident, priority: e.target.value })}
-                      style={{ background: 'white' }}
+                      style={{ background: 'var(--card-bg)' }}
                     >
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
@@ -4366,7 +4366,7 @@ function App() {
                     className="form-control" 
                     value={newIncident.assignedToId}
                     onChange={(e) => setNewIncident({ ...newIncident, assignedToId: e.target.value })}
-                    style={{ background: 'white' }}
+                    style={{ background: 'var(--card-bg)' }}
                   >
                     <option value="">Affectation automatique par le système</option>
                     {usersList.map(u => (
@@ -4583,7 +4583,7 @@ function App() {
                     className="form-control" 
                     value={newUserForm.roleId} 
                     onChange={(e) => setNewUserForm({ ...newUserForm, roleId: e.target.value })}
-                    style={{ background: 'white' }}
+                    style={{ background: 'var(--card-bg)' }}
                   >
                     {rolesList.map(r => (
                       <option key={r.id} value={r.id}>{r.name}</option>
@@ -4681,7 +4681,7 @@ function App() {
                     className="form-control" 
                     value={editingUser.roleId} 
                     onChange={(e) => setEditingUser({ ...editingUser, roleId: e.target.value })}
-                    style={{ background: 'white' }}
+                    style={{ background: 'var(--card-bg)' }}
                   >
                     {rolesList.map(r => (
                       <option key={r.id} value={r.id}>{r.name}</option>
