@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { 
   Shield, Activity, FileText, AlertTriangle, CheckCircle, Clock, 
   Search, User, Plus, X, Bell, Paperclip, Download, Send, 
-  Globe, Cpu, Stethoscope, ArrowLeft, Eye, RefreshCw, Layers,
+  Globe, Cpu, Stethoscope, ArrowLeft, Eye, EyeOff, RefreshCw, Layers,
   Lock, LogOut, Users, Trash2, Edit3, Settings, AlertCircle,
   ChevronDown, HelpCircle, MessageSquare, PlusCircle, UserPlus, FileUp
 } from 'lucide-react';
@@ -105,6 +105,8 @@ function App() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
   const [sessionTimeLeft, setSessionTimeLeft] = useState(() => {
     return parseInt(localStorage.getItem('sessionDuration') || '600');
   });
@@ -2201,69 +2203,158 @@ function App() {
   // Authenticate wrapper
   if (!isAuthenticated) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'radial-gradient(circle at top, #1e293b, #0f172a)', padding: '20px' }}>
-        <div className="card" style={{ width: '100%', maxWidth: '420px', padding: '40px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)', borderRadius: '16px', background: 'rgba(30, 41, 59, 0.7)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
-            <div className="brand-icon" style={{ width: '48px', height: '48px', marginBottom: '16px' }}>
-              <Activity className="text-white" size={24} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'radial-gradient(circle at top, #1e293b, #0f172a)', padding: '20px', position: 'relative', overflow: 'hidden' }}>
+        {/* Ambient Glowing Blobs */}
+        <div style={{ position: 'absolute', top: '15%', left: '20%', width: '350px', height: '350px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, rgba(59, 130, 246, 0) 70%)', filter: 'blur(40px)', zIndex: 0, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '15%', right: '20%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, rgba(168, 85, 247, 0) 70%)', filter: 'blur(50px)', zIndex: 0, pointerEvents: 'none' }} />
+
+        <div className="card" style={{ width: '100%', maxWidth: '440px', padding: '40px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', borderRadius: '20px', background: 'rgba(30, 41, 59, 0.65)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.12)', zIndex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
+            <div className="brand-icon animate-pulse-red" style={{ width: '52px', height: '52px', marginBottom: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)' }}>
+              <Activity className="text-white" size={26} />
             </div>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px', marginBottom: '4px' }}>IncidentFlow</h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>Plateforme Dynamique de Gestion d'Incidents</p>
+            <h2 style={{ fontSize: '26px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.75px', marginBottom: '4px' }}>IncidentFlow</h2>
+            <p style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: '500', textAlign: 'center' }}>Plateforme Collaboratrice de Gestion d'Incidents ITIL</p>
           </div>
 
           {loginError && (
-            <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#fca5a5', padding: '12px', borderRadius: '8px', fontSize: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#fca5a5', padding: '12px 16px', borderRadius: '10px', fontSize: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <AlertCircle size={16} />
               <span>{loginError}</span>
             </div>
           )}
 
+          {/* Primary Enterprise SSO Action */}
+          <button 
+            type="button"
+            onClick={() => triggerQuickLogin('anas@netmar.com')}
+            className="btn btn-primary" 
+            style={{ 
+              width: '100%', 
+              justifyContent: 'center', 
+              padding: '13px', 
+              fontWeight: '700', 
+              backgroundColor: '#4f46e5', 
+              borderColor: '#4338ca', 
+              boxShadow: '0 4px 15px rgba(79, 70, 229, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              borderRadius: '10px',
+              fontSize: '13px'
+            }}
+          >
+            <Shield size={16} />
+            Connexion Unique Keycloak (SSO)
+          </button>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', margin: '22px 0', gap: '12px' }}>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '800', letterSpacing: '0.08em' }}>OU CONNEXION DIRECTE</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.08)' }} />
+          </div>
+
           <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ color: '#94a3b8' }}>Nom d'utilisateur ou Email</label>
+              <label style={{ color: '#94a3b8', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>Email ou Identifiant</label>
               <input 
                 type="email" 
                 className="form-control" 
                 placeholder="Ex: anas@netmar.com" 
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
-                style={{ background: 'rgba(15, 23, 42, 0.5)', color: 'white', borderColor: 'rgba(255,255,255,0.1)' }}
+                style={{ background: 'rgba(15, 23, 42, 0.45)', color: 'white', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px' }}
                 required 
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label style={{ color: '#94a3b8' }}>Mot de passe</label>
-              <input 
-                type="password" 
-                className="form-control" 
-                placeholder="••••••••" 
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                style={{ background: 'rgba(15, 23, 42, 0.5)', color: 'white', borderColor: 'rgba(255,255,255,0.1)' }}
-                required 
-              />
+              <label style={{ color: '#94a3b8', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>Mot de passe</label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input 
+                  type={showLoginPassword ? "text" : "password"} 
+                  className="form-control" 
+                  placeholder="••••••••" 
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onKeyUp={(e) => {
+                    if (e.getModifierState) {
+                      setIsCapsLockOn(e.getModifierState('CapsLock'));
+                    }
+                  }}
+                  style={{ 
+                    background: 'rgba(15, 23, 42, 0.45)', 
+                    color: 'white', 
+                    borderColor: 'rgba(255,255,255,0.08)', 
+                    borderRadius: '10px', 
+                    padding: '10px 14px',
+                    paddingRight: '40px',
+                    width: '100%'
+                  }}
+                  required 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(prev => !prev)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {isCapsLockOn && (
+                <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                  <AlertTriangle size={12} />
+                  Touche Verr. Maj active
+                </div>
+              )}
             </div>
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontWeight: '700', marginTop: '8px' }}>
-              Se connecter (OIDC Keycloak)
+            <button type="submit" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontWeight: '700', borderRadius: '10px', marginTop: '6px', fontSize: '13px', background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: 'white' }}>
+              Se connecter localement
             </button>
           </form>
 
           {/* Quick-select test accounts */}
           <div style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px' }}>
-            <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '10px', textAlign: 'center', fontWeight: '700' }}>
+            <span style={{ fontSize: '10px', color: '#64748b', display: 'block', marginBottom: '12px', textAlign: 'center', fontWeight: '800', letterSpacing: '0.08em' }}>
               COMPTES DE TEST (SIMULATION)
             </span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               {USERS.map(u => (
-                <button 
+                <div 
                   key={u.id}
-                  type="button" 
                   onClick={() => triggerQuickLogin(u.email)}
-                  className="btn btn-secondary"
-                  style={{ fontSize: '10.5px', padding: '6px', justifyContent: 'center', background: 'rgba(255,255,255,0.03)', color: 'white', borderColor: 'rgba(255,255,255,0.05)' }}
+                  className="quick-login-card"
+                  style={{ 
+                    padding: '8px 10px', 
+                    borderRadius: '8px', 
+                    background: 'rgba(255,255,255,0.03)', 
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    textAlign: 'left'
+                  }}
                 >
-                  {u.firstName} ({getRoleName(u.role)})
-                </button>
+                  <span className={`avatar-circle ${u.avatarColor}`} style={{ width: '22px', height: '22px', fontSize: '8px', fontWeight: 'bold' }}>
+                    {u.firstName[0]}{u.lastName[0]}
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#ffffff' }}>{u.firstName}</span>
+                    <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '700' }}>{getRoleName(u.role)}</span>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
