@@ -34,14 +34,32 @@
   background: #0f172a;
 }
 
+@keyframes kenburns {
+  0% { transform: scale(1) translate(0, 0); }
+  50% { transform: scale(1.08) translate(-1%, -1%); }
+  100% { transform: scale(1) translate(0, 0); }
+}
+
 .login-banner-side {
-  background: url('/login_banner.jpg') no-repeat center center;
-  background-size: cover;
   position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   padding: 60px;
+}
+
+.login-banner-side::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('/login_banner.jpg') no-repeat center center;
+  background-size: cover;
+  animation: kenburns 36s ease-in-out infinite;
+  z-index: 0;
 }
 
 .login-banner-overlay {
@@ -50,7 +68,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(to right, rgba(15, 23, 42, 0.1) 40%, rgba(15, 23, 42, 0.8) 100%);
+  /* Dual gradients: one very dark on the left/bottom to make text pop, another full-cover vignette */
+  background: 
+    linear-gradient(to top right, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.6) 50%, rgba(15, 23, 42, 0.1) 100%),
+    linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0) 60%),
+    radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.15) 0%, transparent 60%);
   z-index: 1;
 }
 
@@ -58,7 +80,89 @@
   position: relative;
   z-index: 2;
   color: white;
-  max-width: 500px;
+  max-width: 540px;
+}
+
+/* Stunning banner title & highlighting */
+.login-banner-title {
+  font-size: 34px !important;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 20px;
+  letter-spacing: -0.75px;
+  color: #ffffff;
+  text-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+}
+
+.highlight-itil {
+  background: linear-gradient(135deg, #60a5fa 30%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  font-weight: 900;
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+}
+
+.highlight-fluidite {
+  background: linear-gradient(135deg, #34d399 30%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  font-weight: 900;
+  position: relative;
+  text-shadow: 0 0 20px rgba(52, 211, 153, 0.25);
+}
+
+.highlight-fluidite::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, #34d399, #10b981);
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+/* Feature items styled beautifully */
+.login-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13.5px;
+  color: #cbd5e1;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 12px 18px;
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.login-feature-item:hover {
+  background: rgba(30, 41, 59, 0.65);
+  border-color: rgba(96, 165, 250, 0.3);
+  transform: translateX(6px);
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);
+  color: #ffffff;
+}
+
+.login-feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(52, 211, 153, 0.1);
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.login-feature-item:hover .login-feature-icon {
+  background: rgba(52, 211, 153, 0.2);
+  transform: scale(1.1);
 }
 
 .login-form-side {

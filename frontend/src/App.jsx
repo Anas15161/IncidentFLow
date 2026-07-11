@@ -2209,30 +2209,36 @@ function App() {
           <div className="login-banner-overlay" />
           <div className="login-banner-content">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
                 <Activity size={18} style={{ color: '#60a5fa' }} />
               </div>
               <h1 style={{ fontSize: '22px', fontWeight: '900', margin: 0, letterSpacing: '-0.5px' }}>IncidentFlow</h1>
             </div>
             
-            <h2 style={{ fontSize: '32px', fontWeight: '800', lineHeight: '1.2', marginBottom: '16px', letterSpacing: '-0.75px' }}>
-              Gérez vos incidents de support ITIL avec fluidité.
+            <h2 className="login-banner-title">
+              Gérez vos incidents de support <span className="highlight-itil">ITIL</span> avec <span className="highlight-fluidite">fluidité</span>.
             </h2>
-            <p style={{ color: '#94a3b8', fontSize: '15px', lineHeight: '1.6', marginBottom: '32px' }}>
+            <p style={{ color: '#cbd5e1', fontSize: '15.5px', lineHeight: '1.6', marginBottom: '32px', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
               Une plateforme moderne combinant gestion de workflows dynamiques, comptes à rebours SLA actifs et communication en temps réel pour vos équipes d'exploitation.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#cbd5e1' }}>
-                <CheckCircle size={14} style={{ color: '#34d399' }} />
+              <div className="login-feature-item">
+                <div className="login-feature-icon">
+                  <CheckCircle size={14} style={{ color: '#34d399' }} />
+                </div>
                 <span>Workflows de transition dynamiques réactifs</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#cbd5e1' }}>
-                <CheckCircle size={14} style={{ color: '#34d399' }} />
+              <div className="login-feature-item">
+                <div className="login-feature-icon">
+                  <CheckCircle size={14} style={{ color: '#34d399' }} />
+                </div>
                 <span>Compte à rebours de résolution SLA actif</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#cbd5e1' }}>
-                <CheckCircle size={14} style={{ color: '#34d399' }} />
+              <div className="login-feature-item">
+                <div className="login-feature-icon">
+                  <CheckCircle size={14} style={{ color: '#34d399' }} />
+                </div>
                 <span>Éditeur de diagnostics en Markdown & historique Git-style</span>
               </div>
             </div>
