@@ -6,6 +6,7 @@
 \usepackage[french]{babel}
 \usepackage{geometry}
 \geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\setlength{\headheight}{15pt}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{xcolor}
@@ -13,38 +14,56 @@
 \usepackage{listings}
 \usepackage{fancyhdr}
 \usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{mdframed}
+
+% --- CONFIGURATION DES TITRES ---
+\titleformat{\section}{\color{secondary}\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\color{primary}\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\color{darkslate}\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
 
 % --- CONFIGURATION GRAPHIQUE & COULEURS ---
-\definecolor{primary}{HTML}{1D4ED8}     % Bleu primaire
-\definecolor{secondary}{HTML}{0A2647}   % Bleu nuit
+\definecolor{primary}{HTML}{1D4ED8}     % Bleu primaire (Tailwind blue-700)
+\definecolor{secondary}{HTML}{0A2647}   % Bleu nuit profond
 \definecolor{darkslate}{HTML}{1E293B}   % Slate 800
 \definecolor{lightbg}{HTML}{F8FAFC}     % Slate 50
 \definecolor{bordercolor}{HTML}{E2E8F0} % Slate 200
+\definecolor{accentcolor}{HTML}{059669} % Vert émeraude
+\definecolor{criticalred}{HTML}{DC2626} % Rouge critique
 
 \hypersetup{
     colorlinks=true,
     linkcolor=primary,
     filecolor=primary,      
     urlcolor=primary,
-    pdftitle={IncidentFlow - Rapport Final de Projet},
+    pdftitle={IncidentFlow - Rapport Académique et Technique Complet},
     pdfpagemode=FullScreen,
 }
 
-% --- SETUP LISTINGS ---
+% --- SETUP LISTINGS POUR CONFIG/CODE ---
 \lstset{
-    basicstyle=\ttfamily\small,
+    basicstyle=\ttfamily\footnotesize\color{darkslate},
     backgroundcolor=\color{lightbg},
     frame=single,
     rulecolor=\color{bordercolor},
     breaklines=true,
-    showstringspaces=false
+    postbreak=\mbox{\textcolor{criticalred}{$\hookrightarrow$}\space},
+    showstringspaces=false,
+    keywordstyle=\color{primary}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{accentcolor},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    tabsize=2
 }
 
 % --- EN-TÊTES ET PIEDS DE PAGE ---
 \pagestyle{fancy}
 \fancyhf{}
 \lhead{\textcolor{secondary}{\textbf{IncidentFlow}}}
-\rhead{Rapport Final de Projet}
+\rhead{Rapport Technique Académique}
 \cfoot{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 
@@ -52,11 +71,16 @@
 \title{
     \vspace{2cm}
     \textbf{\Huge IncidentFlow}\\[0.5cm]
-    \Large Plateforme Dynamique de Gestion d'Incidents\\[1.5cm]
-    \textbf{\Large Rapport Synthétique Final de Projet \\ (Phases 1 à 5 - Implémentation Complète)}
-    \vspace{1.5cm}
+    \Large Application Moderne et Dynamique de Gestion d'Incidents\\[1.5cm]
+    \textbf{\Large Rapport Académique de Conception et d'Implémentation Technique \\ (Mémoire de fin d'études / Documentation d'entreprise)}
+    \vspace{2cm}
 }
-\author{\textbf{Anas HADDOU} \\ Élève Ingénieur en Génie Informatique}
+\author{
+    \textbf{Anas HADDOU} \\
+    Élève Ingénieur en Génie Informatique \\[1cm]
+    \textbf{Entreprise :} Netmar \\
+    \textbf{Encadrante :} Sophie MARTIN (Responsable SSI)
+}
 \date{\today}
 
 \begin{document}
@@ -70,105 +94,840 @@
 \tableofcontents
 \clearpage
 
-% --- SECTION 1 : INTRODUCTION ---
-\section{Introduction}
-Le projet \textbf{IncidentFlow} vise à concevoir et à développer une plateforme centralisée de gestion d'incidents dotée d'une flexibilité inédite grâce à un \textbf{moteur de workflow dynamique}. Contrairement aux outils standards dotés de processus rigides codés en dur, IncidentFlow permet aux responsables et administrateurs d'éditer, de visualiser et de modifier les statuts et transitions autorisés par catégorie directement depuis l'application.
+% ==================================================
+% SECTION 1 : INTRODUCTION
+% ==================================================
+\section{Introduction et Contexte du Projet}
 
-Ce rapport final dresse la synthèse des réalisations effectuées à travers les cinq phases du projet, incluant la résolution de l'authentification Keycloak, la mise en place de tableaux de bord statistiques avancés, la création de la vue indépendante d'incidents, la configuration de l'éditeur visuel de workflows, et la mise en service du volet de gestion complète des utilisateurs.
+\subsection{Contexte Général et Problématique}
+La gestion des incidents (ITSM) représente le socle opérationnel des départements informatiques modernes alignés sur le référentiel ITIL. Au sein de l'entreprise \textbf{Netmar}, les pannes logicielles, matérielles et réseaux exigent une coordination transversale rigoureuse. La problématique récurrente des solutions du marché réside dans leur rigidité intrinsèque : le cycle de vie des incidents est souvent codé en dur dans l'infrastructure de base de données ou le code backend. Toute modification structurelle (ajout d'une étape de validation intermédiaire, restriction d'accès sur une transition à un rôle métier, obligation de motif écrit) requiert l'intervention d'un ingénieur logiciel et l'arrêt de production pour mise à jour.
 
-% --- SECTION 2 : ARCHITECTURE TECHNIQUE & INFRASTRUCTURE ---
-\section{Architecture Technique et Infrastructure (Phase 1)}
-L'infrastructure technique de la plateforme repose sur une architecture conteneurisée multi-conteneurs gérée par Docker. Les services sont définis au sein du fichier \texttt{docker-compose.yml} :
+Le projet \textbf{IncidentFlow} résout ce goulot d'étranglement en introduisant un \textbf{moteur de workflow dynamique et entièrement paramétrable}. Les administrateurs peuvent manipuler le cycle de vie des anomalies directement depuis une interface graphique, garantissant ainsi l'agilité organisationnelle de Netmar.
+
+\subsection{Objectifs du Système}
+L'objectif principal d'IncidentFlow est d'offrir une plateforme collaborative web centralisée et hautement sécurisée qui :
 \begin{itemize}
-    \item \textbf{incidentflow-postgres} : Base de données PostgreSQL v16 persistante. Afin d'éviter les conflits avec les bases de données existantes de la machine hôte, son port a été mappé sur le port externe \texttt{5433}.
-    \item \textbf{incidentflow-backend} : Service hébergeant l'application Spring Boot JDK 17.
-    \item \textbf{incidentflow-keycloak} : Serveur d'identité Keycloak utilisé en production via OIDC/JWT.
+    \item Permet la déclaration, la catégorisation, l'assignation et la résolution des incidents via un processus adaptatif.
+    \item Rend l'administration des processus accessible aux équipes métiers sans compétences en programmation.
+    \item Assure la traçabilité intégrale (Audit Trail) de chaque action pour répondre aux normes de sécurité des systèmes d'information.
+    \item Garantit le respect des engagements de service (SLA) via des alertes et des escalades automatisées en arrière-plan.
 \end{itemize}
 
-Pour le développement local, un profil Spring spécifique nommé \texttt{dev-mock} a été implémenté afin de simuler l'authentification et les Habilitations de manière transparente sans dépendre d'un serveur Keycloak distant.
-
-% --- SECTION 3 : MODELE DE DONNEES & ENGINE BACKEND ---
-\section{Modèle de Données JPA et API REST (Phase 2)}
-Le backend a été construit avec le framework \textbf{Spring Boot} en utilisant \textbf{Spring Data JPA} et \textbf{Spring Security}.
-
-\subsection{Schéma relationnel JPA}
-Les entités persistantes modélisent fidèlement le domaine :
+\subsection{Portée du Projet}
+\subsubsection{Fonctionnalités Incluses (Périmètre)}
+Le système intègre :
 \begin{itemize}
-    \item \textbf{User \& Role} : Gèrent les informations et habilitations du personnel (Administrateur, Responsable, Opérateur, Opérateur médical). Pour satisfaire la gestion des utilisateurs, les champs \texttt{firstName}, \texttt{lastName}, \texttt{department}, et \texttt{post} ont été intégrés à l'entité \texttt{User}.
-    \item \textbf{Incident, Comment, Attachment \& IncidentHistory} : Représentent le cycle de vie collaboratif de l'incident (code unique sous la forme \texttt{INC-YYYY-NNN}, commentaires collaboratifs, pièces jointes multipart stockées localement, et historique complet des actions).
-    \item \textbf{Workflow, WorkflowState \& WorkflowTransition} : Permettent de configurer dynamiquement le graphe d'états pour chaque catégorie.
+    \item La gestion des comptes utilisateurs et l'authentification avec attribution de rôles (RBAC).
+    \item Le cycle de vie complet des incidents avec historique, commentaires formatés en Markdown et pièces jointes multipart.
+    \item L'éditeur graphique de workflows dynamiques validé par un vérificateur de graphe.
+    \item Les fonctionnalités collaboratives : abonnements (\textit{Watchers}), mentions (\textit{@}), filtres persistants (\textit{Saved Views}).
+    \item DevOps : Conteneurisation Docker, déploiement Kubernetes et supervision.
 \end{itemize}
+\subsubsection{Fonctionnalités Hors-Périmètre}
+La gestion financière, la facturation des pièces détachées ou de l'assistance technique, l'application mobile native et les algorithmes de maintenance prédictive par Machine Learning (ML) natifs ne font pas partie du cahier des charges initial.
 
-\subsection{Moteur de validation des transitions}
-Implémenté dans \texttt{WorkflowService.java}, ce moteur applique les règles de gestion métier à chaque changement de statut :
+\subsection{Glossaire des Termes Techniques}
+\begin{description}
+    \item[OIDC (OpenID Connect)] Couche d'identité simple construite au-dessus du protocole OAuth 2.0 pour l'authentification.
+    \item[Keycloak] Solution open-source de gestion des identités et des accès (IAM).
+    \item[SLA (Service Level Agreement)] Contrat de niveau de service définissant le délai maximal autorisé pour la résolution d'une panne.
+    \item[RBAC (Role-Based Access Control)] Contrôle d'accès basé sur les rôles des utilisateurs.
+    \item[JPA (Java Persistence API)] Spécification Java pour la gestion des données relationnelles dans les applications.
+    \item[DFS (Depth-First Search)] Algorithme de parcours de graphe en profondeur utilisé ici pour la validation des chemins.
+    \item[Redis] Magasin de données en mémoire utilisé pour le cache distribué et la révocation des sessions.
+\end{description}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{modules_diagramme.png}
+    \caption{Figure 1.1 — Diagramme des modules fonctionnels du système IncidentFlow}
+    \label{fig:functional_modules}
+\end{figure}
+
+L'analyse de la Figure~\ref{fig:functional_modules} montre l'interaction des trois piliers du système. Le module \textbf{Utilisateurs} assure la gestion des identités, le module \textbf{Workflows} définit le graphe de transition de statut applicable et le module \textbf{Incidents} exécute les règles métiers configurées.
+
+\clearpage
+
+% ==================================================
+% SECTION 2 : ARCHITECTURE TECHNIQUE GLOBALE
+% ==================================================
+\section{Architecture Technique Globale}
+
+\subsection{Description des Couches de l'Application}
+L'application adopte un pattern d'architecture en couches conteneurisées (N-tier) découplées, garantissant une haute cohésion et un faible couplage :
 \begin{enumerate}
-    \item \textbf{Validité du chemin} : Vérifie si la transition demandée est bien configurée pour la catégorie de l'incident.
-    \item \textbf{Habilitation du rôle} : S'assure que le rôle de l'utilisateur l'autorise à effectuer ce changement.
-    \item \textbf{Commentaire obligatoire} : Bloque le changement d'état si un motif écrit est exigé pour la transition (ex. : clôture ou résolution d'incident) et qu'aucun commentaire n'est fourni.
+    \item \textbf{Couche Présentation (Frontend) :} Une SPA (Single Page Application) développée en React 19 et Vite. Elle gère le rendu dynamique de l'interface utilisateur, la palette de commandes et l'interactivité des workflows via React Flow.
+    \item \textbf{Couche Logique Métier (Backend) :} API REST basée sur Spring Boot 3.2.5 (Java 17). Elle expose les contrôleurs REST, valide les transitions du cycle de vie et gère la logique de sécurité.
+    \item \textbf{Couche de Cache et Session :} Redis sert à la fois de cache applicatif rapide pour les workflows compilés et de base de données en mémoire pour le blacklistage des sessions déconnectées.
+    \item \textbf{Couche de Données (Persistance) :} PostgreSQL 16 stocke l'ensemble des données structurelles et de transaction de manière durable.
+    \item \textbf{Fournisseur d'Identité (IAM) :} Keycloak valide l'identité de l'utilisateur par échange de jetons JWT.
 \end{enumerate}
 
-% --- SECTION 4 : AUTHENTIFICATION KEYCLOAK ET MOCK ---
-\section{Authentification OIDC et Keycloak (US-AUTH-001)}
-\subsection{Profil Production (Keycloak réel)}
-Dans le profil \texttt{prod}, Spring Security est configuré pour décoder et vérifier la signature des jetons JWT émis par le realm Keycloak d'IncidentFlow. L'adresse d'émission est \texttt{http://localhost:8180/realms/IncidentFlow}. Le service extrait les revendications (\textit{claims}) d'e-mail ou d'identifiant pour retrouver l'utilisateur local.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{architecture.png}
+    \caption{Figure 2.1 — Schéma logique de l'architecture physique du système}
+    \label{fig:physical_arch}
+\end{figure}
 
-\subsection{Profil Développement et Simulation}
-Pour simplifier les phases de démonstration, le contrôleur \texttt{AuthController.java} a été développé. Il simule les réponses d'un jeton OIDC :
+\subsection{Justification des Choix Techniques et Alternatives}
 \begin{itemize}
-    \item \textbf{Login} (\texttt{POST /api/auth/login}) : Valide l'e-mail et le mot de passe encodé en BCrypt, vérifie que le compte est actif, et renvoie un jeton fictif de session avec les permissions du rôle.
-    \item \textbf{Logout} (\texttt{POST /api/auth/logout}) : Termine proprement la session active.
-    \item \textbf{Auto-logout} : Un minuteur de session de 10 minutes est géré côté frontend. À échéance du jeton simulé, l'utilisateur est automatiquement déconnecté pour raisons de sécurité.
+    \item \textbf{Spring Boot vs Node.js/Express :} Spring Boot a été privilégié pour sa robustesse transactionnelle, la sécurité fournie par Spring Security, et son typage statique fort, essentiel pour concevoir un moteur de règles métiers complexe et auditable. Node.js constituait une alternative mais exigeait plus d'efforts pour obtenir le même niveau de sécurité et de standardisation d'entreprise.
+    \item \textbf{PostgreSQL vs MongoDB :} Le stockage d'incidents exige des relations strictes entre utilisateurs, rôles, commentaires, et historiques d'audit. Une base relationnelle avec gestion des clés étrangères (PostgreSQL) garantit l'intégrité référentielle en cascade, alors qu'un modèle document (MongoDB) aurait nécessité des contrôles manuels complexes dans le code backend.
+    \item \textbf{Keycloak vs Authentification Maison (Custom Auth) :} L'usage de Keycloak permet un déploiement standardisé basé sur OAuth 2.0 / OIDC. Cela élimine la nécessité de stocker ou d'implémenter des mécanismes de réinitialisation de mots de passe, de double facteur ou de gestion de comptes, transférant cette responsabilité à un tiers éprouvé.
 \end{itemize}
 
-% --- SECTION 5 : INTERFACE REACT ET GRAPHIQUES KPI ---
-\section{Interface Utilisateur React et Statistiques (Phases 3 et 4)}
-Le frontend a été développé avec \textbf{React v19} initié sous \textbf{Vite}. L'identité graphique haut de gamme de la maquette a été reproduite à l'aide d'un Design System vanilla CSS codé dans \texttt{index.css}.
+\clearpage
 
-\subsection{Dashboard de suivi et KPI avancés}
-Le Dashboard propose une vue globale ergonomique incluant :
+% ==================================================
+% SECTION 3 : ANALYSE COMPLETE DU CODE - BACKEND
+% ==================================================
+\section{Analyse Complète du Code - Backend}
+
+Le backend est structuré en plusieurs packages sous \texttt{com.netmar.incidentflow}. Cette organisation respecte les principes du Clean Architecture et du Domain-Driven Design (DDD).
+
+\subsection{Structure Générale des Dossiers et Responsabilités}
 \begin{itemize}
-    \item **Indicateurs KPI interactifs** : Permettent de consulter le nombre d'incidents totaux, nouveaux, en cours et résolus, et de filtrer la liste d'un simple clic.
-    \item **Donut Chart SVG** : Graphique vectoriel dynamique affichant le pourcentage d'incidents par niveau de gravité (Critique, Élevée, Moyenne, Faible).
-    \item **Histogramme par Catégorie** : Histogramme en CSS pur montrant la répartition des pannes par service technique (Réseau, Sécurité, Système, Médical).
+    \item \textbf{\texttt{config} :} Configure le moteur de sécurité, le filtre de session, le cache Redis, et initialise les données de test en base.
+    \item \textbf{\texttt{controller} :} Expose les points d'entrée (REST Endpoints) de l'API, effectue le mapping DTO et intercepte les requêtes.
+    \item \textbf{\texttt{exception} :} Gère les exceptions globales et retourne des réponses formatées en JSON avec des codes HTTP adaptés.
+    \item \textbf{\texttt{model} :} Contient les entités JPA avec leurs annotations de persistance Hibernate et leurs mappings de relations.
+    \item \textbf{\texttt{repository} :} Déclare les interfaces d'accès aux données héritant de \texttt{JpaRepository}.
+    \item \textbf{\texttt{service} :} Implémente la logique métier pure (validation de workflows, planification d'escalades, gestion d'incidents).
 \end{itemize}
 
-\subsection{Vue Indépendante des Incidents}
-Pour alléger le Dashboard principal, les incidents possèdent leur propre écran de gestion :
+---
+
+\subsection{Analyse Détaillée des Packages et Classes}
+
+\subsubsection{Package \texttt{com.netmar.incidentflow.config}}
+
+\paragraph{\texttt{SecurityConfig.java}}
+Configure les règles de sécurité CORS et CSRF de Spring Security.
 \begin{itemize}
-    \item Recherche plein texte et tris croisés.
-    \item Pagination dynamique pour le confort de lecture.
-    \item **Exports Excel/PDF** : Liens directs de téléchargement appelant les terminaux d'export du backend (\texttt{/api/incidents/export/csv} et \texttt{/api/incidents/export/pdf}).
+    \item \textbf{Responsabilité :} Permettre le routage sécurisé des requêtes et bloquer les accès non authentifiés.
+    \item \textbf{Méthodes Clés :} 
+        \begin{itemize}
+            \item \texttt{mockSecurityFilterChain(HttpSecurity http)} : Utilisé sous le profil \texttt{dev-mock}. Il désactive le CSRF et autorise l'accès complet tout en insérant le filtre personnalisé \texttt{SessionValidationFilter} pour simuler les sessions.
+            \item \texttt{prodSecurityFilterChain(HttpSecurity http)} : Utilisé sous le profil \texttt{prod}. Il exige une authentification formelle par jeton JWT OIDC Keycloak.
+            \item \texttt{corsConfigurationSource()} : Configure l'accès cross-origin pour les adresses de développement \texttt{localhost:3000}, \texttt{localhost:3001} et \texttt{localhost:5173}.
+        \end{itemize}
 \end{itemize}
 
-% --- SECTION 6 : PARAMETRAGE WORKFLOW & UTILISATEURS ---
-\section{Paramétrage Workflows et Gestion Utilisateurs (Epic 3 \& US-USER-001)}
-\subsection{Éditeur de Workflows Dynamiques}
-La vue d'administration permet de configurer entièrement les processus d'états :
+\paragraph{\texttt{SessionValidationFilter.java}}
+Intercepteur HTTP héritant de \texttt{OncePerRequestFilter}.
 \begin{itemize}
-    \item **Workspace des États** : Ajout d'états, renommage des libellés d'affichage, choix de la couleur de badge (presets prédéfinis), et suppression d'étapes.
-    \item **Règles de Transition** : Liaison d'un état origine à un état cible, limitation à un rôle d'habilitation spécifique (ex: Opérateur médical pour résoudre les alertes de santé), et exigence d'un commentaire justificatif d'audit.
-    \item **Aperçu Visuel** : Liste de routage générée dynamiquement affichant le cycle de vie du processus pour validation.
+    \item \textbf{Responsabilité :} Inspecter chaque requête entrante et vérifier dans Redis si l'utilisateur est banni avant de poursuivre le filtre.
+    \item \textbf{Méthodes Clés :} 
+        \begin{itemize}
+            \item \texttt{doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)} : Récupère l'identité (JWT ou en-tête \texttt{X-Mock-User}), vérifie la présence de la clé \texttt{blacklist:user:<email>} dans Redis et renvoie un statut 403 Forbidden le cas échéant.
+        \end{itemize}
 \end{itemize}
 
-\subsection{Gestion des Utilisateurs}
-Une page d'administration des utilisateurs (accessible uniquement aux profils \textbf{Administrateur}) permet d'exécuter les opérations CRUD :
+\paragraph{\texttt{DataInitializer.java}}
+Exécute le peuplement initial de la base de données PostgreSQL au démarrage (\texttt{CommandLineRunner}).
 \begin{itemize}
-    \item Liste complète des profils avec informations de contact (Téléphone, Département, Poste).
-    \item Formulaire de création de compte avec génération automatique de mot de passe.
-    \item Formulaire de mise à jour avec désactivation temporaire de compte (bloquant instantanément la connexion Keycloak).
+    \item \textbf{Responsabilité :} Garantir la présence des rôles, des comptes de test, des workflows standards et des premiers incidents factices.
 \end{itemize}
 
-% --- SECTION 7 : RESOLUTION DES VERROUS ET DEPLOIEMENT ---
-\section{Résolution des Verrous Techniques Finaux}
-Lors de la mise en service globale, les problèmes bloquants suivants ont été résolus :
+---
+
+\subsubsection{Package \texttt{com.netmar.incidentflow.controller}}
+
+\paragraph{\texttt{AuthController.java}}
+Gère les requêtes d'authentification et de session simulée.
+\begin{itemize}
+    \item \textbf{Endpoints :}
+        \begin{itemize}
+            \item \texttt{POST /api/auth/login} : Vérifie les identifiants et génère un jeton simulé.
+            \item \texttt{POST /api/auth/logout} : Révoque le jeton local.
+        \end{itemize}
+\end{itemize}
+
+\paragraph{\texttt{IncidentController.java}}
+Contrôleur REST principal pour la manipulation des incidents.
+\begin{itemize}
+    \item \textbf{Endpoints :}
+        \begin{itemize}
+            \item \texttt{GET /api/incidents} : Recherche filtrée multicritères.
+            \item \texttt{POST /api/incidents} : Déclaration d'un incident.
+            \item \texttt{POST /api/incidents/\{code\}/transition} : Déclenche le moteur de transition.
+            \item \texttt{POST /api/incidents/\{code\}/comments} : Publication d'un commentaire.
+            \item \texttt{POST /api/incidents/\{code\}/attachments} : Téléchargement de fichiers.
+            \item \texttt{DELETE /api/incidents/attachments/\{id\}} : Suppression physique et logique d'un attachement.
+            \item \texttt{PUT /api/incidents/attachments/\{id\}/rename} : Renommage logique d'un fichier.
+            \item \texttt{GET /api/incidents/export/pdf} : Génération et téléchargement du rapport PDF.
+        \end{itemize}
+\end{itemize}
+
+\paragraph{\texttt{UserController.java}}
+CRUD des profils utilisateurs pour la page d'administration.
+\begin{itemize}
+    \item \textbf{Endpoints :}
+        \begin{itemize}
+            \item \texttt{GET /api/users} : Liste des profils.
+            \item \texttt{POST /api/users} : Création d'un nouvel utilisateur.
+            \item \texttt{PUT /api/users/\{id\}} : Mise à jour de profil avec blocage Redis si désactivé.
+        \end{itemize}
+\end{itemize}
+
+\paragraph{\texttt{WorkflowController.java}}
+Permet de manipuler la configuration dynamique des processus.
+\begin{itemize}
+    \item \textbf{Endpoints :}
+        \begin{itemize}
+            \item \texttt{GET /api/workflows} : Liste des processus.
+            \item \texttt{POST /api/workflows} : Création ou clonage de workflow.
+            \item \texttt{DELETE /api/workflows/\{id\}} : Suppression de configuration.
+        \end{itemize}
+\end{itemize}
+
+---
+
+\subsubsection{Package \texttt{com.netmar.incidentflow.service}}
+
+\paragraph{\texttt{IncidentService.java}}
+Service transactionnel qui orchestrera la gestion des anomalies, des commentaires et des pièces jointes.
+\begin{itemize}
+    \item \textbf{Méthodes Clés :}
+        \begin{itemize}
+            \item \texttt{createIncident(Incident incident, User author)} : Calcule le code unique de l'incident, lui affecte le workflow actif de sa catégorie, calcule les SLAs et effectue l'affectation automatique si la catégorie est "Médical".
+            \item \texttt{performTransition(String code, String toState, String commentText, User user)} : Invoque le moteur de workflow pour valider le changement d'état, ajoute l'historique et persiste l'incident.
+            \item \texttt{deleteAttachment(Long id, User user)} : Supprime l'attachement de la base et efface le fichier physique stocké dans le répertoire \texttt{uploads/} du serveur.
+        \end{itemize}
+\end{itemize}
+
+\paragraph{\texttt{WorkflowService.java}}
+Moteur algorithmique validant les chemins de transitions et les graphes de workflows.
+\begin{itemize}
+    \item \textbf{Méthodes Clés :}
+        \begin{itemize}
+            \item \texttt{validateTransitionForIncident(Incident incident, String fromState, String toState, User user, String comment)} : Vérifie si la transition existe, si l'utilisateur possède le rôle d'habilitation requis et si un commentaire de justification est obligatoire.
+            \item \texttt{validateWorkflowGraph(Workflow workflow)} : Algorithme DFS de vérification de connectivité.
+            \item \texttt{saveWorkflow(Workflow workflow)} : Implémente le versionnage. Si des incidents sont déjà rattachés, le workflow d'origine est archivé (active = false) et une nouvelle version incrémentée est créée pour les futurs incidents.
+        \end{itemize}
+\end{itemize}
+
+\paragraph{\texttt{EscalationService.java}}
+Planificateur s'exécutant en arrière-plan (\texttt{fixedRate = 15000} - 15 secondes pour les démonstrations).
+\begin{itemize}
+    \item \textbf{Méthodes Clés :}
+        \begin{itemize}
+            \item \texttt{runAutomaticEscalation()} : Scanne tous les incidents actifs dont le SLA est dépassé ou menace d'être dépassé sous 15 minutes. Il augmente la priorité à "Critical", réassigne le ticket à un superviseur (rôle \textit{Responsable} ou \textit{Administrateur}), consigne l'action système dans l'historique et génère une alerte par e-mail simulé.
+        \end{itemize}
+\end{itemize}
+
+\clearpage
+
+% ==================================================
+% SECTION 4 : BASE DE DONNEES & MODELE JPA
+% ==================================================
+\section{Modèle de Données et Base de Données}
+
+\subsection{Schéma Relationnel SQL}
+Le modèle logique de données (MLD) se structure autour de 9 tables physiques présentées dans le diagramme de base de données :
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{mcd.png}
+    \caption{Figure 3.1 — Diagramme Entité-Association (MCD)}
+    \label{fig:db_schema_2}
+\end{figure}
+
+L'analyse de la Figure~\ref{fig:db_schema_2} permet de comprendre les dépendances d'intégrité référentielle. Chaque incident est lié à un utilisateur (auteur), peut être attribué à un autre utilisateur (assigné) et appartient à un workflow de catégorie spécifique.
+
+\subsection{Détail des Tables de la Base de Données}
+
+\subsubsection{Table \texttt{roles}}
+Stocke les rôles applicatifs d'IncidentFlow.
+\begin{itemize}
+    \item \texttt{id} (BIGINT, Clé Primaire, AUTO\_INCREMENT)
+    \item \texttt{name} (VARCHAR, Unique, non nul) : ex: \textit{Administrateur}, \textit{Responsable}, \textit{Opérateur}, \textit{Opérateur médical}.
+\end{itemize}
+
+\subsubsection{Table \texttt{users}}
+Stocke les profils des utilisateurs synchronisés ou créés en local.
+\begin{itemize}
+    \item \texttt{id} (BIGINT, Clé Primaire, AUTO\_INCREMENT)
+    \item \texttt{name} (VARCHAR, non nul) : Nom complet d'affichage.
+    \item \texttt{email} (VARCHAR, Unique, non nul) : Identifiant de connexion.
+    \item \texttt{password} (VARCHAR, non nul) : Mot de passe encodé (BCrypt).
+    \item \texttt{role\_id} (BIGINT, Clé Étrangère référençant \texttt{roles.id}, non nul).
+    \item \texttt{active} (BOOLEAN, non nul) : Indicateur d'état du compte.
+    \item \texttt{telephone} (VARCHAR)
+    \item \texttt{avatar\_color} (VARCHAR)
+    \item \texttt{first\_name} (VARCHAR)
+    \item \texttt{last\_name} (VARCHAR)
+    \item \texttt{department} (VARCHAR) : Département interne de l'employé (ex: \textit{Sécurité}, \textit{Informatique}).
+    \item \texttt{post} (VARCHAR) : Poste occupé (ex: \textit{Responsable SSI}).
+\end{itemize}
+
+\subsubsection{Table \texttt{workflows}}
+Définit la structure générale du workflow d'une catégorie.
+\begin{itemize}
+    \item \texttt{id} (BIGINT, Clé Primaire, AUTO\_INCREMENT)
+    \item \texttt{name} (VARCHAR, non nul) : Nom thématique du processus.
+    \item \texttt{category} (VARCHAR, non nul) : Catégorie d'incidents associée (ex: \textit{Réseau}, \textit{Sécurité}, \textit{Système}, \textit{Médical}).
+    \item \texttt{version} (INTEGER, non nul) : Version du workflow (pour le clonage et la préservation d'historique).
+    \item \texttt{active} (BOOLEAN, non nul) : Indique s'il s'agit de la version de workflow active.
+\end{itemize}
+
+\subsubsection{Table \texttt{workflow\_states}}
+Définit les états d'un workflow donné.
+\begin{itemize}
+    \item \texttt{id} (BIGINT, Clé Primaire, AUTO\_INCREMENT)
+    \item \texttt{name} (VARCHAR, non nul) : Identifiant logique (ex: \textit{Nouveau}, \textit{Assigné}, \textit{En cours}, \textit{Résolu}, \textit{Clôturé}).
+    \item \texttt{label} (VARCHAR, non nul) : Libellé d'affichage.
+    \item \texttt{color\_class} (VARCHAR) : Classes CSS thématiques du badge.
+    \item \texttt{workflow\_id} (BIGINT, Clé Étrangère référençant \texttt{workflows.id} avec suppression en cascade).
+\end{itemize}
+
+\subsubsection{Table \texttt{workflow\_transitions}}
+Configure les liens de transition légitimes entre les états.
+\begin{itemize}
+    \item \texttt{id} (BIGINT, Clé Primaire, AUTO\_INCREMENT)
+    \item \texttt{from\_state} (VARCHAR, non nul) : État source.
+    \item \texttt{to\_state} (VARCHAR, non nul) : État destination.
+    \item \texttt{role\_required} (VARCHAR) : Rôle habilité à exécuter la transition (ex: \textit{Opérateur médical}).
+    \item \texttt{requires\_comment} (BOOLEAN, non nul) : Oblige la saisie d'un motif textuel de transition.
+    \item \texttt{workflow\_id} (BIGINT, Clé Étrangère référençant \texttt{workflows.id} avec suppression en cascade).
+\end{itemize}
+
+\subsubsection{Table \texttt{incidents}}
+Contient les enregistrements d'incidents déclarés.
+\begin{itemize}
+    \item \texttt{id} (BIGINT, Clé Primaire, AUTO\_INCREMENT)
+    \item \texttt{incident\_code} (VARCHAR, Unique, non nul) : Code structuré unique (ex: \texttt{INC-2026-003}).
+    \item \texttt{title} (VARCHAR, non nul)
+    \item \texttt{description} (TEXT, non nul)
+    \item \texttt{category} (VARCHAR, non nul)
+    \item \texttt{priority} (VARCHAR, non nul) : \textit{Critical}, \textit{High}, \textit{Medium}, \textit{Low}.
+    \item \texttt{status} (VARCHAR, non nul) : État courant.
+    \item \texttt{created\_at} (TIMESTAMP, non nul)
+    \item \texttt{updated\_at} (TIMESTAMP, non nul)
+    \item \texttt{sla\_due\_at} (TIMESTAMP) : Échéance calculée du SLA.
+    \item \texttt{escalated} (BOOLEAN, non nul) : Indicateur d'escalade.
+    \item \texttt{author\_id} (BIGINT, Clé Étrangère référençant \texttt{users.id}, non nul).
+    \item \texttt{assigned\_to\_id} (BIGINT, Clé Étrangère référençant \texttt{users.id}).
+    \item \texttt{workflow\_id} (BIGINT, Clé Étrangère référençant \texttt{workflows.id}).
+\end{itemize}
+
+\subsection{Implémentation JPA et Code Source d'Entités}
+Pour illustrer le couplage entre la base de données PostgreSQL et le code Java, voici la déclaration des attributs de l'entité \texttt{Incident.java} :
+
+\begin{lstlisting}[language=Java]
+@Entity
+@Table(name = "incidents")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Incident {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "incident_code", nullable = false, unique = true)
+    private String incidentCode;
+
+    @Column(nullable = false)
+    private String title;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String description;
+
+    @Column(nullable = false)
+    private String category;
+
+    @Column(nullable = false)
+    private String priority; // Critical, High, Medium, Low
+
+    @Column(nullable = false)
+    private String status; // Nouveau, Assigne, En cours, Resolu, Cloture
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(name = "sla_due_at")
+    private LocalDateTime slaDueAt;
+
+    @Column(name = "escalated", nullable = false)
+    @Builder.Default
+    private boolean escalated = false;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+
+    @ManyToOne
+    @JoinColumn(name = "assigned_to_id")
+    private User assignedTo;
+
+    @ManyToOne
+    @JoinColumn(name = "workflow_id")
+    private Workflow workflow;
+
+    @OneToMany(mappedBy = "incident", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Comment> comments = new ArrayList<>();
+    
+    // ... @PrePersist et @PreUpdate pour initialisation automatique des dates et des SLAs
+}
+\end{lstlisting}
+
+\subsection{Logique d'Initialisation Automatique des SLAs}
+Le calcul de l'échéance SLA s'exécute automatiquement dans la méthode JPA \texttt{@PrePersist} :
+\begin{itemize}
+    \item Si l'incident est de priorité \texttt{Critical} et de catégorie \texttt{Médical}, la résolution doit intervenir dans un délai de \textbf{1 heure}.
+    \item Pour les autres incidents de priorité \texttt{Critical}, le délai est fixé à \textbf{2 heures}.
+    \item Une priorité \texttt{High} accorde \textbf{12 heures}, \texttt{Medium} \textbf{36 heures}, et \texttt{Low} \textbf{72 heures}.
+\end{itemize}
+
+\clearpage
+
+% ==================================================
+% SECTION 5 : MOTEUR DE WORKFLOW DYNAMIQUE ET ALGORITHMIQUE
+% ==================================================
+\section{Moteur de Workflow Dynamique et Algorithmique}
+
+\subsection{Concept et Fonctionnement des Transitions}
+Le moteur de transitions dynamique valide la conformité de chaque demande de changement d'état d'un incident en confrontant l'état actuel, l'état visé, l'identité et le rôle de l'utilisateur demandeur, et les paramètres requis par la transition. Ce traitement est centralisé dans \texttt{WorkflowService.java} sous la méthode \texttt{validateTransitionForIncident}. 
+
+\subsection{Algorithme de Validation de Graphe DFS}
+Pour prévenir les erreurs de configuration d'un workflow par un administrateur (ex: créer un état isolé qui ne peut jamais être atteint, ou un état de blocage d'où l'on ne peut pas sortir), nous avons écrit un validateur de graphe exécutant des parcours en profondeur (DFS) lors de chaque enregistrement.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{organigramme.png}
+    \caption{Figure 4.1 — Algorithme de détection des orphelins et des impasses}
+    \label{fig:dfs_flow_2}
+\end{figure}
+
+L'algorithme de validation de graphe est structuré comme suit dans \texttt{WorkflowService.java} :
+\begin{lstlisting}[language=Java]
+public void validateWorkflowGraph(Workflow workflow) {
+    if (workflow.getStates() == null || workflow.getStates().isEmpty()) {
+        throw new IllegalArgumentException("Le workflow doit contenir au moins un etat.");
+    }
+
+    // 1. Valider la presence obligatoire de "Nouveau" et "Cloture"
+    boolean hasNouveau = workflow.getStates().stream().anyMatch(s -> s.getName().equalsIgnoreCase("Nouveau"));
+    boolean hasCloture = workflow.getStates().stream().anyMatch(s -> s.getName().equalsIgnoreCase("Cloture"));
+
+    if (!hasNouveau) throw new IllegalArgumentException("L'etat initial 'Nouveau' est obligatoire.");
+    if (!hasCloture) throw new IllegalArgumentException("L'etat final 'Cloture' est obligatoire.");
+
+    List<String> stateNames = workflow.getStates().stream()
+            .map(s -> s.getName().trim().toLowerCase())
+            .collect(Collectors.toList());
+
+    // 2. Construire les listes d'adjacence
+    Map<String, List<String>> adj = new HashMap<>();
+    Map<String, List<String>> revAdj = new HashMap<>();
+    for (String state : stateNames) {
+        adj.put(state, new ArrayList<>());
+        revAdj.put(state, new ArrayList<>());
+    }
+
+    if (workflow.getTransitions() != null) {
+        for (WorkflowTransition t : workflow.getTransitions()) {
+            String from = t.getFromState().trim().toLowerCase();
+            String to = t.getToState().trim().toLowerCase();
+
+            if (adj.containsKey(from) && adj.containsKey(to)) {
+                adj.get(from).add(to);
+                revAdj.get(to).add(from); // Graphe inverse
+            }
+        }
+    }
+
+    // 3. Detecter les etats orphelins (inaccessibles depuis "Nouveau")
+    Set<String> visitedFromStart = new HashSet<>();
+    dfs("nouveau", adj, visitedFromStart);
+
+    List<String> orphans = workflow.getStates().stream()
+            .map(s -> s.getName().trim())
+            .filter(name -> !visitedFromStart.contains(name.toLowerCase()))
+            .collect(Collectors.toList());
+
+    if (!orphans.isEmpty()) {
+        throw new IllegalArgumentException("Detection d'etat(s) orphelin(s) (inaccessible(s) depuis 'Nouveau') : " + String.join(", ", orphans));
+    }
+
+    // 4. Detecter les blocages/impasses (impossible d'atteindre "Cloture")
+    Set<String> visitedFromEnd = new HashSet<>();
+    dfs("cloture", revAdj, visitedFromEnd);
+
+    List<String> deadlocks = workflow.getStates().stream()
+            .map(s -> s.getName().trim())
+            .filter(name -> !visitedFromEnd.contains(name.toLowerCase()))
+            .collect(Collectors.toList());
+
+    if (!deadlocks.isEmpty()) {
+        throw new IllegalArgumentException("Detection d'impasse(s) (aucun chemin menant a l'etat final 'Cloture') : " + String.join(", ", deadlocks));
+    }
+}
+\end{lstlisting}
+
+\subsection{Gestion du Versionnage et Intégrité}
+Un défi de conception survient lorsqu'un administrateur met à jour un workflow déjà en exploitation : que faire des incidents rattachés à ce workflow ?
+\begin{itemize}
+    \item \textbf{Alternative A (Mise à jour en place) :} Modifier les transitions existantes. Cette approche corrompt le cycle de vie des incidents en cours s'ils se retrouvent dans un état devenu invalide dans la nouvelle configuration.
+    \item \textbf{Alternative B (Clonage et Versionnage - Solution Retenue) :} Si la méthode \texttt{saveWorkflow} détecte qu'un workflow possède des incidents liés (\texttt{existsByWorkflowId}), elle marque automatiquement l'ancien workflow comme inactif et crée un clone complet du nouveau avec un numéro de version incrémenté (\texttt{version + 1}). Les anciens incidents restent rattachés à leur version d'origine, tandis que les nouveaux incidents s'associent au workflow actif le plus récent.
+\end{itemize}
+
+\subsection{Visualisation et Administration des Workflows}
+La plateforme met à disposition un panneau d'administration pour la gestion et l'affichage des graphes de processus. Ce composant s'appuie sur la bibliothèque \textit{React Flow} pour dessiner dynamiquement les transitions d'états.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{screenshots/workflows.png}
+    \caption{Figure 5.2 — Interface du concepteur graphique de workflows dynamiques}
+    \label{fig:screenshot_workflows}
+\end{figure}
+
+\clearpage
+
+% ==================================================
+% SECTION 6 : AUTHENTIFICATION, SECURITE ET GESTION DE SESSION
+% ==================================================
+\section{Authentification, Sécurité et Gestion de Session}
+
+\subsection{Architecture Keycloak OIDC et JWT}
+En environnement de production, l'accès à l'API d'IncidentFlow est protégé par la validation de jetons JSON Web Token (JWT) signés par Keycloak. Spring Security décode le jeton asymétrique à l'aide de clés de chiffrement publiques publiées par le realm Keycloak, récupérant l'identité et les rôles de l'utilisateur pour appliquer un modèle RBAC strict.
+
+\subsection{Authentification Hybride et Stratégie Mock}
+Pour s'affranchir des contraintes réseau locales lors du développement, le backend implémente un système d'authentification hybride activé par profil de démarrage :
+\begin{itemize}
+    \item \textbf{Profil \texttt{prod} :} Utilise la vraie validation de jeton Keycloak avec une stratégie sans état.
+    \item \textbf{Profil \texttt{dev-mock} :} Simule la présence de l'utilisateur. Le frontend transmet l'adresse email de l'opérateur simulé dans un en-tête HTTP spécifique appelé \texttt{X-Mock-User}. Le contrôleur \texttt{AuthController} valide les identifiants locaux encodés avec BCrypt et simule un jeton de session locale d'une durée de 10 minutes avec déconnexion active gérée côté frontend.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{screenshots/login.png}
+    \caption{Figure 6.1 — Interface utilisateur de l'écran de connexion (Login Page)}
+    \label{fig:screenshot_login}
+\end{figure}
+
+\subsection{Filtre de Validation de Session et Blacklistage Redis}
+Afin de garantir la sécurité en temps réel, un administrateur doit pouvoir bannir instantanément un utilisateur (session revocation) sans attendre l'expiration naturelle de son jeton JWT ou de sa session simulée. Ce processus s'appuie sur le composant \texttt{SessionValidationFilter} et un stockage Redis :
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{redis.png}
+    \caption{Figure 5.1 — Mécanisme de révocation de session en temps réel avec Redis}
+    \label{fig:redis_blacklist_2}
+\end{figure}
+
+Voici le code du filtre de sécurité interceptant les appels API :
+\begin{lstlisting}[language=Java]
+@Component
+public class SessionValidationFilter extends OncePerRequestFilter {
+
+    private final StringRedisTemplate redisTemplate;
+
+    public SessionValidationFilter(StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+        if (path.startsWith("/api/auth/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String email = null;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof Jwt) {
+            Jwt jwt = (Jwt) auth.getPrincipal();
+            email = jwt.getClaimAsString("email");
+        }
+
+        if (email == null) {
+            String mockEmail = request.getHeader("X-Mock-User");
+            if (mockEmail != null && !mockEmail.trim().isEmpty()) {
+                email = mockEmail.trim();
+            }
+        }
+
+        if (email != null) {
+            String redisKey = "blacklist:user:" + email;
+            Boolean isBlacklisted = false;
+            try {
+                isBlacklisted = redisTemplate.hasKey(redisKey);
+            } catch (Exception ignored) {}
+
+            if (Boolean.TRUE.equals(isBlacklisted)) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{\"message\": \"Acces refuse. Votre session a ete revoquee par l'administrateur.\"}");
+                return;
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}
+\end{lstlisting}
+
+\clearpage
+
+% ==================================================
+% SECTION 7 : STRUCTURE ET COMPOSANTS FRONTEND (REACT)
+% ==================================================
+\section{Structure et Composants Frontend (React)}
+
+Le frontend d'IncidentFlow est écrit en React 19 et s'appuie sur Vite comme bundler. Le point d'entrée principal de l'application est \texttt{App.jsx}, qui intègre la gestion des routes, les fenêtres modales et les vues collaboratives.
+
+\subsection{Design System et Palette de Couleurs}
+Le fichier de styles globaux \texttt{index.css} définit les variables CSS (Tokens) pour l'ensemble de l'interface :
+\begin{itemize}
+    \item \textbf{Mode Sombre (Dark Mode) :} Basé sur des couleurs Slate foncées (\texttt{\#0f172a}).
+    \item \textbf{Glassmorphism :} Combinaison de filtres de flou d'arrière-plan \texttt{backdrop-filter: blur(12px)} et de bordures semi-transparentes \texttt{rgba(255, 255, 255, 0.08)}.
+    \item \textbf{Polices Google Fonts :} \textit{Plus Jakarta Sans} pour l'interface graphique et \textit{JetBrains Mono} pour les identifiants techniques et codes d'incidents.
+\end{itemize}
+
+---
+
+\subsection{Composants Principaux dans \texttt{App.jsx}}
+
+\subsubsection{Barre de Navigation Latérale (Sidebar)}
+Composant fixe de 260px de largeur.
+\begin{itemize}
+    \item \textbf{Responsabilité :} Assurer la navigation entre l'Accueil (Dashboard), la Liste des Incidents, l'Éditeur de Workflows, l'Administration des Utilisateurs et les Paramètres Système.
+    \item \textbf{Actions :} Affiche dynamiquement le nombre d'incidents actifs assignés à l'utilisateur sous forme de badge de notification rouge pulsant.
+\end{itemize}
+
+\subsubsection{Tableau de Bord (Dashboard) avec KPI SVG}
+Vue principale de supervision opérationnelle.
+\begin{itemize}
+    \item \textbf{KPI Cards :} Cartes interactives montrant les totaux par état. Un clic sur une carte applique instantanément un filtre de liste.
+    \item \textbf{Graphiques de gravité (Donut Chart) :} Graphique sectoriel construit en SVG natif à l'aide de la propriété \texttt{stroke-dashoffset} calculée en fonction du ratio d'incidents critiques.
+    \item \textbf{Tendance SVG animée :} Courbe de type spline SVG montrant le volume d'incidents sur 7 jours avec point de mouse-tracking interactif.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{screenshots/dashboard.png}
+    \caption{Figure 7.1 — Tableau de bord interactif avec graphiques KPI SVG et courbe de tendance}
+    \label{fig:screenshot_dashboard}
+\end{figure}
+
+\subsubsection{Détail de l'Incident et Actions Collaboratives}
+Écran de traitement d'un ticket.
+\begin{itemize}
+    \item \textbf{Stepper de Progression :} Barre horizontale de progression affichant visuellement les états configurés du workflow thématique.
+    \item \textbf{Ligne de temps (Timeline d'historique) :} Journal d'audit interactif vertical où chaque type d'action est matérialisé par un badge couleur et une icône dédiée (\texttt{MessageSquare}, \texttt{UserPlus}, \texttt{FileUp}, \texttt{Activity}).
+    \item \textbf{Zone de transitions :} Affiche dynamiquement les boutons de changement d'état autorisés par le moteur de workflow par rapport au rôle de l'utilisateur connecté.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{screenshots/details.png}
+    \caption{Figure 7.2 — Vue détaillée de l'incident avec timeline collaborative et stepper}
+    \label{fig:screenshot_details}
+\end{figure}
+
+\subsubsection{Liste de Recherche et de Filtrage des Incidents}
+Pour faciliter le travail des opérateurs de support de Netmar, un écran dédié liste l'ensemble des tickets.
+\begin{itemize}
+    \item \textbf{Recherche et tris croisés :} Recherche plein texte avec boutons d'export CSV et PDF.
+    \item \textbf{Compteurs de résultats :} Nombre dynamique d'éléments correspondants.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{screenshots/incidents.png}
+    \caption{Figure 7.3 — Écran de recherche multicritère et liste d'incidents}
+    \label{fig:screenshot_incidents}
+\end{figure}
+
+\subsubsection{Palette de Commandes Universelle (Ctrl+K)}
+Interface de productivité de type modal activée globalement.
+\begin{itemize}
+    \item \textbf{Raccourci clavier :} Intercepte la combinaison \texttt{Ctrl+K} ou \texttt{Cmd+K}.
+    \item \textbf{Action :} Recherche instantanée floue sur le code incident ou commande système (ex: \texttt{> theme light}).
+\end{itemize}
+
+\subsubsection{Éditeur Markdown de Commentaires}
+Composant d'édition collaboratif.
+\begin{itemize}
+    \item \textbf{Responsabilité :} Permettre aux techniciens de formater leurs diagnostics (blocs de code d'erreurs, commandes système) de manière lisible.
+    \item \textbf{Sécurité :} Analyseur regex échappant les scripts HTML pour empêcher les injections XSS.
+\end{itemize}
+
+\subsubsection{Administration et Gestion des Utilisateurs}
+Afin de permettre aux administrateurs système de gérer les habilitations, un écran d'administration est mis à disposition. Il affiche la liste complète des comptes, les rôles affectés, les services et l'état d'activité du compte.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{screenshots/users.png}
+    \caption{Figure 7.4 — Écran d'administration des utilisateurs et rôles}
+    \label{fig:screenshot_users}
+\end{figure}
+
+\clearpage
+
+% ==================================================
+% SECTION 8 : INFRASTRUCTURE DEVOPS ET ORCHESTRATION
+% ==================================================
+\section{Infrastructure DevOps et Orchestration}
+
+\subsection{Configuration Multi-Conteneurs Docker Compose}
+La plateforme automatise le lancement de ses couches de persistance, de cache, d'identité et applicatives via le fichier \texttt{docker-compose.yml} :
+\begin{lstlisting}[language=XML]
+# Extrait conceptuel de la structure du docker-compose.yml
+services:
+  incidentflow-postgres:
+    image: postgres:16-alpine
+    container_name: incidentflow-postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: IncidentFlow_db
+      POSTGRES_USER: IncidentFlow_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+  incidentflow-redis:
+    image: redis:7-alpine
+    container_name: incidentflow-redis
+    ports:
+      - "6380:6379"
+
+  incidentflow-backend:
+    build: ./backend
+    container_name: incidentflow-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - incidentflow-postgres
+      - incidentflow-redis
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://incidentflow-postgres:5432/IncidentFlow_db
+\end{lstlisting}
+
+\subsection{Recette et Manifestes Kubernetes}
+Pour la transition vers un environnement Kubernetes (Production), le déploiement est structuré en plusieurs manifestes YAML :
+\begin{itemize}
+    \item \textbf{Deployments :} Configurent le nombre de répliques des pods backend et frontend avec mise à l'échelle automatique.
+    \item \textbf{Services :} Exposent les pods en interne via \texttt{ClusterIP} ou vers l'extérieur avec des contrôleurs \texttt{LoadBalancer} ou \texttt{NodePort}.
+    \item \texttt{ConfigMap} et \texttt{Secrets} : Déplacent les configurations non sensibles et les mots de passe hors de l'image logicielle pour satisfaire les exigences de sécurité d'un cycle de release.
+    \item \textbf{Ingress Controller :} Gère la couche de routage HTTP/HTTPS externe et la distribution TLS vers le bon service.
+\end{itemize}
+
+\subsection{Résolution des Verrous Techniques de Déploiement}
+Durant la phase d'intégration, trois blocages majeurs ont été surmontés :
 \begin{enumerate}
-    \item \textbf{Problème CORS} : Vite ayant démarré le frontend sur le port \texttt{3001}, nous avons mis à jour la configuration CORS du backend pour accepter les ports \texttt{3001} et \texttt{5173}.
-    \item \textbf{Restriction réseau Docker Build} : Le contournement du proxy réseau a été réalisé en modifiant le \texttt{Dockerfile} pour copier le package JAR construit localement à l'aide de Maven.
-    \item \textbf{Rendu React Crash (Child rendering)} : Résolution du crash d'affichage lié au rendu direct de l'objet de rôle de l'utilisateur via la création de l'utilitaire \texttt{getRoleName}.
+    \item \textbf{Proxy réseau sur Docker Build :} L'environnement de construction réseau local bloquant le téléchargement des dépendances Maven, le \texttt{Dockerfile} du backend a été réécrit pour copier directement l'archive JAR compilée localement à l'aide de Maven sur la machine hôte.
+    \item \textbf{Problème de requêtes CORS :} L'authentification Vite ayant déplacé le port frontend de \texttt{3000} à \texttt{3001}, la configuration CORS de \texttt{SecurityConfig.java} a été mise à jour pour accepter explicitement l'accès depuis ce port.
+    \item \textbf{Exception LazyInitializationException Hibernate :} Lors du rendu de la liste des workflows configurés, une erreur 500 survenait dans le backend. L'exception signalait l'absence de session Hibernate active pour charger les collections enfants de transitions et d'états d'un workflow. Ce verrou a été levé en configurant les relations JPA en chargement immédiat (\texttt{fetch = FetchType.EAGER}) sur ces collections.
 \end{enumerate}
 
-% --- SECTION 8 : CONCLUSION ---
-\section{Conclusion}
-Le projet \textbf{IncidentFlow} est entièrement fonctionnel. Grâce au couplage de Spring Boot et de React, la plateforme offre un outil performant, esthétique et extrêmement modulaire. Le code source final est poussé sur GitHub et l'application est prête à être déployée en environnement de production.
+\clearpage
+
+% ==================================================
+% SECTION 9 : TESTS, VALIDATION ET RESULTATS
+% ==================================================
+\section{Tests, Validation et Résultats}
+
+\subsection{Tests Unitaires (JUnit 5 \& Mockito)}
+La logique de validation des graphes de workflows et les calculs temporels de SLAs font l'objet d'une couverture de tests unitaires rigoureuse.
+\begin{itemize}
+    \item \textbf{JUnit 5} valide que les structures attendues (présence de l'état initial et final) soient présentes.
+    \item \textbf{Mockito} simule les réponses des repositories sans solliciter l'accès réseau ou le serveur SQL pour accélérer l'exécution des tests dans la chaîne d'intégration.
+\end{itemize}
+
+Voici l'exemple du cas de test \texttt{WorkflowValidationTest.java} validant la détection logique d'états isolés (orphelins) :
+\begin{lstlisting}[language=Java]
+@Test
+public void testOrphanStateThrowsException() {
+    Workflow workflow = new Workflow();
+    
+    List<WorkflowState> states = new ArrayList<>();
+    states.add(WorkflowState.builder().name("Nouveau").build());
+    states.add(WorkflowState.builder().name("Assigne").build());
+    states.add(WorkflowState.builder().name("Orphelin").build()); // Etat isole
+    states.add(WorkflowState.builder().name("Cloture").build());
+    workflow.setStates(states);
+
+    List<WorkflowTransition> transitions = new ArrayList<>();
+    transitions.add(WorkflowTransition.builder().fromState("Nouveau").toState("Assigne").build());
+    transitions.add(WorkflowTransition.builder().fromState("Assigne").toState("Cloture").build());
+    workflow.setTransitions(transitions);
+
+    Exception exception = assertThrows(IllegalArgumentException.class, () -> 
+        workflowService.validateWorkflowGraph(workflow)
+    );
+
+    assertTrue(exception.getMessage().contains("Orphelin"), "L'erreur doit mentionner l'etat orphelin");
+}
+\end{lstlisting}
+
+\subsection{Tests d'Intégration avec Testcontainers}
+Pour s'assurer que les requêtes SQL complexes et les configurations de contraintes s'exécutent correctement, nous utilisons le framework \textbf{Testcontainers}.
+Lors du déclenchement des tests Maven, le système instancie un véritable conteneur PostgreSQL éphémère et vierge dans Docker. Le backend exécute ses requêtes d'intégration directement sur cette instance, garantissant des tests d'intégration réalistes et isolés.
+
+\clearpage
+
+% ==================================================
+% SECTION 10 : PERSPECTIVES ET INTEGRATION D'IA
+% ==================================================
+\section{Perspectives et Intégration d'IA (Classification Automatique)}
+
+\subsection{Opportunités Fonctionnelles de l'IA}
+Une limitation du processus actuel réside dans la saisie du formulaire : l'utilisateur qualifie manuellement la catégorie et la priorité de sa demande, générant fréquemment des erreurs d'affectation et surchargeant le support. L'intégration de l'IA vise à automatiser ce tri à la source.
+
+\subsection{Comparatif Technique : Google Gemini vs Ollama}
+\begin{table}[htbp]
+    \centering
+    \caption{Comparatif des approches d'intégration IA}
+    \label{tab:ia_compare_2}
+    \vspace{0.3cm}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Critère} & \textbf{Option A : Google Gemini (Gratuit)} & \textbf{Option B : Ollama (Modèle Local)} \\
+        \midrule
+        \textbf{Modèle cible} & Gemini 1.5 Flash & Mistral 7B / Llama 3 \\
+        \textbf{Coût} & Gratuit (Quota : 15 RPM / 1 500 RPD) & Gratuit (Open-source) \\
+        \textbf{Calcul requis} & Distant (Cloud Google) & Local (Serveur dédié $\ge$ 16 Go RAM + GPU) \\
+        \textbf{Latence moyenne} & 1,5 à 2 secondes & 5 à 15 secondes selon GPU \\
+        \textbf{Faisabilité projet} & Immédiate (API clé simple) & Complexe (Administration d'infrastructure) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Flux de Données et Conception de l'Endpoint}
+Le backend expose un point d'accès \texttt{POST /api/ai/suggest}. Lors d'une saisie utilisateur, le backend formule un prompt structuré incluant les listes de catégories et de priorités admissibles pour forcer l'IA à retourner un objet JSON exploitable en retour.
+
+\subsection{Mécanisme de Cache et Résilience}
+Pour prevenir le dépassement du quota de l'API gratuite Gemini (15 RPM) :
+\begin{enumerate}
+    \item \textbf{Cache Redis :} Une signature (Hash) de la description saisie est calculée. Si un autre incident présente une description identique, Redis renvoie immédiatement la classification en cache sans appeler Gemini.
+    \item \textbf{Tolérance aux pannes :} En cas d'erreur de connexion à l'API Gemini, le backend intercepte l'exception et renvoie une suggestion par défaut, laissant le formulaire disponible pour saisie manuelle.
+\end{enumerate}
+
+\clearpage
+
+% ==================================================
+% SECTION 11 : CONCLUSION
+% ==================================================
+\section{Conclusion et Bilan du Projet}
+Le projet \textbf{IncidentFlow} répond avec succès au besoin d'agilité de la gestion des processus métiers de l'entreprise Netmar. Grâce au développement d'un moteur de workflow dynamique validé par des algorithmes de parcours de graphe (DFS) et d'un système collaboratif étendu (observateurs, mentions, SLA synchrone, palette de commandes), la plateforme offre un outil robuste et moderne.
+
+L'architecture conteneurisée gérée par Docker et planifiée sous Kubernetes garantit sa scalabilité opérationnelle, faisant d'IncidentFlow une solution stable et pérenne prête à l'exploitation.
 
 \end{document}

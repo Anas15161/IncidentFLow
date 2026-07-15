@@ -84,6 +84,9 @@ public class UserService {
         user.setDepartment(details.getDepartment());
         user.setPost(details.getPost());
         user.setActive(details.isActive());
+        if (details.getAvatarColor() != null) {
+            user.setAvatarColor(details.getAvatarColor());
+        }
         if (details.getRole() != null) {
             user.setRole(details.getRole());
         }

@@ -644,8 +644,9 @@ function App() {
   };
 
   // Save profile changes
-  const handleEditProfileSubmit = (e) => {
+  const handleEditProfileSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
     const updatedUser = {
       ...currentUser,
       firstName: profileForm.firstName,
@@ -656,11 +657,29 @@ function App() {
       department: profileForm.department,
       avatarColor: profileForm.avatarColor
     };
-    setCurrentUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    setShowEditProfileModal(false);
-    setSuccessMessage("Profil mis à jour avec succès !");
-    setTimeout(() => setSuccessMessage(""), 3000);
+
+    try {
+      const res = await fetch(`${API_BASE}/users/${currentUser.id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(updatedUser)
+      });
+
+      if (!res.ok) throw new Error("Impossible de sauvegarder le profil sur le serveur.");
+
+      const savedUser = await res.json();
+      setCurrentUser(savedUser);
+      localStorage.setItem('user', JSON.stringify(savedUser));
+      setShowEditProfileModal(false);
+      
+      // Refresh the users list to show the changes in the grid too
+      fetchUsers();
+
+      setSuccessMessage("Profil mis à jour avec succès !");
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
   };
 
   // Save app settings changes
@@ -4400,11 +4419,13 @@ function App() {
 
                 <div className="form-group">
                   <label>Pièce jointe (facultatif)</label>
-                  <div 
-                    onDragOver={handleDragOverCreate}
+                  <label 
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnterCreate}
                     onDragLeave={handleDragLeaveCreate}
                     onDrop={handleDropCreate}
                     style={{ 
+                      display: 'block',
                       border: '2px dashed var(--border-color)', 
                       borderRadius: '8px', 
                       padding: '24px', 
@@ -4421,7 +4442,7 @@ function App() {
                       style={{ display: 'none' }} 
                       onChange={(e) => setNewIncidentFile(e.target.files[0])}
                     />
-                  </div>
+                  </label>
                   {newIncidentFile && (
                     <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {newIncidentFile.type.startsWith('image/') && (
@@ -4788,7 +4809,7 @@ function App() {
                           width: '32px',
                           height: '32px',
                           borderRadius: '50%',
-                          backgroundColor: item.color,
+                          backgroundColor: item.value,
                           border: profileForm.avatarColor === item.key ? '3px solid #000000' : '1px solid var(--border-color)',
                           cursor: 'pointer',
                           boxShadow: '0 2px 4px rgba(0,0,0,0.15)',

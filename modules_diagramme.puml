@@ -1,0 +1,48 @@
+@startuml
+' Adaptation stricte au ratio A4 Portrait (1.41)
+scale 1240*1754
+top to bottom direction
+
+skinparam componentStyle uml2
+skinparam monochrome false
+skinparam shadowing false
+skinparam ArrowColor #0A2647
+skinparam RectangleBorderColor #E2E8F0
+skinparam ranksep 40
+skinparam nodesep 20
+
+rectangle "1. Gestion des Utilisateurs (RBAC & IAM)" #F8FAFC {
+    [Gestion des Profils] as Profils
+    [Authentification & Sessions] as Auth
+    [Controle d'Acces (Roles)] as Roles
+}
+
+rectangle "2. Gestion des Incidents (Metier)" #F1F5F9 {
+    [Declaration & Fiche] as Fiche
+    [Calcul Suivi SLA] as SLA
+    [Timeline & Audit] as Audit
+    [Actions Collaboratives] as Collaborative
+}
+
+rectangle "3. Moteur de Workflows (Processus)" #E2E8F0 {
+    [Etats du Cycle] as Etats
+    [Configurateur Transitions] as Transitions
+    [Validateur DFS Graphe] as DFS
+    [Gestionnaire Versioning] as Versioning
+}
+
+' Liens verticaux adaptes
+Profils --> Fiche : "Declare / Assigne"
+Roles --> Fiche : "Definit les droits"
+Auth --> Collaborative : "Associe l'identite"
+
+Fiche *-- SLA : "Calcule SLA"
+Fiche *-- Audit : "Trace actions"
+Collaborative --> Fiche : "Ajoute pieces/comm."
+
+Fiche --> Etats : "Applique etat"
+Transitions ..> Etats : "Valide passage"
+DFS ..> Transitions : "Analyse (DFS)"
+Versioning --> Transitions : "Versionne/Clone"
+
+@enduml
