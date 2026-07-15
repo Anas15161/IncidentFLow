@@ -1794,9 +1794,17 @@ function App() {
         ? `${hours}h ${mins}m ${secs}s` 
         : `${mins}m ${secs}s`;
 
+      if (inc.escalated) {
+        return (
+          <span className="badge pulse-active-glow" style={{ backgroundColor: '#fff5f5', color: '#e53e3e', borderColor: '#feb2b2', fontWeight: 'bold' }} title={`Dépassé de ${timeStr} (Escaladé automatiquement)`}>
+            🚨 SLA Dépassé (Escaladé)
+          </span>
+        );
+      }
+
       return (
         <span className="badge pulse-active-glow" style={{ backgroundColor: '#fef2f2', color: '#991b1b', borderColor: '#fca5a5', fontWeight: 'bold' }} title={`Dépassé de ${timeStr}`}>
-          ⚠ SLA Dépassé (-{timeStr})
+          ⚠ SLA Dépassé
         </span>
       );
     }
