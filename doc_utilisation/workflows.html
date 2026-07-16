@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IncidentFlow - Workflows (Détails & Graphes)</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">IF</div>
+        <span class="sidebar-title">IncidentFlow Doc</span>
+      </div>
+      
+      <nav>
+        <div class="sidebar-menu-title">Documentation</div>
+        <ul class="sidebar-menu">
+          <li class="sidebar-item">
+            <a href="./index.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>Accueil</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./architecture.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+              <span>Architecture & Modèle</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-menu-title">Modules Applicatifs</div>
+        <ul class="sidebar-menu">
+          <li class="sidebar-item">
+            <a href="./dashboard.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+              <span>Tableau de Bord</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./incidents.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Gestion des Incidents</span>
+            </a>
+          </li>
+          <li class="sidebar-item active">
+            <a href="./workflows.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2.5 3.19-2.5 5.5s1 4.24 2.5 5.5"/><path d="M12 2v20"/><path d="m17 5 4.5 4.5L17 14"/><path d="m7 5-4.5 4.5L7 14"/><path d="M2 9.5h20"/></svg>
+              <span>Workflows Dynamiques</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./users.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Gestion des Utilisateurs</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="page-header">
+        <span class="page-category">Modules Applicatifs</span>
+        <h1 class="page-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2.5 3.19-2.5 5.5s1 4.24 2.5 5.5"/><path d="M12 2v20"/><path d="m17 5 4.5 4.5L17 14"/><path d="m7 5-4.5 4.5L7 14"/><path d="M2 9.5h20"/></svg>
+          Workflows Dynamiques
+        </h1>
+        <p class="page-subtitle">Modélisez le cycle de vie de vos incidents à l'aide de l'éditeur interactif ReactFlow.</p>
+      </header>
+
+      <!-- Tabs Navigation -->
+      <div class="tabs-container">
+        <div class="tabs-nav">
+          <button class="tab-trigger active" onclick="showTab('usage')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Guide d'Utilisation
+          </button>
+          <button class="tab-trigger" onclick="showTab('code-details')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Guide Technique & Code
+          </button>
+        </div>
+
+        <!-- Tab 1: Guide d'Utilisation -->
+        <div id="usage" class="tab-content active">
+          <div style="margin-bottom: 24px; text-align: center;">
+            <img src="../screenshots/workflows.png" alt="Concepteur de Workflows Interactif" style="max-width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);">
+          </div>
+
+          <div class="info-box warning">
+            <svg class="info-box-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8" stroke-width="2"/></svg>
+            <div class="info-box-content">
+              <strong>Règles de validation obligatoires</strong>
+              Chaque diagramme doit obligatoirement débuter par un état initial <code class="inline-code">Nouveau</code> et se terminer par un état final <code class="inline-code">Clôturé</code>. Les états système ne peuvent être ni supprimés, ni désactivés pour garantir l'intégrité de la base de données.
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin-bottom: 16px;">Modes d'Édition</h3>
+          
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Éditeur Visuel (ReactFlow)</div>
+              <p class="card-desc">Représente visuellement les états sous forme de boîtes (nœuds) et les transitions sous forme de flèches (arêtes). Vous pouvez créer une transition en reliant les connecteurs des boîtes.</p>
+              <span class="badge badge-purple">Interactif</span>
+            </div>
+            
+            <div class="card">
+              <div class="card-title">Configuration Textuelle</div>
+              <p class="card-desc">Permet de renommer précisément les étiquettes des états, choisir leurs couleurs de badges (Vert, Jaune, Rouge, Gris), et déclarer des règles de motif requis.</p>
+              <span class="badge badge-info">Formulaire structuré</span>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin-bottom: 16px;">Configuration des Transitions</h3>
+          <p style="color: var(--text-muted); margin-bottom: 20px;">L'administrateur peut cocher la case <strong>Motif obligatoire</strong> pour une transition spécifique. Cela oblige l'opérateur à documenter sa décision avant de valider le changement d'état.</p>
+        </div>
+
+        <!-- Tab 2: Guide Technique & Code -->
+        <div id="code-details" class="tab-content">
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin-bottom: 16px;">Coordonnées et Positions Graphiques des Nœuds</h3>
+          <p style="color: var(--text-muted); margin-bottom: 12px;">Dans le composant React, la fonction <code class="inline-code">getInitialNodes</code> place l'état <code class="inline-code">Nouveau</code> à gauche, <code class="inline-code">Clôturé</code> à droite et répartit de façon décalée les autres états intermédiaires :</p>
+          
+          <div class="code-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            frontend/src/App.jsx (Lignes 29 à 55)
+          </div>
+          <pre data-lang="javascript"><code><span class="code-keyword">const</span> getInitialNodes = (states) =&gt; {
+  <span class="code-keyword">if</span> (!states) <span class="code-keyword">return</span> [];
+  <span class="code-keyword">return</span> states.map((state, index) =&gt; {
+    <span class="code-keyword">const</span> isNouveau = state.name.toLowerCase() === <span class="code-string">'nouveau'</span>;
+    <span class="code-keyword">const</span> isCloture = state.name.toLowerCase() === <span class="code-string">'clôturé'</span>;
+    
+    <span class="code-comment">// Détermination des coordonnées x et y</span>
+    <span class="code-keyword">let</span> x = <span class="code-number">250</span>;
+    <span class="code-keyword">let</span> y = <span class="code-number">150</span>;
+    <span class="code-keyword">if</span> (isNouveau) {
+      x = <span class="code-number">50</span>; y = <span class="code-number">150</span>;
+    } <span class="code-keyword">else if</span> (isCloture) {
+      x = <span class="code-number">580</span>; y = <span class="code-number">150</span>;
+    } <span class="code-keyword">else</span> {
+      <span class="code-comment">// Staggering dynamique des états intermédiaires</span>
+      <span class="code-keyword">const</span> others = states.filter(s =&gt; s.name !== <span class="code-string">'Nouveau'</span> && s.name !== <span class="code-string">'Clôturé'</span>);
+      <span class="code-keyword">const</span> idx = others.findIndex(o =&gt; o.name === state.name);
+      x = <span class="code-number">220</span> + (idx * <span class="code-number">160</span>);
+      y = <span class="code-number">60</span> + (idx % <span class="code-number">2</span> * <span class="code-number">160</span>);
+    }
+    
+    <span class="code-keyword">return</span> {
+      id: state.name,
+      position: { x, y },
+      data: { label: state.label },
+      <span class="code-comment">// Customisation du style de boîte...</span>
+    };
+  });
+};</code></pre>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">Algorithme de Validation de Graphe (Spring Boot)</h3>
+          <p style="color: var(--text-muted); margin-bottom: 12px;">Lors de l'enregistrement, la méthode <code class="inline-code">validateWorkflowGraph</code> utilise un parcours en profondeur d'abord (**DFS**) sur le graphe orienté (ainsi que sur le graphe inverse) pour interdire les états inaccessibles ou les impasses :</p>
+          
+          <div class="code-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            backend/src/main/.../service/WorkflowService.java (Lignes 158 à 233)
+          </div>
+          <pre data-lang="java"><code><span class="code-keyword">public</span> <span class="code-keyword">void</span> validateWorkflowGraph(<span class="code-class">Workflow</span> workflow) {
+    <span class="code-comment">// 1. Validation de l'existence des états critiques "Nouveau" et "Clôturé"</span>
+    <span class="code-keyword">boolean</span> hasNouveau = workflow.getStates().stream().anyMatch(s -&gt; s.getName().equalsIgnoreCase(<span class="code-string">"Nouveau"</span>));
+    <span class="code-keyword">boolean</span> hasCloture = workflow.getStates().stream().anyMatch(s -&gt; s.getName().equalsIgnoreCase(<span class="code-string">"Clôturé"</span>));
+    <span class="code-keyword">if</span> (!hasNouveau || !hasCloture) <span class="code-keyword">throw new</span> <span class="code-class">IllegalArgumentException</span>(<span class="code-string">"Bornes obligatoires absentes."</span>);
+
+    <span class="code-comment">// 2. DFS depuis "Nouveau" pour détecter les États Orphelins</span>
+    <span class="code-class">Set</span>&lt;<span class="code-class">String</span>&gt; visitedFromStart = <span class="code-keyword">new</span> <span class="code-class">HashSet</span>&lt;&gt;();
+    dfs(<span class="code-string">"nouveau"</span>, adj, visitedFromStart);
+    <span class="code-comment">// Si un état n'est pas visité -> Erreur d'état orphelin</span>
+
+    <span class="code-comment">// 3. DFS inverse depuis "Clôturé" pour détecter les Impasses (Deadlocks)</span>
+    <span class="code-class">Set</span>&lt;<span class="code-class">String</span>&gt; visitedFromEnd = <span class="code-keyword">new</span> <span class="code-class">HashSet</span>&lt;&gt;();
+    dfs(<span class="code-string">"clôturé"</span>, revAdj, visitedFromEnd);
+    <span class="code-comment">// Si un état ne peut pas atteindre la fin -> Erreur d'impasse</span>
+}</code></pre>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">Versioning automatique par clonage de version</h3>
+          <p style="color: var(--text-muted); margin-bottom: 12px;">Si le workflow modifié est déjà lié à des incidents réels en base de données, l'application préserve l'original à des fins historiques et clone le graphe en incrémentant automatiquement le numéro de version :</p>
+          
+          <div class="code-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            backend/src/main/.../service/WorkflowService.java (Lignes 60 à 75)
+          </div>
+          <pre data-lang="java"><code><span class="code-keyword">boolean</span> hasLinkedIncidents = incidentRepository.existsByWorkflowId(workflow.getId());
+<span class="code-keyword">if</span> (hasLinkedIncidents) {
+    <span class="code-comment">// Désactiver l'original</span>
+    original.setActive(<span class="code-keyword">false</span>);
+    
+    <span class="code-comment">// Cloner et créer la Version N+1</span>
+    <span class="code-class">Workflow</span> newVersion = <span class="code-keyword">new</span> <span class="code-class">Workflow</span>();
+    newVersion.setVersion(original.getVersion() + <span class="code-number">1</span>);
+    newVersion.setActive(<span class="code-keyword">true</span>);
+    
+    <span class="code-comment">// Recréer les états et transitions rattachés...</span>
+}</code></pre>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">Points d'accès de l'API</h3>
+          <div class="endpoint-item">
+            <div class="endpoint-header">
+              <span class="endpoint-method method-get">GET</span>
+              <span class="endpoint-path">/api/workflows/category/{category}</span>
+              <span class="endpoint-desc">Charge le workflow actif propre à la catégorie</span>
+            </div>
+          </div>
+          <div class="endpoint-item">
+            <div class="endpoint-header">
+              <span class="endpoint-method method-put">PUT</span>
+              <span class="endpoint-path">/api/workflows/{id}</span>
+              <span class="endpoint-desc">Enregistre ou versionne la configuration du workflow</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-trigger').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IncidentFlow - Tableau de Bord (Détails & Code)</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">IF</div>
+        <span class="sidebar-title">IncidentFlow Doc</span>
+      </div>
+      
+      <nav>
+        <div class="sidebar-menu-title">Documentation</div>
+        <ul class="sidebar-menu">
+          <li class="sidebar-item">
+            <a href="./index.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>Accueil</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./architecture.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+              <span>Architecture & Modèle</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-menu-title">Modules Applicatifs</div>
+        <ul class="sidebar-menu">
+          <li class="sidebar-item active">
+            <a href="./dashboard.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+              <span>Tableau de Bord</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./incidents.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Gestion des Incidents</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./workflows.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2.5 3.19-2.5 5.5s1 4.24 2.5 5.5"/><path d="M12 2v20"/><path d="m17 5 4.5 4.5L17 14"/><path d="m7 5-4.5 4.5L7 14"/><path d="M2 9.5h20"/></svg>
+              <span>Workflows Dynamiques</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./users.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Gestion des Utilisateurs</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="page-header">
+        <span class="page-category">Modules Applicatifs</span>
+        <h1 class="page-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+          Tableau de Bord
+        </h1>
+        <p class="page-subtitle">Pilotez en temps réel le flux des incidents signalés et analysez les indicateurs clés de performance.</p>
+      </header>
+
+      <!-- Tabs Navigation -->
+      <div class="tabs-container">
+        <div class="tabs-nav">
+          <button class="tab-trigger active" onclick="showTab('usage')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Guide d'Utilisation
+          </button>
+          <button class="tab-trigger" onclick="showTab('code-details')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Guide Technique & Code
+          </button>
+        </div>
+
+        <!-- Tab 1: Guide d'Utilisation -->
+        <div id="usage" class="tab-content active">
+          <div style="margin-bottom: 24px; text-align: center;">
+            <img src="../screenshots/dashboard.png" alt="Aperçu du Tableau de Bord" style="max-width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);">
+          </div>
+
+          <div class="info-box success">
+            <svg class="info-box-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8" stroke-width="2"/></svg>
+            <div class="info-box-content">
+              <strong>Objectif Métier</strong>
+              Fournir aux responsables et administrateurs une vision synthétique et immédiate de l'état du parc d'incidents, permettant de repérer les engorgements et les dérives par rapport aux engagements de service (SLA).
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin-bottom: 16px;">Indicateurs Clés (KPI Grid)</h3>
+          <p style="color: var(--text-muted); margin-bottom: 20px;">Quatre cartes dynamiques résument l'état des incidents en temps réel :</p>
+          <ul>
+            <li style="margin-left: 20px; margin-bottom: 8px;"><strong>Incidents Totaux</strong> : Somme globale des incidents actifs et fermés.</li>
+            <li style="margin-left: 20px; margin-bottom: 8px;"><strong>Nouveaux</strong> : Incidents déclarés en attente de prise en charge ou d'attribution par un responsable.</li>
+            <li style="margin-left: 20px; margin-bottom: 8px;"><strong>En cours</strong> : Incidents attribués et en cours de résolution par les opérateurs.</li>
+            <li style="margin-left: 20px; margin-bottom: 8px;"><strong>Résolus</strong> : Incidents clôturés avec succès.</li>
+          </ul>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">Visualisations Graphiques</h3>
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Donut des Priorités</div>
+              <p class="card-desc">Représente la répartition des incidents selon leur niveau de sévérité. Cliquez sur un segment pour filtrer les incidents par priorité.</p>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <span class="badge badge-danger">Critical</span>
+                <span class="badge badge-warning">High</span>
+                <span class="badge badge-blue">Medium</span>
+                <span class="badge badge-success">Low</span>
+              </div>
+            </div>
+            
+            <div class="card">
+              <div class="card-title">Flux en Temps Réel</div>
+              <p class="card-desc">Graphique en courbe synchronisé montrant la tendance des déclarations et résolutions chronologiques.</p>
+              <span class="badge badge-blue">Mise à jour automatique</span>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin-bottom: 16px;">Flux des Incidents Récents</h3>
+          <p style="color: var(--text-muted); margin-bottom: 20px;">La section inférieure liste les trois derniers incidents. Cliquer sur une ligne redirige instantanément vers la fiche détaillée de l'incident pour traitement.</p>
+        </div>
+
+        <!-- Tab 2: Guide Technique & Code -->
+        <div id="code-details" class="tab-content">
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin-bottom: 16px;">Calcul des KPI (Côté Client)</h3>
+          <p style="color: var(--text-muted); margin-bottom: 12px;">Les cartes de KPI en haut de page calculent de manière réactive leurs valeurs à partir du state global <code class="inline-code">incidents</code> chargé par l'application :</p>
+          <ul>
+            <li style="margin-left: 20px; margin-bottom: 6px;">Total : <code class="inline-code">incidents.length</code></li>
+            <li style="margin-left: 20px; margin-bottom: 6px;">Nouveau : <code class="inline-code">incidents.filter(i => i.status === 'Nouveau').length</code></li>
+            <li style="margin-left: 20px; margin-bottom: 6px;">En cours : <code class="inline-code">incidents.filter(i => i.status === 'En cours').length</code></li>
+            <li style="margin-left: 20px; margin-bottom: 6px;">Résolu : <code class="inline-code">incidents.filter(i => i.status === 'Résolu').length</code></li>
+          </ul>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 24px 0 16px 0;">Donut SVG Dynamique : Formule Trigonométrique</h3>
+          <p style="color: var(--text-muted); margin-bottom: 16px;">Pour éviter les dépendances lourdes, le donut SVG est dessiné à la main. La fonction <code class="inline-code">getDonutSegmentPath</code> convertit les angles en coordonnées cartésiennes de cercle :</p>
+          
+          <div class="code-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            frontend/src/App.jsx (Lignes 1845 à 1870)
+          </div>
+          <pre data-lang="javascript"><code><span class="code-comment">// Convertit angles (degrés) en chemin SVG Arc</span>
+<span class="code-keyword">const</span> getDonutSegmentPath = (cx, cy, r, startAngle, endAngle) =&gt; {
+  <span class="code-keyword">const</span> startRad = (startAngle - <span class="code-number">90</span>) * <span class="code-class">Math</span>.<span class="code-type">PI</span> / <span class="code-number">180.0</span>;
+  <span class="code-keyword">const</span> endRad = (endAngle - <span class="code-number">90</span>) * <span class="code-class">Math</span>.<span class="code-type">PI</span> / <span class="code-number">180.0</span>;
+  
+  <span class="code-comment">// Coordonnées de départ et de fin du segment de cercle</span>
+  <span class="code-keyword">const</span> x1 = cx + r * <span class="code-class">Math</span>.cos(startRad);
+  <span class="code-keyword">const</span> y1 = cy + r * <span class="code-class">Math</span>.sin(startRad);
+  <span class="code-keyword">const</span> x2 = cx + r * <span class="code-class">Math</span>.cos(endRad);
+  <span class="code-keyword">const</span> y2 = cy + r * <span class="code-class">Math</span>.sin(endRad);
+  
+  <span class="code-keyword">const</span> largeArcFlag = endAngle - startAngle &lt;= <span class="code-number">180</span> ? <span class="code-string">"0"</span> : <span class="code-string">"1"</span>;
+  
+  <span class="code-keyword">return</span> <span class="code-string">`M <span class="code-variable">${x1}</span> <span class="code-variable">${y1}</span> A <span class="code-variable">${r}</span> <span class="code-variable">${r}</span> 0 <span class="code-variable">${largeArcFlag}</span> 1 <span class="code-variable">${x2}</span> <span class="code-variable">${y2}</span>`</span>;
+};</code></pre>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">Gestion Réactive des Délais SLA</h3>
+          <p style="color: var(--text-muted); margin-bottom: 16px;">La variable <code class="inline-code">tickerTime</code> est mise à jour toutes les secondes par une unique horloge système (<code class="inline-code">setInterval</code>). Cela recalculera dynamiquement les comptes à rebours SLA affichés à l'écran :</p>
+          
+          <div class="code-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            frontend/src/App.jsx (Lignes 425 à 433)
+          </div>
+          <pre data-lang="javascript"><code><span class="code-comment">// Horloge système réactive globale</span>
+useEffect(() =&gt; {
+  <span class="code-keyword">const</span> timer = setInterval(() =&gt; {
+    setTickerTime(<span class="code-class">Date</span>.now());
+  }, <span class="code-number">1000</span>);
+  <span class="code-keyword">return</span> () =&gt; clearInterval(timer);
+}, []);</code></pre>
+
+          <p style="color: var(--text-muted); margin: 16px 0; font-size: 0.925rem;">Les couleurs et animations de l'échéance SLA changent selon le temps restant :</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Temps restant</th>
+                  <th>Style CSS & Animation</th>
+                  <th>Affichage & Libellé</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>&lt; 15 minutes</td>
+                  <td><code class="inline-code">animate-pulse-red</code> (Clignotement rouge vif)</td>
+                  <td>⏱ Échéance (Xm Ys)</td>
+                </tr>
+                <tr>
+                  <td>15 à 30 minutes</td>
+                  <td>Fond Orange délavé (<code class="inline-code">#fff7ed</code>), texte orange foncé</td>
+                  <td>⏱ Échéance (Xm Ys)</td>
+                </tr>
+                <tr>
+                  <td>&gt; 30 minutes</td>
+                  <td>Fond Vert délavé (<code class="inline-code">#f0fdf4</code>), texte vert foncé</td>
+                  <td>⏱ Xh Ym restants</td>
+                </tr>
+                <tr>
+                  <td>Dépassé & non résolu</td>
+                  <td>Glow Pulsé (<code class="inline-code">pulse-active-glow</code>), texte rouge sombre</td>
+                  <td>⚠ SLA Dépassé ou 🚨 SLA Dépassé (Escaladé)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">Points d'accès Backend</h3>
+          <div class="endpoint-item">
+            <div class="endpoint-header">
+              <span class="endpoint-method method-get">GET</span>
+              <span class="endpoint-path">/api/incidents</span>
+              <span class="endpoint-desc">Chargement initial et synchro automatique</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-trigger').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+  </script>
+</body>
+</html>

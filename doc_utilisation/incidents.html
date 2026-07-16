@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IncidentFlow - Gestion des Incidents (Détails & Code)</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">IF</div>
+        <span class="sidebar-title">IncidentFlow Doc</span>
+      </div>
+      
+      <nav>
+        <div class="sidebar-menu-title">Documentation</div>
+        <ul class="sidebar-menu">
+          <li class="sidebar-item">
+            <a href="./index.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span>Accueil</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./architecture.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+              <span>Architecture & Modèle</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-menu-title">Modules Applicatifs</div>
+        <ul class="sidebar-menu">
+          <li class="sidebar-item">
+            <a href="./dashboard.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+              <span>Tableau de Bord</span>
+            </a>
+          </li>
+          <li class="sidebar-item active">
+            <a href="./incidents.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span>Gestion des Incidents</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./workflows.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2.5 3.19-2.5 5.5s1 4.24 2.5 5.5"/><path d="M12 2v20"/><path d="m17 5 4.5 4.5L17 14"/><path d="m7 5-4.5 4.5L7 14"/><path d="M2 9.5h20"/></svg>
+              <span>Workflows Dynamiques</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a href="./users.html">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Gestion des Utilisateurs</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="page-header">
+        <span class="page-category">Modules Applicatifs</span>
+        <h1 class="page-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Gestion des Incidents
+        </h1>
+        <p class="page-subtitle">Déclarez de nouveaux incidents, attribuez-les aux opérateurs et suivez leur cycle de traitement à travers le workflow.</p>
+      </header>
+
+      <!-- Tabs Navigation -->
+      <div class="tabs-container">
+        <div class="tabs-nav">
+          <button class="tab-trigger active" onclick="showTab('usage')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Guide d'Utilisation
+          </button>
+          <button class="tab-trigger" onclick="showTab('code-details')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Guide Technique & Code
+          </button>
+        </div>
+
+        <!-- Tab 1: Guide d'Utilisation -->
+        <div id="usage" class="tab-content active">
+          <div style="margin-bottom: 24px; text-align: center;">
+            <img src="../screenshots/incidents.png" alt="Liste des Incidents" style="max-width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);">
+          </div>
+
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">Codification Unique</div>
+              <p class="card-desc">Chaque incident reçoit un code séquentiel unique selon le format <code class="inline-code">INC-{ANNEE}-{SEQUENCE}</code> (ex: INC-2026-001).</p>
+            </div>
+            
+            <div class="card">
+              <div class="card-title">Règle Métier : Auto-Assignation</div>
+              <p class="card-desc">Les incidents créés dans la catégorie <strong>Médical</strong> sont automatiquement affectés au premier compte ayant le rôle <em>Opérateur Médical</em>.</p>
+            </div>
+          </div>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">La Fiche Détail de l'Incident</h3>
+          
+          <div style="margin: 16px 0 24px 0; text-align: center;">
+            <img src="../screenshots/details.png" alt="Fiche Détail de l'Incident" style="max-width: 100%; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);">
+          </div>
+          
+          <div class="step-list">
+            <div class="step-item">
+              <div class="step-number">A</div>
+              <div class="step-text">
+                <h4>Transitions de Workflow & Motifs</h4>
+                <p>Les boutons d'action s'affichent de façon conditionnelle. Si la transition configurée dans le workflow requiert un motif, un modal de saisie obligatoire apparaît. Le motif saisi est automatiquement enregistré sous forme de commentaire lié.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-number">B</div>
+              <div class="step-text">
+                <h4>Éditeur Markdown de Commentaires</h4>
+                <p>Permet de commenter avec du texte mis en forme (liste, code, gras, italique). Possède un onglet de prévisualisation instantanée.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-number">C</div>
+              <div class="step-text">
+                <h4>Pièces jointes & Glisser-Déposer</h4>
+                <p>Téléversez par simple glisser-déposer. Les images et PDF peuvent être visualisés directement dans l'application ou renommés par double-clic.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Guide Technique & Code -->
+        <div id="code-details" class="tab-content">
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin-bottom: 16px;">Analyse du Parser Markdown (Client React)</h3>
+          <p style="color: var(--text-muted); margin-bottom: 12px;">Le texte saisi en Markdown est traduit en HTML sécurisé côté client par la fonction <code class="inline-code">parseMarkdown</code> :</p>
+          
+          <div class="code-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            frontend/src/App.jsx (Lignes 1593 à 1618)
+          </div>
+          <pre data-lang="javascript"><code><span class="code-keyword">const</span> parseMarkdown = (text) =&gt; {
+  <span class="code-keyword">if</span> (!text) <span class="code-keyword">return</span> <span class="code-string">""</span>;
+  
+  <span class="code-comment">// 1. Échappement HTML anti-XSS</span>
+  <span class="code-keyword">let</span> html = text
+    .replace(<span class="code-string">/&/g</span>, <span class="code-string">"&amp;amp;"</span>)
+    .replace(<span class="code-string">/&lt;/g</span>, <span class="code-string">"&amp;lt;"</span>)
+    .replace(<span class="code-string">/&gt;/g</span>, <span class="code-string">"&amp;gt;"</span>);
+  
+  <span class="code-comment">// 2. Blocs de code (```code```)</span>
+  html = html.replace(<span class="code-string">/```([\s\S]+?)```/g</span>, (match, code) =&gt; {
+    <span class="code-keyword">return</span> <span class="code-string">`&lt;pre style="background:#f1f5f9; padding:10px; border-radius:6px; font-family:monospace;"&gt;&lt;code&gt;<span class="code-variable">${code.trim()}</span>&lt;/code&gt;&lt;/pre&gt;`</span>;
+  });
+
+  <span class="code-comment">// 3. Code en ligne (`code`)</span>
+  html = html.replace(<span class="code-string">/`([^`\n]+?)`/g</span>, <span class="code-string">'&lt;code style="background:#f1f5f9; color:#e11d48;"&gt;$1&lt;/code&gt;'</span>);
+  
+  <span class="code-comment">// 4. Gras et italiques</span>
+  html = html.replace(<span class="code-string">/\*\*([\s\S]+?)\*\*/g</span>, <span class="code-string">'&lt;strong&gt;$1&lt;/strong&gt;'</span>);
+  html = html.replace(<span class="code-string">/\*([\s\S]+?)\*/g</span>, <span class="code-string">'&lt;em&gt;$1&lt;/em&gt;'</span>);
+  
+  <span class="code-keyword">return</span> html;
+};</code></pre>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">Génération de Code Incident & Assignation Auto (Spring Boot)</h3>
+          <p style="color: var(--text-muted); margin-bottom: 12px;">Lors de la déclaration, la base PostgreSQL est interrogée pour trouver le dernier index et générer le code. Si l'incident est médical, l'assignation est résolue automatiquement :</p>
+          
+          <div class="code-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            backend/src/main/.../service/IncidentService.java (Lignes 73 à 107)
+          </div>
+          <pre data-lang="java"><code><span class="code-annotation">@Transactional</span>
+<span class="code-keyword">public</span> <span class="code-class">Incident</span> createIncident(<span class="code-class">Incident</span> incident, <span class="code-class">User</span> author) {
+    incident.setAuthor(author);
+    incident.setStatus(<span class="code-string">"Nouveau"</span>);
+
+    <span class="code-comment">// Génération du Code séquentiel INC-{Year}-{Seq}</span>
+    <span class="code-keyword">int</span> year = <span class="code-class">LocalDateTime</span>.now().getYear();
+    <span class="code-class">String</span> prefix = <span class="code-string">"INC-"</span> + year + <span class="code-string">"-"</span>;
+    <span class="code-class">String</span> maxCode = incidentRepository.findMaxIncidentCodeByPrefix(prefix);
+    <span class="code-keyword">int</span> seq = <span class="code-number">1</span>;
+    <span class="code-keyword">if</span> (maxCode != <span class="code-keyword">null</span>) {
+        seq = <span class="code-class">Integer</span>.parseInt(maxCode.substring(prefix.length())) + <span class="code-number">1</span>;
+    }
+    incident.setIncidentCode(<span class="code-class">String</span>.format(<span class="code-string">"%s%03d"</span>, prefix, seq));
+
+    <span class="code-comment">// Règle d'affectation automatique pour le Médical</span>
+    <span class="code-keyword">if</span> (<span class="code-string">"Médical"</span>.equalsIgnoreCase(incident.getCategory())) {
+        userRepository.findAll().stream()
+                .filter(u -&gt; <span class="code-string">"Opérateur médical"</span>.equalsIgnoreCase(u.getRole().getName()))
+                .findFirst()
+                .ifPresent(incident::setAssignedTo);
+    }
+    <span class="code-keyword">return</span> incidentRepository.save(incident);
+}</code></pre>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">Rapport PDF Personnalisé (OpenPDF)</h3>
+          <p style="color: var(--text-muted); margin-bottom: 12px;">Le PDF généré respecte la charte graphique de l'application grâce au code d'en-tête et au tableau de cellules formatées :</p>
+          
+          <div class="code-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            backend/src/main/.../controller/IncidentController.java (Lignes 250 à 280)
+          </div>
+          <pre data-lang="java"><code><span class="code-comment">// Définition de la palette de couleurs officielle</span>
+<span class="code-class">Color</span> primaryColor = <span class="code-keyword">new</span> <span class="code-class">Color</span>(<span class="code-number">10</span>, <span class="code-number">38</span>, <span class="code-number">71</span>); <span class="code-comment">// Slate 900</span>
+<span class="code-class">Color</span> headerBgColor = <span class="code-keyword">new</span> <span class="code-class">Color</span>(<span class="code-number">15</span>, <span class="code-number">23</span>, <span class="code-number">42</span>);
+<span class="code-class">Color</span> zebraColor = <span class="code-keyword">new</span> <span class="code-class">Color</span>(<span class="code-number">248</span>, <span class="code-number">250</span>, <span class="code-number">252</span>);
+
+<span class="code-comment">// Structure du Banner Header dans le PDF</span>
+<span class="code-class">PdfPTable</span> headerBanner = <span class="code-keyword">new</span> <span class="code-class">PdfPTable</span>(<span class="code-number">1</span>);
+<span class="code-class">PdfPCell</span> bannerCell = <span class="code-keyword">new</span> <span class="code-class">PdfPCell</span>();
+bannerCell.setBackgroundColor(headerBgColor);
+bannerCell.setPadding(<span class="code-number">16</span>);
+bannerCell.setBorder(<span class="code-class">PdfPCell</span>.NO_BORDER);</code></pre>
+
+          <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-bright); margin: 32px 0 16px 0;">Points d'Entrée de l'API</h3>
+          <div class="endpoint-item">
+            <div class="endpoint-header">
+              <span class="endpoint-method method-post">POST</span>
+              <span class="endpoint-path">/api/incidents/{code}/attachments</span>
+              <span class="endpoint-desc">Verser un fichier sur le disque</span>
+            </div>
+          </div>
+          <div class="endpoint-item">
+            <div class="endpoint-header">
+              <span class="endpoint-method method-put">PUT</span>
+              <span class="endpoint-path">/api/incidents/attachments/{id}/rename</span>
+              <span class="endpoint-desc">Renommer une pièce jointe</span>
+            </div>
+          </div>
+          <div class="endpoint-item">
+            <div class="endpoint-header">
+              <span class="endpoint-method method-delete">DELETE</span>
+              <span class="endpoint-path">/api/incidents/attachments/{id}</span>
+              <span class="endpoint-desc">Supprimer le fichier physique et en base</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-trigger').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+  </script>
+</body>
+</html>
