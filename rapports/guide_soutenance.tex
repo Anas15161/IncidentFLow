@@ -1,0 +1,340 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- PACKAGES DE BASE ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\setlength{\headheight}{15pt}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{mdframed}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,shapes.geometric}
+
+% --- CONFIGURATION DES TITRES ---
+\titleformat{\section}{\color{secondary}\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\color{primary}\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\color{darkslate}\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% --- CONFIGURATION GRAPHIQUE & COULEURS ---
+\definecolor{primary}{HTML}{1D4ED8}     % Bleu primaire
+\definecolor{secondary}{HTML}{0A2647}   % Bleu nuit profond
+\definecolor{darkslate}{HTML}{1E293B}   % Slate 800
+\definecolor{lightbg}{HTML}{F8FAFC}     % Slate 50
+\definecolor{bordercolor}{HTML}{E2E8F0} % Slate 200
+\definecolor{accentcolor}{HTML}{059669} % Vert émeraude
+\definecolor{criticalred}{HTML}{DC2626} % Rouge critique
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    filecolor=primary,      
+    urlcolor=primary,
+    pdftitle={IncidentFlow - Guide de Préparation à la Soutenance Technique},
+    pdfpagemode=FullScreen,
+}
+
+% --- SETUP LISTINGS POUR CODE ---
+\lstset{
+    basicstyle=\ttfamily\footnotesize\color{darkslate},
+    backgroundcolor=\color{lightbg},
+    frame=single,
+    rulecolor=\color{bordercolor},
+    breaklines=true,
+    postbreak=\mbox{\textcolor{criticalred}{$\hookrightarrow$}\space},
+    showstringspaces=false,
+    keywordstyle=\color{primary}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{accentcolor},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    tabsize=2
+}
+
+% --- EN-TÊTES ET PIEDS DE PAGE ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{secondary}{\textbf{IncidentFlow}}}
+\rhead{Guide de Préparation à la Soutenance}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- INFORMATIONS DU DOCUMENT ---
+\title{
+    \vspace{1.5cm}
+    \textcolor{secondary}{\textbf{\Huge IncidentFlow}}\\[0.5cm]
+    \textcolor{primary}{\Large Application Moderne et Dynamique de Gestion d'Incidents}\\[1.5cm]
+    \textbf{\Large Guide Master de Préparation Technique à la Soutenance \\ (Questions, Réponses \& Justifications Architecturales)}
+    \vspace{2cm}
+}
+\author{
+    \textbf{Anas HADDOU} \\
+    Élève Ingénieur en Génie Informatique \\[1cm]
+    \textbf{Entreprise :} Netmar \\
+    \textbf{Encadrante :} Sophie MARTIN (Responsable SSI)
+}
+\date{\today}
+
+\begin{document}
+
+% Page de garde
+\maketitle
+\thispagestyle{empty}
+\clearpage
+
+% Table des matières
+\tableofcontents
+\clearpage
+
+% ==================================================
+% SECTION 1 : FICHE SYNTHÉTIQUE ET FICHE DE SYNTHÈSE
+% ==================================================
+\section{Fiche Synthétique et Présentation Globale}
+
+\subsection{Présentation du Projet}
+\textbf{IncidentFlow} est une solution logicielle d'entreprise de nouvelle génération dédiée à la gestion, la déclaration, l'escalade et le suivi des incidents informatiques (ITSM / ITIL). Conçue au sein de l'entreprise \textbf{Netmar}, l'application résout la problématique majeure des outils du marché : la rigidité des cycles de vie d'incidents intégrés en dur dans le code source backend.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Caractéristique} & \textbf{Détail Technique / Fonctionnel} \\
+\midrule
+\textbf{Intitulé du Projet} & IncidentFlow — Plateforme d'ITSM adaptatif \\
+\textbf{Auteur} & Anas HADDOU (Élève Ingénieur Génie Informatique) \\
+\textbf{Entreprise d'Accueil} & Netmar \\
+\textbf{Encadrante Référente} & Sophie MARTIN (Responsable SSI) \\
+\textbf{Frontend} & React 19, Vite, ReactFlow, Lucide Icons, Vanilla CSS \\
+\textbf{Backend} & Spring Boot 3, Java 17 (LTS), Spring Security, Spring Data JPA \\
+\textbf{Bases de données} & PostgreSQL 15 (Persistance relationnelle), Redis 7 (Cache \& Blacklist) \\
+\textbf{Sécurité IAM} & Keycloak (OIDC / OAuth 2.0) + Mode Hybride \texttt{dev-mock} \\
+\textbf{Conteneurisation} & Docker, Docker Compose, Multi-stage builds \\
+\bottomrule
+\end{tabular}
+\caption{Fiche technique du projet IncidentFlow}
+\end{table}
+
+\subsection{Objectifs Métiers et Techniques}
+\begin{itemize}
+    \item \textbf{Agilité Opérationnelle :} Donner aux administrateurs la possibilité de modifier graphiquement les règles de transition et d'états d'un incident sans recompilation ni interruption de service (Zero-Downtime).
+    \item \textbf{Conformité SLA :} Assurer le respect des contrats d'engagement de service grâce à un planificateur d'escalade automatique en arrière-plan.
+    \item \textbf{Sécurité et Traçabilité :} Garantir un contrôle d'accès basé sur les rôles (RBAC), la traçabilité intégrale de chaque modification (Audit Trail) et la révocation instantanée de session.
+\end{itemize}
+
+\clearpage
+
+% ==================================================
+% SECTION 2 : ARCHITECTURE TECHNIQUE & JUSTIFICATIONS
+% ==================================================
+\section{Architecture Technique et Justification des Choix}
+
+\subsection{Architecture Globale N-Tiers}
+L'architecture d'IncidentFlow est structurée en couches étanches :
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=1.5cm, auto, >=latex']
+    % Styles
+    \tikzstyle{block} = [draw, fill=lightbg, rectangle, minimum height=1cm, minimum width=3.5cm, rounded corners, align=center, draw=primary, thick]
+    \tikzstyle{db} = [draw, fill=lightbg, cylinder, cylinder uses custom fill, cylinder fill=accentcolor!10, minimum height=1cm, minimum width=2.5cm, align=center, draw=accentcolor, thick]
+    
+    % Nodes
+    \node [block] (client) {\textbf{Client Web React 19}\\\small Vite + ReactFlow};
+    \node [block, right=2cm of client] (backend) {\textbf{API Spring Boot 3}\\\small Java 17 + Spring Security};
+    \node [db, below=1.5cm of backend] (postgres) {\textbf{PostgreSQL 15}\\\small Stockage Relationnel};
+    \node [db, right=1.5cm of postgres] (redis) {\textbf{Redis 7}\\\small Cache \& Blacklist};
+    \node [block, above=1.5cm of backend] (keycloak) {\textbf{Keycloak IAM}\\\small OpenID Connect / OAuth2};
+
+    % Paths
+    \draw[->, thick, primary] (client) -- node[above] {\small REST / JWT} (backend);
+    \draw[->, thick, primary] (backend) -- node[right] {\small JPA / SQL} (postgres);
+    \draw[->, thick, primary] (backend) -- node[above] {\small RedisTemplate} (redis);
+    \draw[<->, thick, primary] (backend) -- node[left] {\small OIDC Validation} (keycloak);
+\end{tikzpicture}
+\caption{Schéma de l'architecture distribuée IncidentFlow}
+\end{figure}
+
+\subsection{Justification des Choix Technologiques}
+
+\subsubsection{Frontend : React 19, Vite et ReactFlow}
+\begin{itemize}
+    \item \textbf{React 19 \& Vite :} Vite offre un démarrage immédiat en environnement de développement grâce aux modules ES natifs du navigateur, ainsi qu'un temps de compilation extrêmement court en comparaison avec les bundlers traditionnels.
+    \item \textbf{ReactFlow :} Bibliothèque spécialisée pour le rendu dynamique de graphes interactifs. Elle permet d'afficher et d'éditer les workflows sous forme de nœuds et d'interconnexions personnalisables par glisser-déposer.
+\end{itemize}
+
+\subsubsection{Backend : Spring Boot 3 et Java 17}
+\begin{itemize}
+    \item \textbf{Java 17 (LTS) :} Version à support long terme offrant des gains d'exécution importants, des structures immutables (*Records*) et un garbage collector optimisé (G1/ZGC).
+    \item \textbf{Spring Boot 3 :} Écosystème standard de l'industrie pour les applications critiques d'entreprise, offrant une gestion déclarative des transactions (\texttt{@Transactional}), l'injection de dépendances et la sécurisation native via Spring Security 6.
+\end{itemize}
+
+\subsubsection{Bases de Données et Caching : PostgreSQL et Redis}
+\begin{itemize}
+    \item \textbf{PostgreSQL 15 :} Base relationnelle garantie ACID. Indispensable pour préserver les contraintes d'intégrité référentielle entre les incidents, les utilisateurs et les transitions de workflow.
+    \item \textbf{Redis 7 :} Stockage en mémoire utilisé d'une part pour le cache distribué (\texttt{@Cacheable}) des structures de workflow, et d'autre part pour la révocation instantanée de session.
+\end{itemize}
+
+\clearpage
+
+% ==================================================
+% SECTION 3 : DÉTAILS DES ALGORITHMES ET CODE COMPOSANTS
+% ==================================================
+\section{Détail des Algorithmes Majeurs et du Code Source}
+
+\subsection{Algorithme de Validation de Graphe DFS (Depth-First Search)}
+Afin d'empêcher la publication d'un workflow incohérent (contenant des états inaccessibles ou des pièges sans sortie), la méthode \texttt{validateWorkflowGraph()} du service \texttt{WorkflowService} applique un algorithme fondé sur un double parcours en profondeur (DFS) :
+
+\begin{lstlisting}[language=Java, caption={Algorithme de validation graphique par parcours DFS}]
+public void validateWorkflowGraph(Workflow workflow) {
+    if (workflow.getStates() == null || workflow.getStates().isEmpty()) {
+        throw new IllegalArgumentException("Le workflow doit contenir au moins un etat.");
+    }
+
+    // 1. Validation de la presence des etats obligatoires
+    boolean hasNouveau = workflow.getStates().stream().anyMatch(s -> s.getName().equalsIgnoreCase("Nouveau"));
+    boolean hasCloture = workflow.getStates().stream().anyMatch(s -> s.getName().equalsIgnoreCase("Cloture"));
+
+    if (!hasNouveau) throw new IllegalArgumentException("L'etat initial 'Nouveau' est obligatoire.");
+    if (!hasCloture) throw new IllegalArgumentException("L'etat final 'Cloture' est obligatoire.");
+
+    // 2. Construction des listes d'adjacence directe et inverse
+    Map<String, List<String>> adj = new HashMap<>();
+    Map<String, List<String>> revAdj = new HashMap<>();
+
+    for (String state : stateNames) {
+        adj.put(state, new ArrayList<>());
+        revAdj.put(state, new ArrayList<>());
+    }
+
+    for (WorkflowTransition t : workflow.getTransitions()) {
+        String from = t.getFromState().trim().toLowerCase();
+        String to = t.getToState().trim().toLowerCase();
+        if (adj.containsKey(from) && adj.containsKey(to)) {
+            adj.get(from).add(to);
+            revAdj.get(to).add(from); // Graphe inverse
+        }
+    }
+
+    // 3. Detection des etats orphelins (Forward DFS depuis 'Nouveau')
+    Set<String> visitedFromStart = new HashSet<>();
+    dfs("nouveau", adj, visitedFromStart);
+    List<String> orphans = stateNames.stream().filter(name -> !visitedFromStart.contains(name)).toList();
+    if (!orphans.isEmpty()) {
+        throw new IllegalArgumentException("Etats orphelins detectes : " + String.join(", ", orphans));
+    }
+
+    // 4. Detection des impasses (Reverse DFS depuis 'Cloture')
+    Set<String> visitedFromEnd = new HashSet<>();
+    dfs("cloture", revAdj, visitedFromEnd);
+    List<String> deadlocks = stateNames.stream().filter(name -> !visitedFromEnd.contains(name)).toList();
+    if (!deadlocks.isEmpty()) {
+        throw new IllegalArgumentException("Impasses detectees : " + String.join(", ", deadlocks));
+    }
+}
+\end{lstlisting}
+
+\subsection{Moteur d'Escalade Automatique des SLA}
+Le service \texttt{EscalationService} exécute un job en arrière-plan annoté avec \texttt{@Scheduled(fixedRate = 15000)}. Il scrute les incidents actifs dont la date d'échéance \texttt{slaDueAt} est dépassée ou critique, augmente leur priorité à \texttt{Critical}, les réassigne automatiquement aux responsables et consigne l'événement dans le journal d'audit.
+
+\subsection{Révocation Instantanée de Session via Redis Blacklist}
+Pour surmonter le problème de la validité persistante des jetons JWT après le bannissement d'un utilisateur, un filtre personnalisé \texttt{SessionValidationFilter} intercepte chaque requête HTTP. Il vérifie l'existence de la clé \texttt{blacklist:user:\{email\}} dans Redis en $O(1)$ et renvoie immédiatement un statut \texttt{403 Forbidden} si la session a été révoquée par l'administrateur.
+
+\clearpage
+
+% ==================================================
+% SECTION 4 : BANQUE DE QUESTIONS ET RÉPONSES (Q&A)
+% ==================================================
+\section{Banque de Questions et Réponses pour la Soutenance}
+
+Cette section rassemble les questions techniques les plus probables posées par l'encadrante **Sophie MARTIN** ou le jury, assorties des réponses stratégiques recommandées.
+
+\subsection{Questions d'Architecture et Conception}
+
+\begin{mdframed}[backgroundcolor=lightbg, linecolor=primary, linewidth=1pt]
+\textbf{Q1 : Pourquoi ne pas avoir retenu une solution BPMN éprouvée du marché comme Camunda ou Activiti ?}
+\end{mdframed}
+\textbf{Réponse :} Camunda est une suite BPMN 2.0 complète mais très lourde à déployer et nécessitant des compétences poussées. Pour les besoins de Netmar, nous recherchions une solution d'ITSM agile, directement intégrée à l'UI React via ReactFlow, sans ajouter une dépendance d'infrastructure volumineuse ni imposer une courbe d'apprentissage complexe aux équipes métiers.
+
+\begin{mdframed}[backgroundcolor=lightbg, linecolor=primary, linewidth=1pt]
+\textbf{Q2 : Comment le système gère-t-il la modification d'un workflow alors que des incidents y sont rattachés ?}
+\end{mdframed}
+\textbf{Réponse :} Nous appliquons un schéma de \textbf{versionnage immuable}. Lorsqu'un workflow lié à des incidents existants est modifié, sa version actuelle passe à \texttt{active = false} et conserve son intégrité. Une nouvelle version (v2, v3, etc.) est instanciée pour recevoir les futurs incidents. Ainsi, l'historique et la traçabilité des anciens incidents ne sont jamais corrompus.
+
+\subsection{Questions de Sécurité et Système (SSI)}
+
+\begin{mdframed}[backgroundcolor=lightbg, linecolor=primary, linewidth=1pt]
+\textbf{Q3 : Comment assurez-vous la révocation immédiate d'un jeton JWT en cas de compromission d'un compte ?}
+\end{mdframed}
+\textbf{Réponse :} Les jetons JWT étant autonomes et sans état, nous les couplons avec une liste noire stockée dans **Redis**. Notre filtre Spring Security (\texttt{SessionValidationFilter}) contrôle chaque requête en interrogeant la clé \texttt{blacklist:user:\{email\}}. Si l'utilisateur est révoqué dans Keycloak ou banni par le responsable sécurité, le filtre retourne instantanément un statut \texttt{403 Forbidden}.
+
+\begin{mdframed}[backgroundcolor=lightbg, linecolor=primary, linewidth=1pt]
+\textbf{Q4 : Quelle est votre protection contre les failles courantes comme les injections SQL ou XSS ?}
+\end{mdframed}
+\textbf{Réponse :}
+\begin{itemize}
+    \item \textbf{SQL Injection :} Nous utilisons Spring Data JPA et Hibernate, qui exécutent des requêtes préparées avec paramètres typés, éliminant tout risque d'injection SQL.
+    \item \textbf{XSS :} React échappe par défaut le contenu rendu dans le DOM. Les commentaires formatés en Markdown sont également assainis côté client avant affichage.
+\end{itemize}
+
+\subsection{Questions de Performance et Scalabilité}
+
+\begin{mdframed}[backgroundcolor=lightbg, linecolor=primary, linewidth=1pt]
+\textbf{Q5 : Le planificateur d'escalade SLA qui s'exécute toutes les 15 secondes n'impacte-t-il pas la base de données ?}
+\end{mdframed}
+\textbf{Réponse :} Non, car la requête cible uniquement les incidents actifs (\texttt{status NOT IN ('Résolu', 'Clôturé')}) et s'appuie sur des index SQL posés sur les colonnes \texttt{status} et \texttt{sla\_due\_at}. Le volume scruté reste donc très faible et l'exécution s'effectue en quelques millisecondes.
+
+\clearpage
+
+% ==================================================
+% SECTION 5 : SCÉNARIO DE DÉMONSTRATION EN DIRECT
+% ==================================================
+\section{Scénario de Démonstration en Direct (Live Demo)}
+
+Pour présenter efficacement la solution en 10 minutes lors de la réunion :
+
+\begin{enumerate}[label=\textbf{Étape \arabic* :}]
+    \item \textbf{Authentification Opérateur (2 min) :}
+    Connectez-vous avec le compte \texttt{marie.l@netmar.com}. Déclarez un nouvel incident de catégorie \textit{Informatique} intitulé \textit{"Panne du serveur de base de données"}. Montrez la génération automatique du code \texttt{INC-2026-xxx} et de la date limite SLA.
+    
+    \item \textbf{Édition Graphique de Workflow (3 min) :}
+    Déconnectez-vous et connectez-vous avec le compte Administrateur \texttt{anas@netmar.com}. Accédez au concepteur ReactFlow. Ajoutez un état intermédiaire (ex: \textit{Expertise Niveau 3}) et reliez les transitions. Sauvegardez et montrez la notification du validateur DFS confirmant l'absence d'impasses.
+    
+    \item \textbf{Démonstration de l'Escalade SLA (3 min) :}
+    Ouvrez la console backend Spring Boot pour montrer les messages du planificateur \texttt{[PLANIFICATEUR]}. Montrez le basculement automatique d'un incident en priorité \texttt{Critical} avec réassignation au responsable et ajout du commentaire d'alerte automatique.
+    
+    \item \textbf{Audit Trail et Traçabilité (2 min) :}
+    Ouvrez la vue détaillée de l'incident et parcourez l'historique complet pour démontrer que chaque changement d'état et d'assignation est consigné avec précision.
+\end{enumerate}
+
+\clearpage
+
+% ==================================================
+% SECTION 6 : PERSPECTIVES D'ÉVOLUTION ET IA
+% ==================================================
+\section{Perspectives d'Évolution et Intégration d'IA}
+
+Comme développé dans notre rapport spécifique d'intégration de l'Intelligence Artificielle, les évolutions futures d'IncidentFlow prévoient :
+
+\begin{enumerate}
+    \item \textbf{Classification et Tri Automatique par LLM :} Analyse du texte explicatif lors de la saisie d'un incident afin de suggérer automatiquement la catégorie appropriée et le workflow correspondant.
+    \item \textbf{Estimation Automatique de la Sévérité :} Utilisation de modèles NLP pour évaluer la gravité réelle à partir des mots-clés d'urgence et du contexte utilisateur.
+    \item \textbf{Assistant de Résolution RAG (Retrieval-Augmented Generation) :} Interrogation de la base vectorielle des incidents passés résolus pour proposer immédiatement des pistes de résolution aux techniciens du support.
+\end{enumerate}
+
+\vspace{1.5cm}
+\begin{center}
+    \textcolor{secondary}{\rule{0.6\textwidth}{1pt}}\\[0.5cm]
+    \textcolor{primary}{\textbf{Document rédigé pour la préparation de soutenance de l'application IncidentFlow.}}
+\end{center}
+
+\end{document}
