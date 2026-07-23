@@ -54,10 +54,10 @@ public class DataInitializer implements CommandLineRunner {
 
         // 1. Initialiser les roles
         if (roleRepository.count() == 0) {
-            roleRepository.save(Role.builder().name("Administrateur").build());
-            roleRepository.save(Role.builder().name("Responsable").build());
-            roleRepository.save(Role.builder().name("Opérateur").build());
-            roleRepository.save(Role.builder().name("Opérateur médical").build());
+            roleRepository.save(Role.builder().name("Administrateur").description("Accès total au système, gestion des utilisateurs, des rôles et configuration globale.").build());
+            roleRepository.save(Role.builder().name("Responsable").description("Supervision des équipes, validation des workflows et suivi des métriques.").build());
+            roleRepository.save(Role.builder().name("Opérateur").description("Traitement des incidents réseau/système, mise à jour des statuts et escalade.").build());
+            roleRepository.save(Role.builder().name("Opérateur médical").description("Prise en charge spécialisée des incidents et urgences médicales.").build());
         }
 
         Role adminRole = roleRepository.findByName("Administrateur").orElseThrow();

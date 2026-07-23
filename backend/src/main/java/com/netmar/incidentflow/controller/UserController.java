@@ -33,6 +33,22 @@ public class UserController {
         return userService.getAllRoles();
     }
 
+    @PostMapping("/roles")
+    public Role createRole(@RequestBody Role role) {
+        return userService.saveRole(role);
+    }
+
+    @PutMapping("/roles/{id}")
+    public Role updateRole(@PathVariable Long id, @RequestBody Role roleDetails) {
+        return userService.updateRole(id, roleDetails);
+    }
+
+    @DeleteMapping("/roles/{id}")
+    public ResponseEntity<Void> deleteRole(@PathVariable Long id) {
+        userService.deleteRole(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/users")
     public User createUser(@RequestBody User user) {
         return userService.saveUser(user);

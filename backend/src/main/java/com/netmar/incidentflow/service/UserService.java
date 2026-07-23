@@ -36,6 +36,47 @@ public class UserService {
         return roleRepository.findAll();
     }
 
+    public Role saveRole(Role role) {
+        if (role.getName() == null || role.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Le nom du rôle ne peut pas être vide.");
+        }
+        if (roleRepository.findByName(role.getName().trim()).isPresent()) {
+            throw new IllegalArgumentException("Un rôle avec ce nom existe déjà : " + role.getName());
+        }
+        role.setName(role.getName().trim());
+        return roleRepository.save(role);
+    }
+
+    public Role updateRole(Long id, Role details) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Rôle non trouvé avec l'ID : " + id));
+        if (details.getName() != null && !details.getName().trim().isEmpty()) {
+            String newName = details.getName().trim();
+            roleRepository.findByName(newName).ifPresent(existing -> {
+                if (!existing.getId().equals(id)) {
+                    throw new IllegalArgumentException("Un autre rôle porte déjà ce nom : " + newName);
+                }
+            });
+            role.setName(newName);
+        }
+        if (details.getDescription() != null) {
+            role.setDescription(details.getDescription().trim());
+        }
+        return roleRepository.save(role);
+    }
+
+    public void deleteRole(Long id) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Rôle non trouvé avec l'ID : " + id));
+        
+        long userCount = userRepository.countByRole(role);
+        if (userCount > 0) {
+            throw new IllegalStateException("Impossible de supprimer le rôle '" + role.getName() + "' car " + userCount + " utilisateur(s) y sont assigné(s).");
+        }
+        
+        roleRepository.delete(role);
+    }
+
     public User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt) {

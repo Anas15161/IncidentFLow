@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react';
-import { 
-  Shield, Activity, FileText, AlertTriangle, CheckCircle, Clock, 
-  Search, User, Plus, X, Bell, Paperclip, Download, Send, 
+import {
+  Shield, Activity, FileText, AlertTriangle, CheckCircle, Clock,
+  Search, User, Plus, X, Bell, Paperclip, Download, Send,
   Globe, Cpu, Stethoscope, ArrowLeft, Eye, EyeOff, RefreshCw, Layers,
   Lock, LogOut, Users, Trash2, Edit3, Settings, AlertCircle,
   ChevronDown, HelpCircle, MessageSquare, PlusCircle, UserPlus, FileUp
 } from 'lucide-react';
-import ReactFlow, { 
-  MiniMap, 
-  Controls, 
-  Background, 
-  useNodesState, 
-  useEdgesState, 
+import ReactFlow, {
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
   MarkerType
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -31,7 +31,7 @@ const getInitialNodes = (states) => {
   return states.map((state, index) => {
     const isNouveau = state.name.toLowerCase() === 'nouveau';
     const isCloture = state.name.toLowerCase() === 'clôturé' || state.name.toLowerCase() === 'cloture';
-    
+
     let nodeType = 'default';
     if (isNouveau) nodeType = 'input';
     else if (isCloture) nodeType = 'output';
@@ -53,7 +53,7 @@ const getInitialNodes = (states) => {
       x = 220 + (idx * 160);
       y = 60 + (idx % 2 * 160);
     }
-    
+
     return {
       id: state.name,
       type: nodeType,
@@ -182,7 +182,7 @@ function App() {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [editingCommentTab, setEditingCommentTab] = useState('write');
-  
+
   // Dropdowns & UI toggles
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([
@@ -190,7 +190,7 @@ function App() {
     { id: 2, text: "Sophie Martin a mis à jour l'incident INC-2026-002.", time: "Il y a 15 min" },
     { id: 3, text: "Base de données initialisée avec succès.", time: "Il y a 1 h" }
   ]);
-  
+
   // Data States
   const [incidents, setIncidents] = useState([]);
   const [usersList, setUsersList] = useState([]);
@@ -199,7 +199,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
+
   // Incident Filtering & Pagination
   const [statusFilter, setStatusFilter] = useState('Tous');
   const [categoryFilter, setCategoryFilter] = useState('Tous');
@@ -209,11 +209,11 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const incidentsPerPage = itemsPerPage;
   const [hoveredTrendIndex, setHoveredTrendIndex] = useState(null);
-  
+
   // User Filtering & Search
   const [searchUserQuery, setSearchUserQuery] = useState('');
   const [roleUserFilter, setRoleUserFilter] = useState('Tous');
-  
+
   // Modals & Forms for Incidents
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newIncident, setNewIncident] = useState({
@@ -233,7 +233,7 @@ function App() {
     priority: 'Medium',
     assignedToId: ''
   });
-  
+
   const [newComment, setNewComment] = useState('');
   const [showTransitionModal, setShowTransitionModal] = useState(false);
   const [targetTransition, setTargetTransition] = useState(null);
@@ -253,6 +253,13 @@ function App() {
     roleId: '3', // Opérateur default
     active: true
   });
+
+  // Modals & Forms for Roles
+  const [showRoleCreateModal, setShowRoleCreateModal] = useState(false);
+  const [showRoleEditModal, setShowRoleEditModal] = useState(false);
+  const [newRoleForm, setNewRoleForm] = useState({ name: '', description: '' });
+  const [editRoleForm, setEditRoleForm] = useState({ id: null, name: '', description: '' });
+  const [searchRoleQuery, setSearchRoleQuery] = useState('');
 
   // Workflow Editor parameters
   const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
@@ -300,7 +307,7 @@ function App() {
   const onConnect = (params) => {
     const { source, target } = params;
     if (source === target) return;
-    
+
     // Check if transition already exists
     const exists = activeWorkflow.transitions.some(
       t => t.fromState.toLowerCase() === source.toLowerCase() && t.toState.toLowerCase() === target.toLowerCase()
@@ -348,7 +355,7 @@ function App() {
   // Session timer auto-logout (US-AUTH-001)
   useEffect(() => {
     if (!isAuthenticated) return;
-    
+
     const interval = setInterval(() => {
       setSessionTimeLeft(prev => {
         if (prev <= 1) {
@@ -448,21 +455,21 @@ function App() {
 
     if (query.startsWith('>')) {
       const subQuery = query.substring(1).trim();
-      const filteredCmds = commands.filter(c => 
+      const filteredCmds = commands.filter(c =>
         c.shortcut.toLowerCase().includes(subQuery) || c.label.toLowerCase().includes(subQuery)
       );
       items.push(...filteredCmds);
     } else {
       // Show commands that match the search query
-      const filteredCmds = commands.filter(c => 
+      const filteredCmds = commands.filter(c =>
         c.label.toLowerCase().includes(query) || c.shortcut.toLowerCase().includes(query)
       );
       items.push(...filteredCmds);
 
       // Show incidents that match the search query (code or title)
       if (query.length > 0) {
-        const filteredIncidents = incidents.filter(inc => 
-          inc.incidentCode.toLowerCase().includes(query) || 
+        const filteredIncidents = incidents.filter(inc =>
+          inc.incidentCode.toLowerCase().includes(query) ||
           inc.title.toLowerCase().includes(query)
         ).slice(0, 5).map(inc => ({
           id: `inc-${inc.incidentCode}`,
@@ -481,7 +488,7 @@ function App() {
   // Helper to categorize timeline logs and return icons/colors
   const getTimelineItemDetails = (action) => {
     const act = action.toLowerCase();
-    
+
     // Status Change
     if (act.includes('statut') || act.includes('passé à') || act.includes('transition')) {
       return {
@@ -492,7 +499,7 @@ function App() {
         title: 'Changement de Statut'
       };
     }
-    
+
     // Assignee
     if (act.includes('assigné') || act.includes('responsable') || act.includes('affecté')) {
       return {
@@ -503,7 +510,7 @@ function App() {
         title: 'Affectation'
       };
     }
-    
+
     // Attachment upload
     if (act.includes('pièce jointe ajoutée') || act.includes('fichier téléversé') || act.includes('attachment added') || act.includes('pièce jointe téléversée')) {
       return {
@@ -535,7 +542,7 @@ function App() {
         title: 'Renommage de Fichier'
       };
     }
-    
+
     // Comment
     if (act.includes('commentaire')) {
       return {
@@ -557,7 +564,7 @@ function App() {
         title: 'Incident Déclaré'
       };
     }
-    
+
     // Default
     return {
       icon: <Clock size={14} />,
@@ -593,12 +600,12 @@ function App() {
         setShowCommandPalette(false);
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setCommandPaletteSelectedIndex(prev => 
+        setCommandPaletteSelectedIndex(prev =>
           prev < items.length - 1 ? prev + 1 : 0
         );
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setCommandPaletteSelectedIndex(prev => 
+        setCommandPaletteSelectedIndex(prev =>
           prev > 0 ? prev - 1 : items.length - 1
         );
       } else if (e.key === 'Enter') {
@@ -671,7 +678,7 @@ function App() {
       setCurrentUser(savedUser);
       localStorage.setItem('user', JSON.stringify(savedUser));
       setShowEditProfileModal(false);
-      
+
       // Refresh the users list to show the changes in the grid too
       fetchUsers();
 
@@ -732,7 +739,7 @@ function App() {
       if (categoryFilter !== 'Tous') url += `category=${encodeURIComponent(categoryFilter)}&`;
       if (priorityFilter !== 'Tous') url += `priority=${encodeURIComponent(priorityFilter)}&`;
       if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
-      
+
       const res = await fetch(url, { headers: getHeaders() });
       if (!res.ok) throw new Error("Erreur de chargement des incidents.");
       const data = await res.json();
@@ -771,7 +778,7 @@ function App() {
         const data = await res.json();
         setUsersList(data);
       }
-      
+
       const rolesRes = await fetch(`${API_BASE}/roles`, { headers: getHeaders() });
       if (rolesRes.ok) {
         const rolesData = await rolesRes.json();
@@ -873,7 +880,7 @@ function App() {
     e.preventDefault();
     setErrorMessage('');
     const selectedRole = rolesList.find(r => r.id === parseInt(newUserForm.roleId));
-    
+
     const payload = {
       firstName: newUserForm.firstName,
       lastName: newUserForm.lastName,
@@ -910,7 +917,7 @@ function App() {
       });
       setShowUserCreateModal(false);
       fetchUsers();
-      
+
       // Update notifications list
       setNotifications(prev => [
         { id: Date.now(), text: `Nouvel utilisateur créé : ${payload.name}`, time: "À l'instant" },
@@ -981,40 +988,125 @@ function App() {
     }
   };
 
+  // Create Role
+  const handleRoleCreate = async (e) => {
+    e.preventDefault();
+    if (!newRoleForm.name.trim()) return;
+    setErrorMessage('');
+    try {
+      const res = await fetch(`${API_BASE}/roles`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          name: newRoleForm.name.trim(),
+          description: newRoleForm.description.trim()
+        })
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || "Erreur lors de la création du rôle.");
+      }
+
+      const createdRole = await res.json();
+      setRolesList(prev => [...prev, createdRole]);
+      setShowRoleCreateModal(false);
+      setNewRoleForm({ name: '', description: '' });
+      setSuccessMessage(`Rôle "${createdRole.name}" créé avec succès !`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
+  // Update Role
+  const handleRoleUpdate = async (e) => {
+    e.preventDefault();
+    if (!editRoleForm.id || !editRoleForm.name.trim()) return;
+    setErrorMessage('');
+    try {
+      const res = await fetch(`${API_BASE}/roles/${editRoleForm.id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          name: editRoleForm.name.trim(),
+          description: editRoleForm.description.trim()
+        })
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || "Erreur lors de la mise à jour du rôle.");
+      }
+
+      const updatedRole = await res.json();
+      setRolesList(prev => prev.map(r => r.id === updatedRole.id ? updatedRole : r));
+      setShowRoleEditModal(false);
+      setEditRoleForm({ id: null, name: '', description: '' });
+      setSuccessMessage(`Rôle "${updatedRole.name}" mis à jour !`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
+  // Delete Role
+  const handleRoleDelete = async (roleId, roleName) => {
+    if (!window.confirm(`Voulez-vous vraiment supprimer le rôle "${roleName}" ?`)) return;
+    setErrorMessage('');
+    try {
+      const res = await fetch(`${API_BASE}/roles/${roleId}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || "Impossible de supprimer le rôle.");
+      }
+
+      setRolesList(prev => prev.filter(r => r.id !== roleId));
+      setSuccessMessage(`Rôle "${roleName}" supprimé.`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
   // Create new incident (US-INC-001)
   const handleCreateIncidentSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
-    
+
     const payload = {
       title: newIncident.title,
       description: newIncident.description,
       category: newIncident.category,
       priority: newIncident.priority
     };
-    
+
     if (newIncident.assignedToId) {
       payload.assignedTo = { id: parseInt(newIncident.assignedToId) };
     }
-    
+
     try {
       const res = await fetch(`${API_BASE}/incidents`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify(payload)
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Erreur de création de l'incident.");
       }
-      
+
       const createdInc = await res.json();
 
       if (newIncidentFile) {
         const formData = new FormData();
         formData.append('file', newIncidentFile);
-        
+
         const uploadRes = await fetch(`${API_BASE}/incidents/${createdInc.incidentCode}/attachments`, {
           method: 'POST',
           headers: {
@@ -1027,7 +1119,7 @@ function App() {
           console.error("Le téléversement de la pièce jointe a échoué.");
         }
       }
-      
+
       setNewIncident({
         title: '',
         description: '',
@@ -1063,7 +1155,7 @@ function App() {
   const handleEditIncidentSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
-    
+
     const selectedAssignee = usersList.find(u => u.id.toString() === editIncidentForm.assignedToId);
     const payload = {
       title: editIncidentForm.title,
@@ -1142,7 +1234,7 @@ function App() {
 
     const updatedStates = [...activeWorkflow.states, stateObj];
     const updatedWf = { ...activeWorkflow, states: updatedStates };
-    
+
     // Update local state copy
     setActiveWorkflow(updatedWf);
     setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
@@ -1271,7 +1363,7 @@ function App() {
       if (!res.ok) throw new Error("Impossible de charger le détail de l'incident.");
       const data = await res.json();
       setSelectedIncident(data);
-      
+
       const wfRes = await fetch(`${API_BASE}/workflows/category/${encodeURIComponent(data.category)}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -1296,7 +1388,7 @@ function App() {
   const handleTransitionClick = (transition) => {
     setTargetTransition(transition);
     setTransitionComment('');
-    
+
     if (transition.requiresComment) {
       setShowTransitionModal(true);
     } else {
@@ -1312,19 +1404,19 @@ function App() {
         headers: getHeaders(),
         body: JSON.stringify({ toState, comment })
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "La transition a échoué.");
       }
-      
+
       setShowTransitionModal(false);
       setTargetTransition(null);
       setTransitionComment('');
-      
+
       loadIncidentDetail(selectedIncident.incidentCode);
       fetchIncidents();
-      
+
       setNotifications(prev => [
         { id: Date.now(), text: `Incident ${selectedIncident.incidentCode} passé à l'état ${toState}`, time: "À l'instant" },
         ...prev
@@ -1340,16 +1432,16 @@ function App() {
     e.preventDefault();
     if (!newComment.trim()) return;
     setErrorMessage('');
-    
+
     try {
       const res = await fetch(`${API_BASE}/incidents/${selectedIncident.incidentCode}/comments`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ content: newComment })
       });
-      
+
       if (!res.ok) throw new Error("Impossible d'ajouter le commentaire.");
-      
+
       setNewComment('');
       setCommentTab('write');
       loadIncidentDetail(selectedIncident.incidentCode);
@@ -1362,10 +1454,10 @@ function App() {
   const uploadFile = async (file) => {
     if (!file) return;
     setErrorMessage('');
-    
+
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
       const res = await fetch(`${API_BASE}/incidents/${selectedIncident.incidentCode}/attachments`, {
         method: 'POST',
@@ -1374,12 +1466,12 @@ function App() {
         },
         body: formData
       });
-      
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Le téléversement a échoué.");
       }
-      
+
       loadIncidentDetail(selectedIncident.incidentCode);
     } catch (err) {
       setErrorMessage(err.message);
@@ -1436,7 +1528,7 @@ function App() {
         throw new Error("Erreur lors du renommage");
       }
       const updatedAttachment = await res.json();
-      
+
       setSelectedIncident(prev => {
         if (!prev) return null;
         return {
@@ -1451,7 +1543,7 @@ function App() {
       setEditingAttachmentName("");
       setSuccessMessage("Pièce jointe renommée avec succès !");
       setTimeout(() => setSuccessMessage(""), 3000);
-      
+
       loadIncidentDetail(selectedIncident.incidentCode);
     } catch (err) {
       alert("Erreur: " + err.message);
@@ -1483,7 +1575,7 @@ function App() {
 
       setSuccessMessage("Pièce jointe supprimée avec succès !");
       setTimeout(() => setSuccessMessage(""), 3000);
-      
+
       loadIncidentDetail(selectedIncident.incidentCode);
     } catch (err) {
       alert("Erreur: " + err.message);
@@ -1498,9 +1590,9 @@ function App() {
         method: 'DELETE',
         headers: getHeaders()
       });
-      
+
       if (!res.ok) throw new Error("Impossible de supprimer le commentaire.");
-      
+
       setSelectedIncident(prev => {
         if (!prev) return null;
         return {
@@ -1508,7 +1600,7 @@ function App() {
           comments: prev.comments.filter(c => c.id !== commentId)
         };
       });
-      
+
       fetchIncidents();
       setSuccessMessage("Commentaire supprimé !");
       setTimeout(() => setSuccessMessage(""), 3000);
@@ -1538,12 +1630,12 @@ function App() {
         headers: getHeaders(),
         body: JSON.stringify({ content: editingCommentContent })
       });
-      
+
       if (!res.ok) throw new Error("Impossible de modifier le commentaire.");
-      
+
       setEditingCommentId(null);
       setEditingCommentContent("");
-      
+
       setSuccessMessage("Commentaire modifié !");
       setTimeout(() => setSuccessMessage(""), 3000);
       loadIncidentDetail(selectedIncident.incidentCode);
@@ -1561,7 +1653,7 @@ function App() {
     const end = textarea.selectionEnd;
     const text = textarea.value;
     const selectedText = text.substring(start, end);
-    
+
     let replacement = "";
     switch (type) {
       case 'bold':
@@ -1592,13 +1684,13 @@ function App() {
   // Markdown parser for rich comments formatting
   const parseMarkdown = (text) => {
     if (!text) return "";
-    
+
     // Escape HTML to prevent XSS
     let html = text
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
-    
+
     // Code blocks: ```code```
     html = html.replace(/```([\s\S]+?)```/g, (match, code) => {
       return `<pre style="background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-family: monospace; overflow-x: auto; font-size: 12px; margin: 8px 0; color: #0f172a; line-height: 1.4;"><code>${code.trim()}</code></pre>`;
@@ -1619,7 +1711,7 @@ function App() {
     const lines = html.split('\n');
     let inList = false;
     let listProcessedLines = [];
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const match = line.match(/^(\s*)[-*]\s+(.+)$/);
@@ -1644,7 +1736,7 @@ function App() {
 
     // Paragraphs / line breaks (preserving newlines in text block)
     html = html.replace(/\n/g, '<br />');
-    
+
     // Clean up br inside pre/code blocks
     html = html.replace(/(<pre.*?>[\s\S]*?<\/pre>)/g, (match) => {
       return match.replace(/<br \/>/g, '\n');
@@ -1666,7 +1758,7 @@ function App() {
     const end = textarea.selectionEnd;
     const text = textarea.value;
     const selectedText = text.substring(start, end);
-    
+
     let replacement = "";
     switch (type) {
       case 'bold':
@@ -1761,18 +1853,18 @@ function App() {
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    return date.toLocaleString('fr-FR', { 
-      day: 'numeric', 
-      month: 'short', 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
   // Render SLA Badge helper
   const renderSlaBadge = (inc) => {
     if (!inc.slaDueAt) return null;
-    
+
     if (inc.status === 'Résolu' || inc.status === 'Clôturé') {
       return (
         <span className="badge" style={{ backgroundColor: '#f0fdf4', color: '#166534', borderColor: '#86efac', fontWeight: 'bold' }}>
@@ -1789,9 +1881,9 @@ function App() {
       const secs = Math.floor((overdueMs / 1000) % 60);
       const mins = Math.floor((overdueMs / (1000 * 60)) % 60);
       const hours = Math.floor(overdueMs / (1000 * 60 * 60));
-      
-      const timeStr = hours > 0 
-        ? `${hours}h ${mins}m ${secs}s` 
+
+      const timeStr = hours > 0
+        ? `${hours}h ${mins}m ${secs}s`
         : `${mins}m ${secs}s`;
 
       if (inc.escalated) {
@@ -1846,14 +1938,14 @@ function App() {
   const getDonutSegmentPath = (cx, cy, r, startAngle, endAngle) => {
     const startRad = (startAngle - 90) * Math.PI / 180.0;
     const endRad = (endAngle - 90) * Math.PI / 180.0;
-    
+
     const x1 = cx + r * Math.cos(startRad);
     const y1 = cy + r * Math.sin(startRad);
     const x2 = cx + r * Math.cos(endRad);
     const y2 = cy + r * Math.sin(endRad);
-    
+
     const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    
+
     return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
   };
 
@@ -1923,13 +2015,13 @@ function App() {
   const getTrendData = () => {
     const data = [];
     const now = new Date();
-    
+
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
-      
+
       const dateStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
-      
+
       // Incidents created on this day
       const createdCount = incidents.filter(inc => {
         const createdDate = new Date(inc.createdAt);
@@ -1941,18 +2033,18 @@ function App() {
         const updatedDate = new Date(inc.updatedAt || inc.createdAt);
         return (inc.status === 'Résolu' || inc.status === 'Clôturé') && updatedDate.toDateString() === d.toDateString();
       }).length;
-      
+
       // Active incidents on this day
       const activeCount = incidents.filter(inc => {
         const createdDate = new Date(inc.createdAt);
         const isCreatedBeforeOrOn = createdDate <= d || createdDate.toDateString() === d.toDateString();
-        
+
         let isStillActive = true;
         if (inc.status === 'Résolu' || inc.status === 'Clôturé') {
           const resolvedDate = new Date(inc.updatedAt || inc.createdAt);
           isStillActive = resolvedDate > d && resolvedDate.toDateString() !== d.toDateString();
         }
-        
+
         return isCreatedBeforeOrOn && isStillActive;
       }).length;
 
@@ -1964,7 +2056,7 @@ function App() {
         rawDate: d
       });
     }
-    
+
     // Seeding mock realistic baseline points for past days if db is empty
     const hasHistory = data.slice(0, 6).some(item => item.created > 0 || item.resolved > 0 || item.active > 0);
     if (!hasHistory && incidents.length > 0) {
@@ -1986,7 +2078,7 @@ function App() {
       data[6].active = incidents.filter(i => i.status !== 'Résolu' && i.status !== 'Clôturé').length;
       data[6].resolved = incidents.filter(i => i.status === 'Résolu' || i.status === 'Clôturé').length;
     }
-    
+
     return data;
   };
 
@@ -1994,7 +2086,7 @@ function App() {
   const renderRealTimeTrendChart = () => {
     const trendData = getTrendData();
     const maxY = Math.max(...trendData.map(d => Math.max(d.created, d.resolved, d.active)), 4) + 1;
-    
+
     const activeIndex = hoveredTrendIndex !== null ? hoveredTrendIndex : 6;
     const activeData = trendData[activeIndex];
 
@@ -2004,7 +2096,7 @@ function App() {
     const paddingLeft = 40;
     const paddingTop = 20;
     const borderBottom = 165;
-    
+
     const activePoints = trendData.map((d, i) => ({
       x: paddingLeft + i * (pointsWidth / 6),
       y: borderBottom - (d.active / maxY) * pointsHeight
@@ -2031,7 +2123,7 @@ function App() {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const svgX = (x / rect.width) * 500;
-      
+
       let nearestIdx = 0;
       let minDist = 999999;
       for (let i = 0; i < 7; i++) {
@@ -2049,10 +2141,10 @@ function App() {
       <div style={{ display: 'flex', gap: '20px', alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
         {/* SVG Chart area */}
         <div style={{ flexGrow: 2, minWidth: '280px', position: 'relative' }}>
-          <svg 
-            width="100%" 
-            height="180" 
-            viewBox="0 0 500 200" 
+          <svg
+            width="100%"
+            height="180"
+            viewBox="0 0 500 200"
             onMouseMove={handleMouseMove}
             onMouseLeave={() => setHoveredTrendIndex(null)}
             style={{ overflow: 'visible' }}
@@ -2093,31 +2185,31 @@ function App() {
             {/* Vertical guidelines on hover */}
             {hoveredTrendIndex !== null && (
               <g>
-                <line 
-                  x1={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)} 
-                  y1={paddingTop} 
-                  x2={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)} 
-                  y2={borderBottom} 
-                  stroke="#cbd5e1" 
-                  strokeWidth="1.5" 
-                  strokeDasharray="4 4" 
+                <line
+                  x1={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)}
+                  y1={paddingTop}
+                  x2={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)}
+                  y2={borderBottom}
+                  stroke="#cbd5e1"
+                  strokeWidth="1.5"
+                  strokeDasharray="4 4"
                 />
-                <circle 
-                  cx={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)} 
-                  cy={activePoints[hoveredTrendIndex].y} 
-                  r="6" 
-                  fill="#3b82f6" 
-                  stroke="#ffffff" 
-                  strokeWidth="2" 
+                <circle
+                  cx={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)}
+                  cy={activePoints[hoveredTrendIndex].y}
+                  r="6"
+                  fill="#3b82f6"
+                  stroke="#ffffff"
+                  strokeWidth="2"
                   style={{ filter: 'drop-shadow(0 0 4px rgba(59, 130, 246, 0.4))' }}
                 />
-                <circle 
-                  cx={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)} 
-                  cy={resolvedPoints[hoveredTrendIndex].y} 
-                  r="6" 
-                  fill="#10b981" 
-                  stroke="#ffffff" 
-                  strokeWidth="2" 
+                <circle
+                  cx={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)}
+                  cy={resolvedPoints[hoveredTrendIndex].y}
+                  r="6"
+                  fill="#10b981"
+                  stroke="#ffffff"
+                  strokeWidth="2"
                   style={{ filter: 'drop-shadow(0 0 4px rgba(16, 185, 129, 0.4))' }}
                 />
               </g>
@@ -2125,14 +2217,14 @@ function App() {
 
             {/* X-axis labels */}
             {trendData.map((d, i) => (
-              <text 
-                key={i} 
-                x={paddingLeft + i * (pointsWidth / 6)} 
-                y={borderBottom + 18} 
-                textAnchor="middle" 
-                style={{ 
-                  fontSize: '9.5px', 
-                  fill: hoveredTrendIndex === i ? 'var(--text-main)' : 'var(--text-muted)', 
+              <text
+                key={i}
+                x={paddingLeft + i * (pointsWidth / 6)}
+                y={borderBottom + 18}
+                textAnchor="middle"
+                style={{
+                  fontSize: '9.5px',
+                  fill: hoveredTrendIndex === i ? 'var(--text-main)' : 'var(--text-muted)',
                   fontWeight: hoveredTrendIndex === i ? '800' : '600',
                   transition: 'fill 0.2s'
                 }}
@@ -2144,15 +2236,15 @@ function App() {
         </div>
 
         {/* Real-time details card */}
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '12px', 
-          padding: '16px', 
-          backgroundColor: 'var(--card-bg)', 
-          borderRadius: '12px', 
-          border: '1px solid var(--border-color)', 
-          width: '180px', 
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          padding: '16px',
+          backgroundColor: 'var(--card-bg)',
+          borderRadius: '12px',
+          border: '1px solid var(--border-color)',
+          width: '180px',
           flexShrink: 0,
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
         }}>
@@ -2227,6 +2319,14 @@ function App() {
     return matchesSearch && matchesRole;
   });
 
+  // Filtered Roles list
+  const filteredRoles = rolesList.filter(role => {
+    const searchLower = searchRoleQuery.toLowerCase();
+    const nameMatch = role.name && role.name.toLowerCase().includes(searchLower);
+    const descMatch = role.description && role.description.toLowerCase().includes(searchLower);
+    return !searchRoleQuery || nameMatch || descMatch;
+  });
+
   // Authenticate wrapper
   if (!isAuthenticated) {
     return (
@@ -2241,7 +2341,7 @@ function App() {
               </div>
               <h1 style={{ fontSize: '22px', fontWeight: '900', margin: 0, letterSpacing: '-0.5px' }}>IncidentFlow</h1>
             </div>
-            
+
             <h2 className="login-banner-title">
               Gérez vos incidents de support <span className="highlight-itil">ITIL</span> avec <span className="highlight-fluidite">fluidité</span>.
             </h2>
@@ -2295,17 +2395,17 @@ function App() {
             )}
 
             {/* Primary Enterprise SSO Action */}
-            <button 
+            <button
               type="button"
               onClick={() => triggerQuickLogin('anas@netmar.com')}
-              className="btn btn-primary" 
-              style={{ 
-                width: '100%', 
-                justifyContent: 'center', 
-                padding: '12px', 
-                fontWeight: '700', 
-                backgroundColor: '#4f46e5', 
-                borderColor: '#4338ca', 
+              className="btn btn-primary"
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                padding: '12px',
+                fontWeight: '700',
+                backgroundColor: '#4f46e5',
+                borderColor: '#4338ca',
                 boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
@@ -2328,23 +2428,23 @@ function App() {
             <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label style={{ color: '#94a3b8', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>Email ou Identifiant</label>
-                <input 
-                  type="email" 
-                  className="form-control" 
-                  placeholder="Ex: anas@netmar.com" 
+                <input
+                  type="email"
+                  className="form-control"
+                  placeholder="Ex: anas@netmar.com"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   style={{ background: 'rgba(15, 23, 42, 0.45)', color: 'white', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px' }}
-                  required 
+                  required
                 />
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label style={{ color: '#94a3b8', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>Mot de passe</label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input 
-                    type={showLoginPassword ? "text" : "password"} 
-                    className="form-control" 
-                    placeholder="••••••••" 
+                  <input
+                    type={showLoginPassword ? "text" : "password"}
+                    className="form-control"
+                    placeholder="••••••••"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     onKeyUp={(e) => {
@@ -2352,16 +2452,16 @@ function App() {
                         setIsCapsLockOn(e.getModifierState('CapsLock'));
                       }
                     }}
-                    style={{ 
-                      background: 'rgba(15, 23, 42, 0.45)', 
-                      color: 'white', 
-                      borderColor: 'rgba(255,255,255,0.08)', 
-                      borderRadius: '10px', 
+                    style={{
+                      background: 'rgba(15, 23, 42, 0.45)',
+                      color: 'white',
+                      borderColor: 'rgba(255,255,255,0.08)',
+                      borderRadius: '10px',
                       padding: '10px 14px',
                       paddingRight: '40px',
                       width: '100%'
                     }}
-                    required 
+                    required
                   />
                   <button
                     type="button"
@@ -2400,14 +2500,14 @@ function App() {
               </span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 {USERS.map(u => (
-                  <div 
+                  <div
                     key={u.id}
                     onClick={() => triggerQuickLogin(u.email)}
                     className="quick-login-card"
-                    style={{ 
-                      padding: '8px 10px', 
-                      borderRadius: '8px', 
-                      background: 'rgba(255,255,255,0.03)', 
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      background: 'rgba(255,255,255,0.03)',
                       border: '1px solid rgba(255,255,255,0.05)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
@@ -2449,7 +2549,7 @@ function App() {
         </div>
 
         <nav className="sidebar-nav">
-          <button 
+          <button
             className={`nav-btn ${currentView === 'dashboard' && !selectedIncidentCode ? 'active' : ''}`}
             onClick={() => { setCurrentView('dashboard'); setSelectedIncidentCode(null); }}
           >
@@ -2458,8 +2558,8 @@ function App() {
               Dashboard
             </span>
           </button>
-          
-          <button 
+
+          <button
             className={`nav-btn ${currentView === 'incidents' ? 'active' : ''}`}
             onClick={() => { setCurrentView('incidents'); setSelectedIncidentCode(null); }}
           >
@@ -2468,8 +2568,8 @@ function App() {
               Gestion des Incidents
             </span>
           </button>
-          
-          <button 
+
+          <button
             className={`nav-btn ${currentView === 'workflows' ? 'active' : ''}`}
             onClick={() => { setCurrentView('workflows'); setSelectedIncidentCode(null); }}
           >
@@ -2480,15 +2580,27 @@ function App() {
           </button>
 
           {getRoleName(currentUser.role) === 'Administrateur' && (
-            <button 
-              className={`nav-btn ${currentView === 'users' ? 'active' : ''}`}
-              onClick={() => { setCurrentView('users'); setSelectedIncidentCode(null); }}
-            >
-              <span className="nav-label">
-                <Users size={18} />
-                Gestion Utilisateurs
-              </span>
-            </button>
+            <>
+              <button
+                className={`nav-btn ${currentView === 'users' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('users'); setSelectedIncidentCode(null); }}
+              >
+                <span className="nav-label">
+                  <Users size={18} />
+                  Gestion Utilisateurs
+                </span>
+              </button>
+
+              <button
+                className={`nav-btn ${currentView === 'roles' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('roles'); setSelectedIncidentCode(null); }}
+              >
+                <span className="nav-label">
+                  <Shield size={18} />
+                  Gestion des Rôles
+                </span>
+              </button>
+            </>
           )}
         </nav>
 
@@ -2521,9 +2633,9 @@ function App() {
             <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{currentUser.name}</div>
             <div className="role-badge-pill" style={{ marginTop: '2px' }}>{getRoleName(currentUser.role)}</div>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
-            className="icon-btn btn-secondary" 
+            className="icon-btn btn-secondary"
             style={{ width: '28px', height: '28px', color: '#fca5a5', border: 'none' }}
             title="Se déconnecter"
           >
@@ -2539,9 +2651,9 @@ function App() {
           <div className="topbar-left">
             <div className="topbar-search-box">
               <Search size={16} className="text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Rechercher par titre/code..." 
+              <input
+                type="text"
+                placeholder="Rechercher par titre/code..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && fetchIncidents()}
@@ -2561,7 +2673,7 @@ function App() {
                 <Bell size={18} />
                 <span className="bell-badge">{notifications.length}</span>
               </button>
-              
+
               {showNotifications && (
                 <div className="card" style={{ position: 'absolute', right: 0, top: '44px', width: '280px', zIndex: 60, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ fontWeight: '700', fontSize: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
@@ -2578,7 +2690,7 @@ function App() {
 
             {/* User display with Dropdown */}
             <div className="user-profile-dropdown-container">
-              <button 
+              <button
                 className="user-profile-menu"
                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
               >
@@ -2598,12 +2710,12 @@ function App() {
                     <span className="user-name">{currentUser.name}</span>
                     <span className="user-email">{currentUser.email}</span>
                   </div>
-                  
+
                   <button className="profile-dropdown-item" onClick={handleOpenEditProfile}>
                     <User size={14} />
                     <span>Modifier le profil</span>
                   </button>
-                  
+
                   <button className="profile-dropdown-item" onClick={handleOpenAppSettings}>
                     <Settings size={14} />
                     <span>Paramètres</span>
@@ -2629,7 +2741,7 @@ function App() {
         {/* MAIN SCROLLABLE CONTENT */}
         <div className="content-area">
           <div className="content-max-width">
-            
+
             {/* Alert Messages Banner */}
             {errorMessage && (
               <div className="card" style={{ backgroundColor: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b', padding: '16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2789,7 +2901,7 @@ function App() {
                         <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px' }}>
                           Transitions autorisées pour l'état <strong>{selectedIncident.status}</strong> :
                         </p>
-                        
+
                         <div className="actions-buttons-container">
                           {selectedIncidentWorkflow.transitions
                             .filter(t => t.fromState.toLowerCase() === selectedIncident.status.toLowerCase())
@@ -2828,7 +2940,7 @@ function App() {
 
                   {/* Right Column: Collaborative Pane (History, Comments, Attachments) */}
                   <div className="collaborative-pane">
-                    
+
                     {/* Timeline History */}
                     <div className="card" style={{ padding: '20px' }}>
                       <h3 className="widget-title">Journal d'historique</h3>
@@ -2838,19 +2950,19 @@ function App() {
                           return (
                             <div className="timeline-item" key={idx} style={{ position: 'relative' }}>
                               {/* Icon badge absolute on the connector line */}
-                              <div 
-                                style={{ 
-                                  position: 'absolute', 
-                                  left: '-45px', 
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  left: '-45px',
                                   top: '0px',
-                                  width: '24px', 
-                                  height: '24px', 
-                                  borderRadius: '50%', 
-                                  backgroundColor: details.bgColor, 
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '50%',
+                                  backgroundColor: details.bgColor,
                                   border: `2px solid ${details.borderColor}`,
                                   color: details.color,
-                                  display: 'flex', 
-                                  alignItems: 'center', 
+                                  display: 'flex',
+                                  alignItems: 'center',
                                   justifyContent: 'center',
                                   boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                                   zIndex: 2,
@@ -2860,7 +2972,7 @@ function App() {
                               >
                                 {details.icon}
                               </div>
-                              
+
                               {/* Content box */}
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                                 <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-color, #1e293b)', lineHeight: '1.4' }}>
@@ -2894,11 +3006,11 @@ function App() {
                                         type="button"
                                         onClick={() => setEditingCommentTab('write')}
                                         className={`tab-btn ${editingCommentTab === 'write' ? 'active' : ''}`}
-                                        style={{ 
-                                          padding: '4px 10px', 
-                                          fontSize: '11px', 
+                                        style={{
+                                          padding: '4px 10px',
+                                          fontSize: '11px',
                                           fontWeight: '600',
-                                          border: 'none', 
+                                          border: 'none',
                                           borderRadius: '4px',
                                           cursor: 'pointer',
                                           backgroundColor: editingCommentTab === 'write' ? 'var(--primary-100, #e0f2fe)' : 'transparent',
@@ -2911,11 +3023,11 @@ function App() {
                                         type="button"
                                         onClick={() => setEditingCommentTab('preview')}
                                         className={`tab-btn ${editingCommentTab === 'preview' ? 'active' : ''}`}
-                                        style={{ 
-                                          padding: '4px 10px', 
-                                          fontSize: '11px', 
+                                        style={{
+                                          padding: '4px 10px',
+                                          fontSize: '11px',
                                           fontWeight: '600',
-                                          border: 'none', 
+                                          border: 'none',
                                           borderRadius: '4px',
                                           cursor: 'pointer',
                                           backgroundColor: editingCommentTab === 'preview' ? 'var(--primary-100, #e0f2fe)' : 'transparent',
@@ -2925,7 +3037,7 @@ function App() {
                                         Aperçu
                                       </button>
                                     </div>
-                                    
+
                                     {editingCommentTab === 'write' && (
                                       <div className="editor-toolbar" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                         <button
@@ -2971,24 +3083,24 @@ function App() {
                                         id="comment-edit-textarea"
                                         value={editingCommentContent}
                                         onChange={(e) => setEditingCommentContent(e.target.value)}
-                                        style={{ 
-                                          width: '100%', 
-                                          minHeight: '80px', 
-                                          border: 'none', 
-                                          outline: 'none', 
-                                          padding: '10px', 
-                                          fontSize: '13px', 
+                                        style={{
+                                          width: '100%',
+                                          minHeight: '80px',
+                                          border: 'none',
+                                          outline: 'none',
+                                          padding: '10px',
+                                          fontSize: '13px',
                                           resize: 'vertical',
                                           color: 'var(--text-color, #1e293b)'
                                         }}
                                       />
                                     ) : (
-                                      <div 
-                                        style={{ 
-                                          padding: '10px', 
-                                          minHeight: '80px', 
-                                          fontSize: '13px', 
-                                          backgroundColor: '#fafafa', 
+                                      <div
+                                        style={{
+                                          padding: '10px',
+                                          minHeight: '80px',
+                                          fontSize: '13px',
+                                          backgroundColor: '#fafafa',
                                           overflowY: 'auto',
                                           color: 'var(--text-color, #1e293b)',
                                           lineHeight: '1.5'
@@ -2996,17 +3108,17 @@ function App() {
                                         dangerouslySetInnerHTML={{ __html: parseMarkdown(editingCommentContent) || '<span style="color: var(--text-muted); font-style: italic;">Rien à prévisualiser.</span>' }}
                                       />
                                     )}
-                                    
+
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '8px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--body-bg)' }}>
-                                      <button 
-                                        type="button" 
+                                      <button
+                                        type="button"
                                         className="btn btn-secondary btn-small"
                                         onClick={handleCancelEditComment}
                                       >
                                         Annuler
                                       </button>
-                                      <button 
-                                        type="button" 
+                                      <button
+                                        type="button"
                                         className="btn btn-primary btn-small"
                                         disabled={!editingCommentContent.trim()}
                                         onClick={() => handleSaveEditComment(comment.id)}
@@ -3029,12 +3141,12 @@ function App() {
                                   </span>
                                   {comment.author.name}
                                 </span>
-                                
+
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                   <span className="comment-date" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(comment.date)}</span>
                                   {currentUser && currentUser.email === comment.author.email && (
                                     <div className="comment-actions" style={{ display: 'flex', gap: '6px' }}>
-                                      <button 
+                                      <button
                                         type="button"
                                         onClick={() => handleStartEditComment(comment)}
                                         title="Modifier le commentaire"
@@ -3042,7 +3154,7 @@ function App() {
                                       >
                                         <Edit3 size={12} />
                                       </button>
-                                      <button 
+                                      <button
                                         type="button"
                                         onClick={() => handleDeleteComment(comment.id)}
                                         title="Supprimer le commentaire"
@@ -3054,15 +3166,15 @@ function App() {
                                   )}
                                 </div>
                               </div>
-                              <div 
-                                className="comment-body" 
+                              <div
+                                className="comment-body"
                                 style={{ fontSize: '13px', lineHeight: '1.5', marginTop: '6px', color: 'var(--text-color)' }}
-                                dangerouslySetInnerHTML={{ __html: parseMarkdown(comment.content) }} 
+                                dangerouslySetInnerHTML={{ __html: parseMarkdown(comment.content) }}
                               />
                             </div>
                           );
                         })}
-                        
+
                         {selectedIncident.comments.length === 0 && (
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', padding: '10px' }}>
                             Aucun commentaire pour le moment.
@@ -3078,11 +3190,11 @@ function App() {
                               type="button"
                               onClick={() => setCommentTab('write')}
                               className={`tab-btn ${commentTab === 'write' ? 'active' : ''}`}
-                              style={{ 
-                                padding: '4px 10px', 
-                                fontSize: '12px', 
+                              style={{
+                                padding: '4px 10px',
+                                fontSize: '12px',
                                 fontWeight: '600',
-                                border: 'none', 
+                                border: 'none',
                                 borderRadius: '4px',
                                 cursor: 'pointer',
                                 backgroundColor: commentTab === 'write' ? 'var(--primary-100, #e0f2fe)' : 'transparent',
@@ -3095,11 +3207,11 @@ function App() {
                               type="button"
                               onClick={() => setCommentTab('preview')}
                               className={`tab-btn ${commentTab === 'preview' ? 'active' : ''}`}
-                              style={{ 
-                                padding: '4px 10px', 
-                                fontSize: '12px', 
+                              style={{
+                                padding: '4px 10px',
+                                fontSize: '12px',
                                 fontWeight: '600',
-                                border: 'none', 
+                                border: 'none',
                                 borderRadius: '4px',
                                 cursor: 'pointer',
                                 backgroundColor: commentTab === 'preview' ? 'var(--primary-100, #e0f2fe)' : 'transparent',
@@ -3109,7 +3221,7 @@ function App() {
                               Aperçu
                             </button>
                           </div>
-                          
+
                           {commentTab === 'write' && (
                             <div className="editor-toolbar" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <button
@@ -3156,24 +3268,24 @@ function App() {
                               placeholder="Écrire un commentaire en Markdown collaboratif (ex: **gras**, - liste, ```code```)..."
                               value={newComment}
                               onChange={(e) => setNewComment(e.target.value)}
-                              style={{ 
-                                width: '100%', 
-                                minHeight: '100px', 
-                                border: 'none', 
-                                outline: 'none', 
-                                padding: '12px', 
-                                fontSize: '13px', 
+                              style={{
+                                width: '100%',
+                                minHeight: '100px',
+                                border: 'none',
+                                outline: 'none',
+                                padding: '12px',
+                                fontSize: '13px',
                                 resize: 'vertical',
                                 color: 'var(--text-color, #1e293b)'
                               }}
                             />
                           ) : (
-                            <div 
-                              style={{ 
-                                padding: '12px', 
-                                minHeight: '100px', 
-                                fontSize: '13px', 
-                                backgroundColor: '#fafafa', 
+                            <div
+                              style={{
+                                padding: '12px',
+                                minHeight: '100px',
+                                fontSize: '13px',
+                                backgroundColor: '#fafafa',
                                 overflowY: 'auto',
                                 color: 'var(--text-color, #1e293b)',
                                 lineHeight: '1.5'
@@ -3181,10 +3293,10 @@ function App() {
                               dangerouslySetInnerHTML={{ __html: parseMarkdown(newComment) || '<span style="color: var(--text-muted); font-style: italic;">Rien à prévisualiser pour le moment.</span>' }}
                             />
                           )}
-                          
+
                           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 12px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--body-bg)' }}>
-                            <button 
-                              type="submit" 
+                            <button
+                              type="submit"
                               className="btn btn-primary btn-small"
                               disabled={!newComment.trim()}
                               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
@@ -3200,7 +3312,7 @@ function App() {
                     {/* Attachments Section */}
                     <div className="card" style={{ padding: '20px' }}>
                       <h3 className="widget-title">Pièces Jointes ({selectedIncident.attachments.length})</h3>
-                      
+
                       <div className="attachments-list">
                         {selectedIncident.attachments.map((file, idx) => (
                           <div className="attachment-item" key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px' }}>
@@ -3239,7 +3351,7 @@ function App() {
                                 </div>
                               ) : (
                                 <div>
-                                  <span 
+                                  <span
                                     onClick={() => setPreviewFile(file)}
                                     className="file-name"
                                     style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary-600)', fontWeight: 'bold' }}
@@ -3253,7 +3365,7 @@ function App() {
                             </div>
                             {editingAttachmentId !== file.id && (
                               <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                                <button 
+                                <button
                                   type="button"
                                   onClick={() => handleDownloadAttachment(file)}
                                   className="icon-btn btn-small"
@@ -3262,7 +3374,7 @@ function App() {
                                 >
                                   <Download size={14} />
                                 </button>
-                                <button 
+                                <button
                                   type="button"
                                   onClick={() => handleStartRename(file)}
                                   className="icon-btn btn-small"
@@ -3271,7 +3383,7 @@ function App() {
                                 >
                                   <Edit3 size={14} />
                                 </button>
-                                <button 
+                                <button
                                   type="button"
                                   onClick={() => handleDeleteAttachment(file)}
                                   className="icon-btn btn-small"
@@ -3292,13 +3404,13 @@ function App() {
                         )}
                       </div>
 
-                      <label 
-                        className={`upload-zone ${isDraggingUpload ? 'dragging' : ''}`} 
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          gap: '8px', 
+                      <label
+                        className={`upload-zone ${isDraggingUpload ? 'dragging' : ''}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
                           cursor: 'pointer',
                           border: isDraggingUpload ? '2px dashed var(--primary-600)' : '2px dashed var(--border-color)',
                           backgroundColor: isDraggingUpload ? 'rgba(59, 130, 246, 0.15)' : 'var(--body-bg)',
@@ -3312,9 +3424,9 @@ function App() {
                       >
                         <Paperclip size={14} style={{ color: isDraggingUpload ? 'var(--primary-600)' : 'inherit' }} />
                         <span>{isDraggingUpload ? "Déposer le fichier ici..." : "Glisser-déposer ou cliquer pour téléverser un fichier"}</span>
-                        <input 
-                          type="file" 
-                          style={{ display: 'none' }} 
+                        <input
+                          type="file"
+                          style={{ display: 'none' }}
                           onChange={handleFileUpload}
                         />
                       </label>
@@ -3486,17 +3598,17 @@ function App() {
                     <label>Recherche rapide</label>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                       <Search size={14} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
-                      <input 
-                        type="text" 
-                        className="filter-select" 
-                        placeholder="Rechercher par titre, code..." 
-                        value={searchQuery} 
+                      <input
+                        type="text"
+                        className="filter-select"
+                        placeholder="Rechercher par titre, code..."
+                        value={searchQuery}
                         onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                         style={{ paddingLeft: '34px', width: '100%', height: '37px' }}
                       />
                       {searchQuery && (
-                        <button 
-                          onClick={() => setSearchQuery('')} 
+                        <button
+                          onClick={() => setSearchQuery('')}
                           style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
                         >
                           <X size={14} />
@@ -3621,10 +3733,10 @@ function App() {
                                 <td>{inc.author.name}</td>
                                 <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(inc.createdAt)}</td>
                                 <td style={{ textAlign: 'center' }}>
-                                  <button 
-                                    className="btn btn-secondary btn-small" 
-                                    onClick={(e) => { e.stopPropagation(); handleSelectIncident(inc.incidentCode); }} 
-                                    style={{ padding: '6px 10px', height: '28px' }} 
+                                  <button
+                                    className="btn btn-secondary btn-small"
+                                    onClick={(e) => { e.stopPropagation(); handleSelectIncident(inc.incidentCode); }}
+                                    style={{ padding: '6px 10px', height: '28px' }}
                                     title="Voir le détail"
                                   >
                                     <Eye size={13} />
@@ -3644,8 +3756,8 @@ function App() {
                       {/* Pagination Controls */}
                       {totalPages > 1 && (
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-                          <button 
-                            className="btn btn-secondary btn-small" 
+                          <button
+                            className="btn btn-secondary btn-small"
                             onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                             disabled={currentPage === 1}
                           >
@@ -3654,8 +3766,8 @@ function App() {
                           <span style={{ display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 'bold', padding: '0 8px' }}>
                             Page {currentPage} sur {totalPages}
                           </span>
-                          <button 
-                            className="btn btn-secondary btn-small" 
+                          <button
+                            className="btn btn-secondary btn-small"
                             onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                             disabled={currentPage === totalPages}
                           >
@@ -3686,7 +3798,7 @@ function App() {
                 {/* Category Selection Tabs */}
                 <div className="wf-category-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
                   {workflows.map(wf => (
-                    <button 
+                    <button
                       key={wf.id}
                       onClick={() => setSelectedWorkflowId(wf.id)}
                       className={`wf-tab ${wf.id === selectedWorkflowId ? 'active' : ''}`}
@@ -3709,13 +3821,13 @@ function App() {
                 {/* Visual / Textual Mode Toggle */}
                 {activeWorkflow && (
                   <div className="editor-mode-toggle-container">
-                    <button 
+                    <button
                       onClick={() => setEditorMode('visual')}
                       className={`btn editor-mode-toggle-btn ${editorMode === 'visual' ? 'active' : ''}`}
                     >
                       Éditeur Graphique (Visual)
                     </button>
-                    <button 
+                    <button
                       onClick={() => setEditorMode('textual')}
                       className={`btn editor-mode-toggle-btn ${editorMode === 'textual' ? 'active' : ''}`}
                     >
@@ -3739,8 +3851,8 @@ function App() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
                           <div style={{ flexGrow: 1 }}>
                             <label style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Nom du processus</label>
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               className="form-control"
                               value={activeWorkflow.name}
                               onChange={(e) => {
@@ -3750,9 +3862,9 @@ function App() {
                               }}
                             />
                           </div>
-                          <button 
+                          <button
                             type="button"
-                            className="btn btn-secondary" 
+                            className="btn btn-secondary"
                             style={{ height: '38px', marginTop: '14px', fontWeight: 'bold' }}
                             onClick={handleToggleWorkflowActive}
                           >
@@ -3776,8 +3888,8 @@ function App() {
                               <div key={state.id || state.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--body-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                                 <div>
                                   <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--text-muted)', textTransform: 'uppercase' }}>ID : {state.name} {isSystem && '(Système)'}</span>
-                                  <input 
-                                    type="text" 
+                                  <input
+                                    type="text"
                                     value={state.label}
                                     onChange={(e) => {
                                       const updatedStates = activeWorkflow.states.map(s => s.name === state.name ? { ...s, label: e.target.value } : s);
@@ -3797,14 +3909,14 @@ function App() {
                                     <span onClick={() => handleUpdateStateColor(state.name, 'bg-emerald-50 text-emerald-600 border-emerald-200')} style={{ cursor: 'pointer', display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#86efac' }} />
                                     <span onClick={() => handleUpdateStateColor(state.name, 'bg-slate-50 text-slate-600 border-slate-200')} style={{ cursor: 'pointer', display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#cbd5e1' }} />
                                   </div>
-                                  <button 
-                                    type="button" 
+                                  <button
+                                    type="button"
                                     className="btn btn-secondary btn-small"
                                     onClick={() => handleToggleStateActive(state.name)}
                                   >
                                     {state.active ? 'Actif' : 'Inactif'}
                                   </button>
-                                  <button 
+                                  <button
                                     type="button"
                                     className="icon-btn btn-secondary"
                                     onClick={() => handleDeleteStateFromWorkflow(state.name)}
@@ -3825,24 +3937,24 @@ function App() {
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                             <div className="form-group" style={{ marginBottom: 0 }}>
                               <label style={{ fontSize: '9px' }}>Clé technique ID</label>
-                              <input 
-                                type="text" 
-                                className="form-control" 
+                              <input
+                                type="text"
+                                className="form-control"
                                 placeholder="Ex: Attente"
                                 value={newStateId}
                                 onChange={(e) => setNewStateId(e.target.value)}
-                                required 
+                                required
                               />
                             </div>
                             <div className="form-group" style={{ marginBottom: 0 }}>
                               <label style={{ fontSize: '9px' }}>Libellé Affichage</label>
-                              <input 
-                                type="text" 
-                                className="form-control" 
+                              <input
+                                type="text"
+                                className="form-control"
                                 placeholder="Ex: En attente"
                                 value={newStateLabel}
                                 onChange={(e) => setNewStateLabel(e.target.value)}
-                                required 
+                                required
                               />
                             </div>
                           </div>
@@ -3870,7 +3982,7 @@ function App() {
                                   {t.requiresComment && ' • 💬 Commentaire obligatoire'}
                                 </div>
                               </div>
-                              <button 
+                              <button
                                 type="button"
                                 className="icon-btn btn-secondary"
                                 onClick={() => handleDeleteTransitionFromWorkflow(t.fromState, t.toState)}
@@ -3921,9 +4033,9 @@ function App() {
                             </select>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
-                            <input 
-                              type="checkbox" 
-                              id="check-requires-comment" 
+                            <input
+                              type="checkbox"
+                              id="check-requires-comment"
                               checked={newTransRequiresComment}
                               onChange={(e) => setNewTransRequiresComment(e.target.checked)}
                               style={{ width: '14px', height: '14px', cursor: 'pointer' }}
@@ -4003,24 +4115,24 @@ function App() {
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                             <div className="form-group" style={{ marginBottom: 0 }}>
                               <label style={{ fontSize: '9px' }}>Clé technique ID</label>
-                              <input 
-                                type="text" 
-                                className="form-control" 
+                              <input
+                                type="text"
+                                className="form-control"
                                 placeholder="Ex: Validation"
                                 value={newStateId}
                                 onChange={(e) => setNewStateId(e.target.value)}
-                                required 
+                                required
                               />
                             </div>
                             <div className="form-group" style={{ marginBottom: 0 }}>
                               <label style={{ fontSize: '9px' }}>Libellé Affichage</label>
-                              <input 
-                                type="text" 
-                                className="form-control" 
+                              <input
+                                type="text"
+                                className="form-control"
                                 placeholder="Ex: En validation"
                                 value={newStateLabel}
                                 onChange={(e) => setNewStateLabel(e.target.value)}
-                                required 
+                                required
                               />
                             </div>
                           </div>
@@ -4041,9 +4153,9 @@ function App() {
                                 </div>
                               </div>
                               <div style={{ display: 'flex', gap: '4px' }}>
-                                <button 
-                                  type="button" 
-                                  className="btn btn-secondary btn-small" 
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-small"
                                   style={{ padding: '2px 6px', fontSize: '9px' }}
                                   onClick={() => {
                                     const req = !t.requiresComment;
@@ -4055,9 +4167,9 @@ function App() {
                                 >
                                   💬 Commentaire
                                 </button>
-                                <button 
-                                  type="button" 
-                                  className="icon-btn btn-secondary" 
+                                <button
+                                  type="button"
+                                  className="icon-btn btn-secondary"
                                   onClick={() => handleDeleteTransitionFromWorkflow(t.fromState, t.toState)}
                                   style={{ color: '#ef4444', border: 'none', padding: '2px' }}
                                 >
@@ -4086,23 +4198,41 @@ function App() {
                   </button>
                 </div>
 
+                {/* Navigation sub-tabs */}
+                <div className="admin-tab-bar">
+                  <button
+                    className={`admin-tab-btn ${currentView === 'users' ? 'active' : ''}`}
+                    onClick={() => setCurrentView('users')}
+                  >
+                    <Users size={16} />
+                    Gestion Utilisateurs
+                  </button>
+                  <button
+                    className={`admin-tab-btn ${currentView === 'roles' ? 'active' : ''}`}
+                    onClick={() => setCurrentView('roles')}
+                  >
+                    <Shield size={16} />
+                    Rôles & Habilitations
+                  </button>
+                </div>
+
                 {/* Filters Row for Users */}
                 <div className="filter-panel-premium">
                   <div className="filter-item" style={{ flexGrow: 1, minWidth: '220px' }}>
                     <label>Rechercher un utilisateur</label>
                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                       <Search size={14} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
-                      <input 
-                        type="text" 
-                        className="filter-select" 
-                        placeholder="Rechercher par nom, email, département..." 
-                        value={searchUserQuery} 
+                      <input
+                        type="text"
+                        className="filter-select"
+                        placeholder="Rechercher par nom, email, département..."
+                        value={searchUserQuery}
                         onChange={(e) => setSearchUserQuery(e.target.value)}
                         style={{ paddingLeft: '34px', width: '100%', height: '37px' }}
                       />
                       {searchUserQuery && (
-                        <button 
-                          onClick={() => setSearchUserQuery('')} 
+                        <button
+                          onClick={() => setSearchUserQuery('')}
                           style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
                         >
                           <X size={14} />
@@ -4149,15 +4279,15 @@ function App() {
                           <th>Département</th>
                           <th>Poste</th>
                           <th>Rôle</th>
-                          <th>Statut (Keycloak)</th>
+                          <th>Statut</th>
                           <th style={{ textAlign: 'right' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredUsers.map(u => {
                           const roleName = u.role ? u.role.name : 'Aucun';
-                          const roleClass = roleName.toLowerCase().includes('admin') 
-                            ? 'role-admin' 
+                          const roleClass = roleName.toLowerCase().includes('admin')
+                            ? 'role-admin'
                             : (roleName.toLowerCase().includes('support') ? 'role-support' : 'role-user');
 
                           return (
@@ -4186,8 +4316,8 @@ function App() {
                               </td>
                               <td style={{ textAlign: 'right' }}>
                                 <div style={{ display: 'inline-flex', gap: '6px' }}>
-                                  <button 
-                                    className="icon-btn btn-secondary" 
+                                  <button
+                                    className="icon-btn btn-secondary"
                                     onClick={() => {
                                       setEditingUser({
                                         id: u.id,
@@ -4207,8 +4337,8 @@ function App() {
                                   >
                                     <Edit3 size={14} />
                                   </button>
-                                  <button 
-                                    className="icon-btn btn-secondary" 
+                                  <button
+                                    className="icon-btn btn-secondary"
                                     onClick={() => handleUserDelete(u.id, u.name)}
                                     style={{ width: '28px', height: '28px', color: '#ef4444', border: 'none' }}
                                     title="Supprimer"
@@ -4230,6 +4360,262 @@ function App() {
                   </div>
                 </div>
               </div>
+            ) : currentView === 'roles' ? (
+              // VIEW F: ROLE MANAGEMENT PAGE (Epic 1.2 - Admin Only)
+              getRoleName(currentUser.role) !== 'Administrateur' ? (
+                <div className="animate-fade-in" style={{ padding: '40px', textAlign: 'center' }}>
+                  <div className="dashboard-card" style={{ maxWidth: '500px', margin: '0 auto', padding: '40px' }}>
+                    <AlertTriangle size={48} style={{ margin: '0 auto 16px', color: '#f59e0b' }} />
+                    <h2>Accès Restreint</h2>
+                    <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>
+                      La gestion des rôles est strictement réservée aux Administrateurs du système.
+                    </p>
+                    <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => setCurrentView('dashboard')}>
+                      Retour au Dashboard
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="animate-fade-in">
+                  {/* Page Header */}
+                  <div className="page-header">
+                    <div>
+                      <h1 className="page-title">Gestion des Rôles & Habilitations</h1>
+                      <p className="page-subtitle">Définissez les rôles, administrez leurs privilèges et supervisez l'affectation des utilisateurs.</p>
+                    </div>
+                    <button className="btn btn-primary" onClick={() => setShowRoleCreateModal(true)}>
+                      <Plus size={16} />
+                      Nouveau Rôle
+                    </button>
+                  </div>
+
+                  {/* Navigation Sub-Tabs */}
+                  <div className="admin-tab-bar">
+                    <button
+                      className={`admin-tab-btn ${currentView === 'users' ? 'active' : ''}`}
+                      onClick={() => setCurrentView('users')}
+                    >
+                      <Users size={16} />
+                      Gestion Utilisateurs
+                    </button>
+                    <button
+                      className={`admin-tab-btn ${currentView === 'roles' ? 'active' : ''}`}
+                      onClick={() => setCurrentView('roles')}
+                    >
+                      <Shield size={16} />
+                      Rôles & Habilitations
+                    </button>
+                  </div>
+
+                  {/* Stats Cards */}
+                  <div className="stats-grid" style={{ marginBottom: '24px' }}>
+                    <div className="stat-card">
+                      <div className="stat-header">
+                        <span className="stat-title">Total Rôles Configurés</span>
+                        <div style={{ padding: '8px', borderRadius: '10px', backgroundColor: 'rgba(59, 130, 246, 0.1)' }}>
+                          <Shield className="text-blue-600" size={20} />
+                        </div>
+                      </div>
+                      <div className="stat-value">{rolesList.length}</div>
+                      <div className="stat-subtext">Rôles d'accès dans le système</div>
+                    </div>
+
+                    <div className="stat-card">
+                      <div className="stat-header">
+                        <span className="stat-title">Comptes Administrateurs</span>
+                        <div style={{ padding: '8px', borderRadius: '10px', backgroundColor: 'rgba(147, 51, 234, 0.1)' }}>
+                          <Users className="text-purple-600" size={20} />
+                        </div>
+                      </div>
+                      <div className="stat-value">
+                        {usersList.filter(u => getRoleName(u.role).toLowerCase().includes('admin')).length}
+                      </div>
+                      <div className="stat-subtext">Utilisateurs avec privilèges système</div>
+                    </div>
+
+                    <div className="stat-card">
+                      <div className="stat-header">
+                        <span className="stat-title">Taux de Couverture Rôles</span>
+                        <div style={{ padding: '8px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
+                          <CheckCircle className="text-emerald-600" size={20} />
+                        </div>
+                      </div>
+                      <div className="stat-value">
+                        {usersList.length > 0 ? Math.round((usersList.filter(u => u.role != null).length / usersList.length) * 100) : 100}%
+                      </div>
+                      <div className="stat-subtext">{usersList.filter(u => u.role != null).length} sur {usersList.length} comptes assignés</div>
+                    </div>
+                  </div>
+
+                  {/* Filter panel for roles */}
+                  <div className="filter-panel-premium" style={{ marginBottom: '20px' }}>
+                    <div className="filter-item" style={{ flexGrow: 1 }}>
+                      <label>Rechercher un rôle</label>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <Search size={14} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
+                        <input
+                          type="text"
+                          className="filter-select"
+                          placeholder="Rechercher par nom du rôle ou description..."
+                          value={searchRoleQuery}
+                          onChange={(e) => setSearchRoleQuery(e.target.value)}
+                          style={{ paddingLeft: '34px', width: '100%', height: '38px' }}
+                        />
+                        {searchRoleQuery && (
+                          <button
+                            onClick={() => setSearchRoleQuery('')}
+                            style={{ position: 'absolute', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary bar */}
+                  <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center', padding: '0 4px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                      Résultats : <strong style={{ color: 'var(--text-main)' }}>{filteredRoles.length} rôle{filteredRoles.length > 1 ? 's' : ''} trouvé{filteredRoles.length > 1 ? 's' : ''}</strong>
+                    </div>
+                  </div>
+
+                  {/* Roles Datagrid Table */}
+                  <div className="dashboard-card" style={{ padding: '20px' }}>
+                    <div className="datagrid-container">
+                      <table className="datagrid">
+                        <thead>
+                          <tr>
+                            <th style={{ width: '60px' }}>ID</th>
+                            <th style={{ width: '220px' }}>Nom du Rôle</th>
+                            <th>Description & Portée</th>
+                            <th style={{ width: '200px' }}>Utilisateurs Affectés</th>
+                            <th style={{ width: '150px' }}>Niveau Privilège</th>
+                            <th style={{ textAlign: 'right', width: '110px' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredRoles.map(r => {
+                            const assignedUsers = usersList.filter(u => u.role && (u.role.id === r.id || u.role.name === r.name));
+                            const rNameLower = r.name.toLowerCase();
+                            const roleClass = rNameLower.includes('admin')
+                              ? 'role-admin'
+                              : (rNameLower.includes('responsable') ? 'role-support' : 'role-user');
+
+                            let privilegeLabel = 'Standard';
+                            let privilegeStyle = { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' };
+
+                            if (rNameLower.includes('admin')) {
+                              privilegeLabel = 'Accès Total';
+                              privilegeStyle = { backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' };
+                            } else if (rNameLower.includes('responsable')) {
+                              privilegeLabel = 'Supervision';
+                              privilegeStyle = { backgroundColor: '#f3e8ff', color: '#7e22ce', border: '1px solid #d8b4fe' };
+                            } else if (rNameLower.includes('médical')) {
+                              privilegeLabel = 'Spécialisé';
+                              privilegeStyle = { backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #6ee7b7' };
+                            }
+
+                            return (
+                              <tr key={r.id} className="hoverable">
+                                <td style={{ fontWeight: '600', color: 'var(--text-muted)' }}>#{r.id}</td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span className={`role-badge-pill ${roleClass}`} style={{ fontSize: '12px', padding: '5px 12px', fontWeight: '700' }}>
+                                      <Shield size={13} style={{ display: 'inline', marginRight: '5px' }} />
+                                      {r.name}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: '1.4' }}>
+                                    {r.description || <em style={{ color: 'var(--text-muted)' }}>Aucune description spécifiée</em>}
+                                  </div>
+                                </td>
+                                <td>
+                                  <div className="role-avatar-group">
+                                    {assignedUsers.length > 0 ? (
+                                      <>
+                                        <div className="role-avatar-stack">
+                                          {assignedUsers.slice(0, 3).map(u => (
+                                            <div
+                                              key={u.id}
+                                              className={`avatar-circle ${u.avatarColor || 'bg-blue-600'}`}
+                                              title={`${u.name} (${u.email})`}
+                                            >
+                                              {u.name.split(' ').map(n => n[0]).join('')}
+                                            </div>
+                                          ))}
+                                        </div>
+                                        <span className="badge badge-normal" style={{ fontSize: '11px', padding: '2px 8px' }}>
+                                          {assignedUsers.length} membre{assignedUsers.length > 1 ? 's' : ''}
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Aucun utilisateur</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>
+                                  <span
+                                    className="badge"
+                                    style={{
+                                      fontSize: '11px',
+                                      padding: '3px 9px',
+                                      borderRadius: '12px',
+                                      fontWeight: '600',
+                                      ...privilegeStyle
+                                    }}
+                                  >
+                                    {privilegeLabel}
+                                  </span>
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                    <button
+                                      className="icon-btn btn-secondary"
+                                      onClick={() => {
+                                        setEditRoleForm({
+                                          id: r.id,
+                                          name: r.name,
+                                          description: r.description || ''
+                                        });
+                                        setShowRoleEditModal(true);
+                                      }}
+                                      style={{ width: '30px', height: '30px', border: 'none' }}
+                                      title="Modifier le rôle"
+                                    >
+                                      <Edit3 size={14} />
+                                    </button>
+                                    <button
+                                      className="icon-btn btn-secondary"
+                                      onClick={() => handleRoleDelete(r.id, r.name)}
+                                      style={{ width: '30px', height: '30px', color: '#ef4444', border: 'none' }}
+                                      title="Supprimer le rôle"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {filteredRoles.length === 0 && (
+                            <tr>
+                              <td colSpan="6" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                                  <Shield size={32} style={{ opacity: 0.4 }} />
+                                  <span>Aucun rôle ne correspond à votre recherche.</span>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )
             ) : null}
 
           </div>
@@ -4239,7 +4625,7 @@ function App() {
       {/* ==========================================
           MODALS & DIALOGS PORTALS
           ========================================== */}
-      
+
       {/* Modal 0: Edit Incident Modal */}
       {showEditModal && (
         <div className="modal-overlay">
@@ -4252,10 +4638,10 @@ function App() {
               <div className="modal-body">
                 <div className="form-group">
                   <label>Titre de l'incident *</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    required 
+                  <input
+                    type="text"
+                    className="form-control"
+                    required
                     value={editIncidentForm.title}
                     onChange={(e) => setEditIncidentForm({ ...editIncidentForm, title: e.target.value })}
                   />
@@ -4264,8 +4650,8 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div className="form-group">
                     <label>Catégorie *</label>
-                    <select 
-                      className="form-control" 
+                    <select
+                      className="form-control"
                       value={editIncidentForm.category}
                       onChange={(e) => setEditIncidentForm({ ...editIncidentForm, category: e.target.value })}
                       style={{ background: 'var(--card-bg)' }}
@@ -4279,8 +4665,8 @@ function App() {
 
                   <div className="form-group">
                     <label>Priorité *</label>
-                    <select 
-                      className="form-control" 
+                    <select
+                      className="form-control"
                       value={editIncidentForm.priority}
                       onChange={(e) => setEditIncidentForm({ ...editIncidentForm, priority: e.target.value })}
                       style={{ background: 'var(--card-bg)' }}
@@ -4295,8 +4681,8 @@ function App() {
 
                 <div className="form-group">
                   <label>Assigner à</label>
-                  <select 
-                    className="form-control" 
+                  <select
+                    className="form-control"
                     value={editIncidentForm.assignedToId}
                     onChange={(e) => setEditIncidentForm({ ...editIncidentForm, assignedToId: e.target.value })}
                     style={{ background: 'var(--card-bg)' }}
@@ -4310,10 +4696,10 @@ function App() {
 
                 <div className="form-group">
                   <label>Description *</label>
-                  <textarea 
-                    className="form-control" 
-                    rows="4" 
-                    required 
+                  <textarea
+                    className="form-control"
+                    rows="4"
+                    required
                     value={editIncidentForm.description}
                     onChange={(e) => setEditIncidentForm({ ...editIncidentForm, description: e.target.value })}
                   />
@@ -4345,10 +4731,10 @@ function App() {
               <div className="modal-body">
                 <div className="form-group">
                   <label>Titre de l'incident *</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    required 
+                  <input
+                    type="text"
+                    className="form-control"
+                    required
                     placeholder="Ex: Panne de commutateur réseau local"
                     value={newIncident.title}
                     onChange={(e) => setNewIncident({ ...newIncident, title: e.target.value })}
@@ -4358,8 +4744,8 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div className="form-group">
                     <label>Catégorie *</label>
-                    <select 
-                      className="form-control" 
+                    <select
+                      className="form-control"
                       value={newIncident.category}
                       onChange={(e) => setNewIncident({ ...newIncident, category: e.target.value })}
                       style={{ background: 'var(--card-bg)' }}
@@ -4373,8 +4759,8 @@ function App() {
 
                   <div className="form-group">
                     <label>Priorité *</label>
-                    <select 
-                      className="form-control" 
+                    <select
+                      className="form-control"
                       value={newIncident.priority}
                       onChange={(e) => setNewIncident({ ...newIncident, priority: e.target.value })}
                       style={{ background: 'var(--card-bg)' }}
@@ -4389,8 +4775,8 @@ function App() {
 
                 <div className="form-group">
                   <label>Assigner à (Optionnel)</label>
-                  <select 
-                    className="form-control" 
+                  <select
+                    className="form-control"
                     value={newIncident.assignedToId}
                     onChange={(e) => setNewIncident({ ...newIncident, assignedToId: e.target.value })}
                     style={{ background: 'var(--card-bg)' }}
@@ -4404,9 +4790,9 @@ function App() {
 
                 <div className="form-group">
                   <label>Tags ou mots-clés (Séparés par des virgules)</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
+                  <input
+                    type="text"
+                    className="form-control"
                     placeholder="Ex: switch, hardware, zone-a"
                     value={newIncident.tags}
                     onChange={(e) => setNewIncident({ ...newIncident, tags: e.target.value })}
@@ -4415,10 +4801,10 @@ function App() {
 
                 <div className="form-group">
                   <label>Description détaillée *</label>
-                  <textarea 
-                    className="form-control" 
-                    required 
-                    rows="4" 
+                  <textarea
+                    className="form-control"
+                    required
+                    rows="4"
                     placeholder="Veuillez décrire le problème rencontré..."
                     value={newIncident.description}
                     onChange={(e) => setNewIncident({ ...newIncident, description: e.target.value })}
@@ -4427,17 +4813,17 @@ function App() {
 
                 <div className="form-group">
                   <label>Pièce jointe (facultatif)</label>
-                  <label 
+                  <label
                     onDragOver={handleDragOver}
                     onDragEnter={handleDragEnterCreate}
                     onDragLeave={handleDragLeaveCreate}
                     onDrop={handleDropCreate}
-                    style={{ 
+                    style={{
                       display: 'block',
-                      border: '2px dashed var(--border-color)', 
-                      borderRadius: '8px', 
-                      padding: '24px', 
-                      textAlign: 'center', 
+                      border: '2px dashed var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '24px',
+                      textAlign: 'center',
                       cursor: 'pointer',
                       backgroundColor: isDraggingCreate ? 'rgba(59, 130, 246, 0.15)' : 'var(--body-bg)',
                     }}
@@ -4445,9 +4831,9 @@ function App() {
                     <Paperclip size={20} style={{ marginBottom: '8px', color: isDraggingCreate ? 'var(--primary-600)' : 'var(--primary-500)' }} />
                     <span style={{ fontWeight: 'bold' }}>{newIncidentFile ? `Fichier sélectionné : ${newIncidentFile.name}` : "Glisser-déposer ou cliquer pour téléverser"}</span>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>Fichiers logs, captures d'écran (.txt, .log, .png, .jpg)</span>
-                    <input 
-                      type="file" 
-                      style={{ display: 'none' }} 
+                    <input
+                      type="file"
+                      style={{ display: 'none' }}
                       onChange={(e) => setNewIncidentFile(e.target.files[0])}
                     />
                   </label>
@@ -4455,17 +4841,17 @@ function App() {
                     <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {newIncidentFile.type.startsWith('image/') && (
                         <div style={{ display: 'flex', justifyContent: 'center', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '6px', backgroundColor: '#fafafa' }}>
-                          <img 
-                            src={URL.createObjectURL(newIncidentFile)} 
-                            alt="Aperçu" 
-                            style={{ maxHeight: '120px', maxWidth: '100%', borderRadius: '4px', objectFit: 'contain' }} 
+                          <img
+                            src={URL.createObjectURL(newIncidentFile)}
+                            alt="Aperçu"
+                            style={{ maxHeight: '120px', maxWidth: '100%', borderRadius: '4px', objectFit: 'contain' }}
                           />
                         </div>
                       )}
-                      <button 
-                        type="button" 
-                        className="btn btn-secondary btn-small" 
-                        onClick={() => setNewIncidentFile(null)} 
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-small"
+                        onClick={() => setNewIncidentFile(null)}
                         style={{ color: '#ef4444', width: 'fit-content', alignSelf: 'center', gap: '4px' }}
                       >
                         <X size={14} />
@@ -4502,10 +4888,10 @@ function App() {
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Commentaire d'audit *</label>
-                  <textarea 
-                    className="form-control" 
-                    required 
-                    rows="3" 
+                  <textarea
+                    className="form-control"
+                    required
+                    rows="3"
                     placeholder="Saisissez le motif de cette transition..."
                     value={transitionComment}
                     onChange={(e) => setTransitionComment(e.target.value)}
@@ -4534,10 +4920,10 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Prénom *</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      required 
+                    <input
+                      type="text"
+                      className="form-control"
+                      required
                       placeholder="Sophie"
                       value={newUserForm.firstName}
                       onChange={(e) => setNewUserForm({ ...newUserForm, firstName: e.target.value })}
@@ -4545,10 +4931,10 @@ function App() {
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Nom *</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      required 
+                    <input
+                      type="text"
+                      className="form-control"
+                      required
                       placeholder="Martin"
                       value={newUserForm.lastName}
                       onChange={(e) => setNewUserForm({ ...newUserForm, lastName: e.target.value })}
@@ -4558,10 +4944,10 @@ function App() {
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Email *</label>
-                  <input 
-                    type="email" 
-                    className="form-control" 
-                    required 
+                  <input
+                    type="email"
+                    className="form-control"
+                    required
                     placeholder="sophie.martin@netmar.com"
                     value={newUserForm.email}
                     onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
@@ -4570,9 +4956,9 @@ function App() {
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Téléphone de garde</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
+                  <input
+                    type="text"
+                    className="form-control"
                     placeholder="+33 6 12 34 56 78"
                     value={newUserForm.telephone}
                     onChange={(e) => setNewUserForm({ ...newUserForm, telephone: e.target.value })}
@@ -4582,9 +4968,9 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Département</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
+                    <input
+                      type="text"
+                      className="form-control"
                       placeholder="Sécurité"
                       value={newUserForm.department}
                       onChange={(e) => setNewUserForm({ ...newUserForm, department: e.target.value })}
@@ -4592,9 +4978,9 @@ function App() {
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Poste / Fonction</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
+                    <input
+                      type="text"
+                      className="form-control"
                       placeholder="Ingénieur Sécurité"
                       value={newUserForm.post}
                       onChange={(e) => setNewUserForm({ ...newUserForm, post: e.target.value })}
@@ -4604,9 +4990,9 @@ function App() {
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Rôle (Habilitations)</label>
-                  <select 
-                    className="form-control" 
-                    value={newUserForm.roleId} 
+                  <select
+                    className="form-control"
+                    value={newUserForm.roleId}
                     onChange={(e) => setNewUserForm({ ...newUserForm, roleId: e.target.value })}
                     style={{ background: 'var(--card-bg)' }}
                   >
@@ -4638,20 +5024,20 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Prénom *</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      required 
+                    <input
+                      type="text"
+                      className="form-control"
+                      required
                       value={editingUser.firstName}
                       onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
                     />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Nom *</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      required 
+                    <input
+                      type="text"
+                      className="form-control"
+                      required
                       value={editingUser.lastName}
                       onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
                     />
@@ -4660,10 +5046,10 @@ function App() {
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Email *</label>
-                  <input 
-                    type="email" 
-                    className="form-control" 
-                    required 
+                  <input
+                    type="email"
+                    className="form-control"
+                    required
                     value={editingUser.email}
                     onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
                   />
@@ -4671,9 +5057,9 @@ function App() {
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Téléphone de garde</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
+                  <input
+                    type="text"
+                    className="form-control"
                     value={editingUser.telephone}
                     onChange={(e) => setEditingUser({ ...editingUser, telephone: e.target.value })}
                   />
@@ -4682,18 +5068,18 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Département</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
+                    <input
+                      type="text"
+                      className="form-control"
                       value={editingUser.department}
                       onChange={(e) => setEditingUser({ ...editingUser, department: e.target.value })}
                     />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Poste / Fonction</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
+                    <input
+                      type="text"
+                      className="form-control"
                       value={editingUser.post}
                       onChange={(e) => setEditingUser({ ...editingUser, post: e.target.value })}
                     />
@@ -4702,9 +5088,9 @@ function App() {
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label>Rôle</label>
-                  <select 
-                    className="form-control" 
-                    value={editingUser.roleId} 
+                  <select
+                    className="form-control"
+                    value={editingUser.roleId}
                     onChange={(e) => setEditingUser({ ...editingUser, roleId: e.target.value })}
                     style={{ background: 'var(--card-bg)' }}
                   >
@@ -4715,14 +5101,14 @@ function App() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0' }}>
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     id="edit-user-active"
                     checked={editingUser.active}
                     onChange={(e) => setEditingUser({ ...editingUser, active: e.target.checked })}
                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                   />
-                  <label htmlFor="edit-user-active" style={{ marginBottom: 0, fontWeight: 'bold', cursor: 'pointer' }}>Compte actif (Autoriser connexion Keycloak)</label>
+                  <label htmlFor="edit-user-active" style={{ marginBottom: 0, fontWeight: 'bold', cursor: 'pointer' }}>Compte actif</label>
                 </div>
               </div>
               <div className="modal-footer">
@@ -4747,20 +5133,20 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group">
                     <label>Prénom *</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      required 
+                    <input
+                      type="text"
+                      className="form-control"
+                      required
                       value={profileForm.firstName}
                       onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
                     />
                   </div>
                   <div className="form-group">
                     <label>Nom *</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      required 
+                    <input
+                      type="text"
+                      className="form-control"
+                      required
                       value={profileForm.lastName}
                       onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
                     />
@@ -4769,10 +5155,10 @@ function App() {
 
                 <div className="form-group">
                   <label>Adresse e-mail *</label>
-                  <input 
-                    type="email" 
-                    className="form-control" 
-                    required 
+                  <input
+                    type="email"
+                    className="form-control"
+                    required
                     value={profileForm.email}
                     onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
                   />
@@ -4781,18 +5167,18 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="form-group">
                     <label>Poste occupé</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
+                    <input
+                      type="text"
+                      className="form-control"
                       value={profileForm.post}
                       onChange={(e) => setProfileForm({ ...profileForm, post: e.target.value })}
                     />
                   </div>
                   <div className="form-group">
                     <label>Département</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
+                    <input
+                      type="text"
+                      className="form-control"
                       value={profileForm.department}
                       onChange={(e) => setProfileForm({ ...profileForm, department: e.target.value })}
                     />
@@ -4915,10 +5301,10 @@ function App() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <label style={{ fontWeight: '600' }}>Notifications</label>
-                  
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       id="setting-notif-enable"
                       checked={appSettingsForm.enableNotifications}
                       onChange={(e) => setAppSettingsForm({ ...appSettingsForm, enableNotifications: e.target.checked })}
@@ -4930,8 +5316,8 @@ function App() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       id="setting-notif-sound"
                       checked={appSettingsForm.notificationSound}
                       onChange={(e) => setAppSettingsForm({ ...appSettingsForm, notificationSound: e.target.checked })}
@@ -4946,8 +5332,8 @@ function App() {
                 <div className="profile-dropdown-divider" style={{ margin: '4px 0' }}></div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     id="setting-maintenance"
                     checked={appSettingsForm.maintenanceMode}
                     onChange={(e) => setAppSettingsForm({ ...appSettingsForm, maintenanceMode: e.target.checked })}
@@ -5031,7 +5417,7 @@ function App() {
               </div>
               <button className="modal-close-btn" onClick={() => setPreviewFile(null)} style={{ border: 'none', background: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
             </div>
-            
+
             <div className="modal-body" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', backgroundColor: 'var(--body-bg)', minHeight: '300px', maxHeight: '75vh', overflow: 'auto' }}>
               {previewLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
@@ -5042,10 +5428,10 @@ function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', color: 'var(--red-600)', padding: '20px', textAlign: 'center' }}>
                   <AlertCircle size={32} />
                   <p style={{ margin: 0, fontWeight: 'bold' }}>{previewError}</p>
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary btn-small" 
-                    style={{ marginTop: '10px' }} 
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-small"
+                    style={{ marginTop: '10px' }}
                     onClick={() => {
                       // retry fetching by resetting previewFile
                       const current = previewFile;
@@ -5064,21 +5450,21 @@ function App() {
 
                   if (isImage) {
                     return (
-                      <img 
-                        src={previewBlobUrl} 
-                        alt={previewFile.filename} 
-                        style={{ maxWidth: '100%', maxHeight: '65vh', borderRadius: '4px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                      <img
+                        src={previewBlobUrl}
+                        alt={previewFile.filename}
+                        style={{ maxWidth: '100%', maxHeight: '65vh', borderRadius: '4px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
                     );
                   } else if (isPdf) {
                     return (
-                      <object 
-                        data={previewBlobUrl} 
-                        type="application/pdf" 
+                      <object
+                        data={previewBlobUrl}
+                        type="application/pdf"
                         style={{ width: '100%', height: '65vh', borderRadius: '4px' }}
                       >
-                        <iframe 
-                          src={previewBlobUrl} 
+                        <iframe
+                          src={previewBlobUrl}
                           style={{ width: '100%', height: '65vh', border: 'none' }}
                           title={previewFile.filename}
                         />
@@ -5086,8 +5472,8 @@ function App() {
                     );
                   } else if (isText) {
                     return (
-                      <iframe 
-                        src={previewBlobUrl} 
+                      <iframe
+                        src={previewBlobUrl}
                         style={{ width: '100%', height: '60vh', border: 'none', backgroundColor: '#ffffff', borderRadius: '4px', padding: '10px' }}
                         title={previewFile.filename}
                       />
@@ -5098,9 +5484,9 @@ function App() {
                         <div style={{ fontSize: '48px', marginBottom: '12px' }}>📁</div>
                         <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-color)' }}>Aucun aperçu disponible pour ce type de fichier.</p>
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Format : {previewFile.contentType || 'Inconnu'}</p>
-                        <a 
-                          href={previewBlobUrl} 
-                          className="btn btn-primary" 
+                        <a
+                          href={previewBlobUrl}
+                          className="btn btn-primary"
                           style={{ marginTop: '16px', display: 'inline-flex' }}
                           download={previewFile.filename}
                         >
@@ -5113,12 +5499,12 @@ function App() {
                 })()
               ) : null}
             </div>
-            
+
             <div className="modal-footer" style={{ padding: '12px 20px', backgroundColor: 'var(--body-bg)', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               {previewBlobUrl && (
-                <a 
+                <a
                   href={previewBlobUrl}
-                  className="btn btn-secondary" 
+                  className="btn btn-secondary"
                   style={{ display: 'inline-flex', alignItems: 'center' }}
                   download={previewFile.filename}
                 >
@@ -5133,20 +5519,20 @@ function App() {
       )}
       {/* Command Palette Modal */}
       {showCommandPalette && (
-        <div 
-          className="modal-overlay" 
+        <div
+          className="modal-overlay"
           onClick={() => setShowCommandPalette(false)}
           style={{ zIndex: 1200, display: 'flex', alignItems: 'flex-start', paddingTop: '10vh' }}
         >
-          <div 
-            className="modal-content command-palette-modal" 
+          <div
+            className="modal-content command-palette-modal"
             onClick={(e) => e.stopPropagation()}
-            style={{ 
-              maxWidth: '600px', 
-              width: '90%', 
-              padding: '0px', 
-              borderRadius: '12px', 
-              overflow: 'hidden', 
+            style={{
+              maxWidth: '600px',
+              width: '90%',
+              padding: '0px',
+              borderRadius: '12px',
+              overflow: 'hidden',
               boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
               backgroundColor: 'var(--card-bg, #ffffff)',
               border: '1px solid var(--border-color)'
@@ -5155,19 +5541,19 @@ function App() {
             {/* Input box */}
             <div style={{ display: 'flex', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid var(--border-color)', gap: '12px' }}>
               <Search size={18} style={{ color: 'var(--text-muted, #64748b)' }} />
-              <input 
-                type="text" 
-                placeholder="Rechercher un incident, naviguer ou taper '>' pour des commandes rapides..." 
+              <input
+                type="text"
+                placeholder="Rechercher un incident, naviguer ou taper '>' pour des commandes rapides..."
                 value={commandPaletteQuery}
                 onChange={(e) => {
                   setCommandPaletteQuery(e.target.value);
                   setCommandPaletteSelectedIndex(0);
                 }}
-                style={{ 
-                  flex: 1, 
-                  border: 'none', 
-                  outline: 'none', 
-                  fontSize: '14px', 
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '14px',
                   background: 'transparent',
                   color: 'var(--text-main)'
                 }}
@@ -5291,6 +5677,106 @@ function App() {
               <span>↵ pour valider</span>
               <span>ESC pour fermer</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Nouveau Rôle */}
+      {showRoleCreateModal && (
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={18} className="text-blue-600" />
+                Créer un nouveau Rôle
+              </h3>
+              <button className="modal-close-btn" onClick={() => setShowRoleCreateModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleRoleCreate}>
+              <div className="modal-body" style={{ padding: '20px' }}>
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600' }}>Nom du rôle <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Ex: Auditeur Sécurité, Chef de Projet"
+                    value={newRoleForm.name}
+                    onChange={(e) => setNewRoleForm({ ...newRoleForm, name: e.target.value })}
+                    required
+                    style={{ width: '100%', height: '38px' }}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600' }}>Description du rôle</label>
+                  <textarea
+                    className="form-control"
+                    rows="3"
+                    placeholder="Description des responsabilités et permissions accordées par ce rôle..."
+                    value={newRoleForm.description}
+                    onChange={(e) => setNewRoleForm({ ...newRoleForm, description: e.target.value })}
+                    style={{ width: '100%', padding: '8px', resize: 'vertical' }}
+                  ></textarea>
+                </div>
+              </div>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRoleCreateModal(false)}>
+                  Annuler
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Créer le rôle
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Modifier Rôle */}
+      {showRoleEditModal && (
+        <div className="modal-overlay">
+          <div className="modal-card" style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit3 size={18} className="text-blue-600" />
+                Modifier le Rôle
+              </h3>
+              <button className="modal-close-btn" onClick={() => setShowRoleEditModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleRoleUpdate}>
+              <div className="modal-body" style={{ padding: '20px' }}>
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600' }}>Nom du rôle <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Ex: Administrateur, Opérateur"
+                    value={editRoleForm.name}
+                    onChange={(e) => setEditRoleForm({ ...editRoleForm, name: e.target.value })}
+                    required
+                    style={{ width: '100%', height: '38px' }}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600' }}>Description du rôle</label>
+                  <textarea
+                    className="form-control"
+                    rows="3"
+                    placeholder="Description des privilèges du rôle..."
+                    value={editRoleForm.description}
+                    onChange={(e) => setEditRoleForm({ ...editRoleForm, description: e.target.value })}
+                    style={{ width: '100%', padding: '8px', resize: 'vertical' }}
+                  ></textarea>
+                </div>
+              </div>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '16px 20px', borderTop: '1px solid var(--border-color)' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRoleEditModal(false)}>
+                  Annuler
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Enregistrer les modifications
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
