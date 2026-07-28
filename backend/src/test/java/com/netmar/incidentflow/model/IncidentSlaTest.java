@@ -7,57 +7,61 @@ import static org.junit.jupiter.api.Assertions.*;
 public class IncidentSlaTest {
 
     @Test
-    public void testSlaCalculationForCriticalNetwork() {
+    public void testSlaCalculationForCritique() {
         Incident incident = Incident.builder()
                 .title("DHCP Down")
                 .description("Server down")
                 .category("Réseau")
-                .priority("Critical")
+                .priority("High")
+                .severity("Critique")
                 .build();
 
         incident.onCreate(); // Simulation du cycle de vie JPA PrePersist
 
         assertNotNull(incident.getCreatedAt(), "La date de création ne doit pas être nulle");
         assertNotNull(incident.getSlaDueAt(), "L'échéance SLA ne doit pas être nulle");
+        assertEquals("Critique", incident.getSeverity(), "La sévérité doit être enregistrée");
         
-        // Critical Network SLA est de 2 heures
+        // Sévérité Critique SLA est de < 4 heures (indépendant de la priorité High)
         long diffHours = java.time.Duration.between(incident.getCreatedAt(), incident.getSlaDueAt()).toHours();
-        assertEquals(2, diffHours, "Le SLA critique réseau doit être de 2 heures");
+        assertEquals(4, diffHours, "Le SLA sévérité critique doit être de 4 heures");
     }
 
     @Test
-    public void testSlaCalculationForCriticalMedical() {
-        Incident incident = Incident.builder()
-                .title("Urgence Médicale")
-                .description("Accident labo")
-                .category("Médical")
-                .priority("Critical")
-                .build();
-
-        incident.onCreate();
-
-        assertNotNull(incident.getSlaDueAt(), "L'échéance SLA ne doit pas être nulle");
-        
-        // Critical Medical SLA est de 1 heure
-        long diffHours = java.time.Duration.between(incident.getCreatedAt(), incident.getSlaDueAt()).toHours();
-        assertEquals(1, diffHours, "Le SLA critique médical doit être de 1 heure");
-    }
-
-    @Test
-    public void testSlaCalculationForHighPriority() {
+    public void testSlaCalculationForImportant() {
         Incident incident = Incident.builder()
                 .title("Saturation Disque")
                 .description("VM critique")
                 .category("Système")
-                .priority("High")
+                .priority("Critical")
+                .severity("Important")
                 .build();
 
         incident.onCreate();
 
         assertNotNull(incident.getSlaDueAt(), "L'échéance SLA ne doit pas être nulle");
         
-        // High priority SLA est de 12 heures
+        // Sévérité Important SLA est de < 24 heures
         long diffHours = java.time.Duration.between(incident.getCreatedAt(), incident.getSlaDueAt()).toHours();
-        assertEquals(12, diffHours, "Le SLA de priorité haute doit être de 12 heures");
+        assertEquals(24, diffHours, "Le SLA sévérité important doit être de 24 heures");
+    }
+
+    @Test
+    public void testSlaCalculationForMineur() {
+        Incident incident = Incident.builder()
+                .title("Demande d'accès")
+                .description("Accès imprimante")
+                .category("Support")
+                .priority("Low")
+                .severity("Mineur")
+                .build();
+
+        incident.onCreate();
+
+        assertNotNull(incident.getSlaDueAt(), "L'échéance SLA ne doit pas être nulle");
+        
+        // Sévérité Mineur SLA est de < 3 jours (72 heures)
+        long diffHours = java.time.Duration.between(incident.getCreatedAt(), incident.getSlaDueAt()).toHours();
+        assertEquals(72, diffHours, "Le SLA sévérité mineur doit être de 72 heures (3 jours)");
     }
 }

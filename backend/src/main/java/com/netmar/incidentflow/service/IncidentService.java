@@ -136,6 +136,9 @@ public class IncidentService {
         incident.setDescription(details.getDescription());
         incident.setCategory(details.getCategory());
         incident.setPriority(details.getPriority());
+        if (details.getSeverity() != null && !details.getSeverity().isEmpty()) {
+            incident.setSeverity(details.getSeverity());
+        }
 
         // Verifier le changement d'assignataire
         User oldAssignee = incident.getAssignedTo();
@@ -336,5 +339,33 @@ public class IncidentService {
         incident.getHistory().add(history);
 
         incidentRepository.save(incident);
+    }
+
+    @Transactional
+    public void deleteIncident(String code, User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("Utilisateur non authentifié.");
+        }
+        boolean isAdmin = user.getRole() != null && 
+                ("Administrateur".equalsIgnoreCase(user.getRole().getName()) || 
+                 "Admin".equalsIgnoreCase(user.getRole().getName()) ||
+                 "Administrateur Système".equalsIgnoreCase(user.getRole().getName()));
+                 
+        if (!isAdmin) {
+            throw new IllegalArgumentException("Seul un Administrateur est autorisé à supprimer un incident.");
+        }
+        Incident incident = getIncidentByCode(code);
+        if (incident.getAttachments() != null) {
+            for (Attachment attachment : incident.getAttachments()) {
+                try {
+                    if (attachment.getFilePath() != null) {
+                        java.nio.file.Files.deleteIfExists(java.nio.file.Paths.get(attachment.getFilePath()));
+                    }
+                } catch (java.io.IOException e) {
+                    System.err.println("Impossible de supprimer le fichier: " + attachment.getFilePath() + " - " + e.getMessage());
+                }
+            }
+        }
+        incidentRepository.delete(incident);
     }
 }

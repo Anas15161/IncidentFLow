@@ -34,6 +34,9 @@ public class Incident {
     @Column(nullable = false)
     private String priority; // Critical, High, Medium, Low
 
+    @Column(name = "severity")
+    private String severity; // Critique (<4h), Important (<24h), Mineur (<3j)
+
     @Column(nullable = false)
     private String status; // Nouveau, Assigné, En cours, Résolu, Clôturé
 
@@ -78,16 +81,26 @@ public class Incident {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+
+        // Si la sévérité n'est pas renseignée, la déterminer à partir de la priorité par défaut
+        if (severity == null || severity.trim().isEmpty()) {
+            if ("Critical".equalsIgnoreCase(priority) || "Critique".equalsIgnoreCase(priority)) {
+                severity = "Critique";
+            } else if ("High".equalsIgnoreCase(priority) || "Important".equalsIgnoreCase(priority)) {
+                severity = "Important";
+            } else {
+                severity = "Mineur";
+            }
+        }
+
         if (slaDueAt == null) {
-            long hours = 36;
-            if ("Critical".equalsIgnoreCase(priority)) {
-                hours = "Médical".equalsIgnoreCase(category) ? 1 : 2;
-            } else if ("High".equalsIgnoreCase(priority)) {
-                hours = 12;
-            } else if ("Medium".equalsIgnoreCase(priority)) {
-                hours = 36;
-            } else if ("Low".equalsIgnoreCase(priority)) {
-                hours = 72;
+            long hours = 72; // Mineur par défaut (< 3 jours)
+            if ("Critique".equalsIgnoreCase(severity) || "Critical".equalsIgnoreCase(severity)) {
+                hours = 4; // Critique (< 4 heures)
+            } else if ("Important".equalsIgnoreCase(severity) || "High".equalsIgnoreCase(severity)) {
+                hours = 24; // Important (< 24 heures)
+            } else if ("Mineur".equalsIgnoreCase(severity) || "Medium".equalsIgnoreCase(severity) || "Low".equalsIgnoreCase(severity)) {
+                hours = 72; // Mineur (< 3 jours = 72 heures)
             }
             slaDueAt = createdAt.plusHours(hours);
         }

@@ -4,7 +4,7 @@ import {
   Search, User, Plus, X, Bell, Paperclip, Download, Send,
   Globe, Cpu, Stethoscope, ArrowLeft, Eye, EyeOff, RefreshCw, Layers,
   Lock, LogOut, Users, Trash2, Edit3, Settings, AlertCircle,
-  ChevronDown, HelpCircle, MessageSquare, PlusCircle, UserPlus, FileUp
+  ChevronDown, HelpCircle, MessageSquare, PlusCircle, UserPlus, FileUp, CheckSquare
 } from 'lucide-react';
 import ReactFlow, {
   MiniMap,
@@ -196,9 +196,78 @@ function App() {
   const [usersList, setUsersList] = useState([]);
   const [workflows, setWorkflows] = useState([]);
   const [rolesList, setRolesList] = useState([]);
+  const [permissionsList, setPermissionsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Helper de vérification granulaire des permissions RBAC
+  const hasPermission = (permCode) => {
+    if (!currentUser || !currentUser.role) return false;
+    const roleName = getRoleName(currentUser.role);
+    if (roleName === 'Administrateur' || roleName === 'Admin') return true;
+
+    if (currentUser.role.permissions && Array.isArray(currentUser.role.permissions)) {
+      return currentUser.role.permissions.some(p => (typeof p === 'string' ? p : p.code) === permCode);
+    }
+    if (roleName === 'Responsable') {
+      return ['PAGE_DASHBOARD', 'PAGE_INCIDENTS', 'PAGE_WORKFLOWS', 'PAGE_SLA', 'INCIDENT_CREATE', 'INCIDENT_EDIT', 'INCIDENT_EXPORT_PDF', 'INCIDENT_VIEW_MEDICAL', 'WORKFLOW_EDIT'].includes(permCode);
+    }
+    if (roleName === 'Opérateur') {
+      return ['PAGE_DASHBOARD', 'PAGE_INCIDENTS', 'PAGE_SLA', 'INCIDENT_CREATE', 'INCIDENT_EDIT', 'INCIDENT_EXPORT_PDF'].includes(permCode);
+    }
+    if (roleName === 'Opérateur médical') {
+      return ['PAGE_DASHBOARD', 'PAGE_INCIDENTS', 'PAGE_SLA', 'INCIDENT_CREATE', 'INCIDENT_EDIT', 'INCIDENT_EXPORT_PDF', 'INCIDENT_VIEW_MEDICAL'].includes(permCode);
+    }
+    return ['PAGE_DASHBOARD', 'PAGE_INCIDENTS', 'PAGE_SLA', 'INCIDENT_CREATE'].includes(permCode);
+  };
+
+  // Bascule instantanée des cases à cocher dans la matrice RBAC
+  const handleTogglePermission = async (roleId, permCode) => {
+    const targetRole = rolesList.find(r => r.id === roleId);
+    if (!targetRole) return;
+
+    let currentCodes = (targetRole.permissions || []).map(p => typeof p === 'string' ? p : p.code);
+    let updatedCodes;
+    if (currentCodes.includes(permCode)) {
+      updatedCodes = currentCodes.filter(c => c !== permCode);
+    } else {
+      updatedCodes = [...currentCodes, permCode];
+    }
+
+    // Mise à jour locale optimiste
+    setRolesList(rolesList.map(r => {
+      if (r.id === roleId) {
+        return {
+          ...r,
+          permissions: updatedCodes.map(code => ({ code }))
+        };
+      }
+      return r;
+    }));
+
+    try {
+      const res = await fetch(`${API_BASE}/roles/${roleId}/permissions`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(updatedCodes)
+      });
+      if (res.ok) {
+        const updatedRoleFromBackend = await res.json();
+        setRolesList(rolesList.map(r => r.id === roleId ? updatedRoleFromBackend : r));
+        if (currentUser && currentUser.role && currentUser.role.id === roleId) {
+          setCurrentUser({
+            ...currentUser,
+            role: updatedRoleFromBackend
+          });
+        }
+        setSuccessMessage("Matrice RBAC mise à jour avec succès !");
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      console.error("Erreur de sauvegarde de la permission RBAC", err);
+    }
+  };
 
   // Incident Filtering & Pagination
   const [statusFilter, setStatusFilter] = useState('Tous');
@@ -221,6 +290,7 @@ function App() {
     description: '',
     category: 'Réseau',
     priority: 'Medium',
+    severity: 'Mineur',
     assignedToId: '',
     tags: ''
   });
@@ -231,6 +301,7 @@ function App() {
     description: '',
     category: 'Réseau',
     priority: 'Medium',
+    severity: 'Mineur',
     assignedToId: ''
   });
 
@@ -447,7 +518,7 @@ function App() {
       { id: 'cmd-new', type: 'command', label: 'Déclarer un incident', shortcut: '> new', action: () => { setShowCreateModal(true); } },
       { id: 'nav-dash', type: 'nav', label: 'Aller au Tableau de bord', shortcut: '> dashboard', action: () => { setCurrentView('dashboard'); } },
       { id: 'nav-inc', type: 'nav', label: 'Aller à la liste des Incidents', shortcut: '> incidents', action: () => { setCurrentView('incidents'); } },
-      { id: 'nav-wf', type: 'nav', label: 'Aller aux Workflows', shortcut: '> workflows', action: () => { setCurrentView('workflows'); } },
+      { id: 'nav-wf', type: 'nav', label: 'Aller au Workflow', shortcut: '> workflow', action: () => { setCurrentView('workflows'); } },
       { id: 'nav-user', type: 'nav', label: 'Aller à la gestion des Utilisateurs', shortcut: '> users', action: () => { setCurrentView('users'); } },
       { id: 'cmd-theme', type: 'command', label: 'Changer le Thème (Clair/Sombre)', shortcut: '> theme', action: () => { setThemeMode(prev => prev === 'dark' ? 'light' : 'dark'); } },
       { id: 'cmd-logout', type: 'command', label: 'Se déconnecter de la session', shortcut: '> logout', action: () => { handleLogout(); } }
@@ -758,10 +829,11 @@ function App() {
       const res = await fetch(`${API_BASE}/workflows`, { headers: getHeaders() });
       if (res.ok) {
         const data = await res.json();
-        setWorkflows(data);
-        if (data.length > 0 && !selectedWorkflowId) {
-          setSelectedWorkflowId(data[0].id);
-          setActiveWorkflow(data[0]);
+        const singleList = data && data.length > 0 ? [data[0]] : [];
+        setWorkflows(singleList);
+        if (singleList.length > 0) {
+          setSelectedWorkflowId(singleList[0].id);
+          setActiveWorkflow(singleList[0]);
         }
       }
     } catch (err) {
@@ -784,8 +856,14 @@ function App() {
         const rolesData = await rolesRes.json();
         setRolesList(rolesData);
       }
+
+      const permRes = await fetch(`${API_BASE}/permissions`, { headers: getHeaders() });
+      if (permRes.ok) {
+        const permData = await permRes.json();
+        setPermissionsList(permData);
+      }
     } catch (err) {
-      console.error("Impossible de charger les utilisateurs:", err);
+      console.error("Impossible de charger les utilisateurs ou permissions:", err);
     }
   };
 
@@ -1082,7 +1160,8 @@ function App() {
       title: newIncident.title,
       description: newIncident.description,
       category: newIncident.category,
-      priority: newIncident.priority
+      priority: newIncident.priority,
+      severity: newIncident.severity || 'Mineur'
     };
 
     if (newIncident.assignedToId) {
@@ -1125,6 +1204,7 @@ function App() {
         description: '',
         category: 'Réseau',
         priority: 'Medium',
+        severity: 'Mineur',
         assignedToId: '',
         tags: ''
       });
@@ -1146,6 +1226,7 @@ function App() {
       description: selectedIncident.description,
       category: selectedIncident.category,
       priority: selectedIncident.priority,
+      severity: selectedIncident.severity || 'Mineur',
       assignedToId: selectedIncident.assignedTo ? selectedIncident.assignedTo.id.toString() : ''
     });
     setShowEditModal(true);
@@ -1162,6 +1243,7 @@ function App() {
       description: editIncidentForm.description,
       category: editIncidentForm.category,
       priority: editIncidentForm.priority,
+      severity: editIncidentForm.severity,
       assignedTo: selectedAssignee ? { id: selectedAssignee.id } : null
     };
 
@@ -1188,6 +1270,42 @@ function App() {
     }
   };
 
+  // Delete an incident (Admin only)
+  const handleDeleteIncident = async (code, e) => {
+    if (e) e.stopPropagation();
+    const roleName = getRoleName(currentUser?.role);
+    if (roleName !== 'Administrateur' && roleName !== 'Admin' && roleName !== 'Administrateur Système') {
+      alert("Seul un Administrateur est autorisé à supprimer un incident.");
+      return;
+    }
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement l'incident ${code} ?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/incidents/${code}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Erreur lors de la suppression de l'incident.");
+      }
+
+      if (selectedIncidentCode === code) {
+        setSelectedIncidentCode(null);
+        setSelectedIncident(null);
+      }
+
+      fetchIncidents();
+      setSuccessMessage(`L'incident ${code} a été supprimé avec succès.`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setErrorMessage(err.message || "Erreur de suppression de l'incident.");
+    }
+  };
+
   // Save the entire active workflow parameters globally
   const handleSaveWorkflowGlobally = async () => {
     if (!activeWorkflow) return;
@@ -1205,7 +1323,14 @@ function App() {
         throw new Error(errorData.message || "Erreur lors de la sauvegarde du workflow.");
       }
 
+      const updated = await res.json();
+      setActiveWorkflow(updated);
+      setWorkflows([updated]);
       fetchWorkflows();
+      fetchIncidents();
+      if (selectedIncidentCode) {
+        loadIncidentDetail(selectedIncidentCode);
+      }
       setSuccessMessage("Workflow configuré enregistré avec succès !");
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
@@ -1323,6 +1448,20 @@ function App() {
   // Delete transition
   const handleDeleteTransitionFromWorkflow = (fromState, toState) => {
     const updatedTrans = activeWorkflow.transitions.filter(t => !(t.fromState === fromState && t.toState === toState));
+    const updatedWf = { ...activeWorkflow, transitions: updatedTrans };
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+  };
+
+  // Update authorized role for an existing transition
+  const handleUpdateTransitionRole = (fromState, toState, roleRequired) => {
+    if (!activeWorkflow) return;
+    const updatedTrans = activeWorkflow.transitions.map(t => {
+      if (t.fromState === fromState && t.toState === toState) {
+        return { ...t, roleRequired: roleRequired || null };
+      }
+      return t;
+    });
     const updatedWf = { ...activeWorkflow, transitions: updatedTrans };
     setActiveWorkflow(updatedWf);
     setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
@@ -1861,6 +2000,41 @@ function App() {
     });
   };
 
+  // Helper de formatage clair et propre des temps SLA (évite le défilement inutile des secondes sauf urgence)
+  const formatSlaDuration = (ms) => {
+    const isOverdue = ms < 0;
+    const absMs = Math.abs(ms);
+
+    const totalMins = Math.floor(absMs / (1000 * 60));
+    const totalHours = Math.floor(absMs / (1000 * 60 * 60));
+    const days = Math.floor(totalHours / 24);
+    const remHours = totalHours % 24;
+    const remMins = totalMins % 60;
+    const remSecs = Math.floor((absMs / 1000) % 60);
+
+    if (isOverdue) {
+      if (days > 0) {
+        return `Dépassé de ${days}j ${remHours > 0 ? remHours + 'h' : ''}`.trim();
+      }
+      if (totalHours > 0) {
+        return `Dépassé de ${totalHours}h ${remMins > 0 ? remMins + 'm' : ''}`.trim();
+      }
+      return `Dépassé de ${totalMins} min`;
+    } else {
+      if (days > 0) {
+        return `Reste ${days}j ${remHours}h`;
+      }
+      if (totalHours > 0) {
+        return `Reste ${totalHours}h ${remMins}m`;
+      }
+      if (totalMins >= 15) {
+        return `Reste ${totalMins} min`;
+      }
+      // Moins de 15 min : afficher minutes et secondes pour l'urgence
+      return `Reste ${totalMins}m ${remSecs}s`;
+    }
+  };
+
   // Render SLA Badge helper
   const renderSlaBadge = (inc) => {
     if (!inc.slaDueAt) return null;
@@ -1875,46 +2049,30 @@ function App() {
 
     const dueTime = new Date(inc.slaDueAt).getTime();
     const diffMs = dueTime - tickerTime;
+    const formattedText = formatSlaDuration(diffMs);
 
     if (diffMs < 0) {
-      const overdueMs = Math.abs(diffMs);
-      const secs = Math.floor((overdueMs / 1000) % 60);
-      const mins = Math.floor((overdueMs / (1000 * 60)) % 60);
-      const hours = Math.floor(overdueMs / (1000 * 60 * 60));
-
-      const timeStr = hours > 0
-        ? `${hours}h ${mins}m ${secs}s`
-        : `${mins}m ${secs}s`;
-
       if (inc.escalated) {
         return (
-          <span className="badge pulse-active-glow" style={{ backgroundColor: '#fff5f5', color: '#e53e3e', borderColor: '#feb2b2', fontWeight: 'bold' }} title={`Dépassé de ${timeStr} (Escaladé automatiquement)`}>
-            🚨 SLA Dépassé (Escaladé)
+          <span className="badge pulse-active-glow" style={{ backgroundColor: '#fff5f5', color: '#e53e3e', borderColor: '#feb2b2', fontWeight: 'bold' }} title={`${formattedText} (Escaladé automatiquement)`}>
+            🚨 SLA {formattedText} (Escaladé)
           </span>
         );
       }
 
       return (
-        <span className="badge pulse-active-glow" style={{ backgroundColor: '#fef2f2', color: '#991b1b', borderColor: '#fca5a5', fontWeight: 'bold' }} title={`Dépassé de ${timeStr}`}>
-          ⚠ SLA Dépassé
+        <span className="badge pulse-active-glow" style={{ backgroundColor: '#fef2f2', color: '#991b1b', borderColor: '#fca5a5', fontWeight: 'bold' }}>
+          ⚠ SLA {formattedText}
         </span>
       );
     }
 
-    const remainingSecs = Math.floor((diffMs / 1000) % 60);
-    const remainingMins = Math.floor((diffMs / (1000 * 60)) % 60);
-    const remainingHours = Math.floor(diffMs / (1000 * 60 * 60));
-
     const totalMinutes = Math.floor(diffMs / 60000);
-
-    const timeStr = remainingHours > 0
-      ? `${remainingHours}h ${remainingMins}m ${remainingSecs}s`
-      : `${remainingMins}m ${remainingSecs}s`;
 
     if (totalMinutes < 15) {
       return (
         <span className="badge animate-pulse-red" style={{ fontWeight: 'bold' }}>
-          ⏱ Échéance ({timeStr})
+          ⏱ Échéance ({formattedText})
         </span>
       );
     }
@@ -1922,14 +2080,14 @@ function App() {
     if (totalMinutes <= 30) {
       return (
         <span className="badge" style={{ backgroundColor: '#fff7ed', color: '#c2410c', borderColor: '#fdba74', fontWeight: 'bold' }}>
-          ⏱ Échéance ({timeStr})
+          ⏱ Échéance ({formattedText})
         </span>
       );
     }
 
     return (
       <span className="badge" style={{ backgroundColor: '#f0fdf4', color: '#15803d', borderColor: '#bbf7d0', fontWeight: 'bold' }}>
-        ⏱ {timeStr} restants
+        ⏱ {formattedText}
       </span>
     );
   };
@@ -2346,7 +2504,7 @@ function App() {
               Gérez vos incidents de support <span className="highlight-itil">ITIL</span> avec <span className="highlight-fluidite">fluidité</span>.
             </h2>
             <p style={{ color: '#cbd5e1', fontSize: '15.5px', lineHeight: '1.6', marginBottom: '32px', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-              Une plateforme moderne combinant gestion de workflows dynamiques, comptes à rebours SLA actifs et communication en temps réel pour vos équipes d'exploitation.
+              Une plateforme moderne combinant gestion de workflow dynamique, comptes à rebours SLA actifs et communication en temps réel pour vos équipes d'exploitation.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2354,7 +2512,7 @@ function App() {
                 <div className="login-feature-icon">
                   <CheckCircle size={14} style={{ color: '#34d399' }} />
                 </div>
-                <span>Workflows de transition dynamiques réactifs</span>
+                <span>Workflow de transition dynamique réactif</span>
               </div>
               <div className="login-feature-item">
                 <div className="login-feature-icon">
@@ -2395,7 +2553,7 @@ function App() {
             )}
 
             {/* Primary Enterprise SSO Action */}
-            <button
+            {/*<button
               type="button"
               onClick={() => triggerQuickLogin('anas@netmar.com')}
               className="btn btn-primary"
@@ -2416,7 +2574,8 @@ function App() {
             >
               <Shield size={16} />
               Connexion Unique Keycloak (SSO)
-            </button>
+            </button> */}
+
 
             {/* Divider */}
             <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: '12px' }}>
@@ -2535,7 +2694,7 @@ function App() {
   }
 
   return (
-    <div className="app-container">
+<div className="app-container">
       {/* 1. SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-header">
@@ -2549,37 +2708,43 @@ function App() {
         </div>
 
         <nav className="sidebar-nav">
-          <button
-            className={`nav-btn ${currentView === 'dashboard' && !selectedIncidentCode ? 'active' : ''}`}
-            onClick={() => { setCurrentView('dashboard'); setSelectedIncidentCode(null); }}
-          >
-            <span className="nav-label">
-              <Activity size={18} />
-              Dashboard
-            </span>
-          </button>
+          {hasPermission('PAGE_DASHBOARD') && (
+            <button
+              className={`nav-btn ${currentView === 'dashboard' && !selectedIncidentCode ? 'active' : ''}`}
+              onClick={() => { setCurrentView('dashboard'); setSelectedIncidentCode(null); }}
+            >
+              <span className="nav-label">
+                <Activity size={18} />
+                Dashboard
+              </span>
+            </button>
+          )}
 
-          <button
-            className={`nav-btn ${currentView === 'incidents' ? 'active' : ''}`}
-            onClick={() => { setCurrentView('incidents'); setSelectedIncidentCode(null); }}
-          >
-            <span className="nav-label">
-              <FileText size={18} />
-              Gestion des Incidents
-            </span>
-          </button>
+          {hasPermission('PAGE_INCIDENTS') && (
+            <button
+              className={`nav-btn ${currentView === 'incidents' ? 'active' : ''}`}
+              onClick={() => { setCurrentView('incidents'); setSelectedIncidentCode(null); }}
+            >
+              <span className="nav-label">
+                <FileText size={18} />
+                Gestion des Incidents
+              </span>
+            </button>
+          )}
 
-          <button
-            className={`nav-btn ${currentView === 'workflows' ? 'active' : ''}`}
-            onClick={() => { setCurrentView('workflows'); setSelectedIncidentCode(null); }}
-          >
-            <span className="nav-label">
-              <Layers size={18} />
-              Paramètres Workflows
-            </span>
-          </button>
+          {hasPermission('PAGE_WORKFLOWS') && (
+            <button
+              className={`nav-btn ${currentView === 'workflows' ? 'active' : ''}`}
+              onClick={() => { setCurrentView('workflows'); setSelectedIncidentCode(null); }}
+            >
+              <span className="nav-label">
+                <Layers size={18} />
+                Paramètres Workflow
+              </span>
+            </button>
+          )}
 
-          {getRoleName(currentUser.role) === 'Administrateur' && (
+          {(hasPermission('PAGE_USERS') || getRoleName(currentUser.role) === 'Administrateur') && (
             <>
               <button
                 className={`nav-btn ${currentView === 'users' ? 'active' : ''}`}
@@ -2597,7 +2762,7 @@ function App() {
               >
                 <span className="nav-label">
                   <Shield size={18} />
-                  Gestion des Rôles
+                  Gestion des Rôles & Matrice RBAC
                 </span>
               </button>
             </>
@@ -2812,38 +2977,56 @@ function App() {
                         <div className="detail-code">{selectedIncident.incidentCode}</div>
                         <h1 className="detail-title" style={{ marginTop: '4px' }}>{selectedIncident.title}</h1>
                       </div>
-                      <button className="btn btn-secondary btn-small" onClick={handleOpenEditModal} style={{ gap: '6px', height: '32px' }}>
-                        <Edit3 size={13} />
-                        Modifier
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {hasPermission('INCIDENT_EDIT') && (
+                          <button className="btn btn-secondary btn-small" onClick={handleOpenEditModal} style={{ gap: '6px', height: '32px' }}>
+                            <Edit3 size={13} />
+                            Modifier
+                          </button>
+                        )}
+                        {hasPermission('INCIDENT_DELETE') && (
+                          <button
+                            className="btn btn-secondary btn-small"
+                            onClick={(e) => handleDeleteIncident(selectedIncident.incidentCode, e)}
+                            style={{ gap: '6px', height: '32px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
+                          >
+                            <Trash2 size={13} />
+                            Supprimer
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Stepper horizontal de workflow */}
-                    {selectedIncidentWorkflow && selectedIncidentWorkflow.states && (
-                      <div className="workflow-stepper-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', padding: '12px 16px', backgroundColor: 'var(--body-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', overflowX: 'auto', flexWrap: 'nowrap' }}>
-                        {selectedIncidentWorkflow.states.map((state, idx) => {
-                          const isCurrent = state.name.toLowerCase() === selectedIncident.status.toLowerCase();
-                          const currentStateIndex = selectedIncidentWorkflow.states.findIndex(s => s.name.toLowerCase() === selectedIncident.status.toLowerCase());
-                          const isPassed = idx < currentStateIndex;
-                          const stepStatusClass = isCurrent ? 'current' : (isPassed ? 'passed' : 'upcoming');
-                          return (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span className={`stepper-circle ${stepStatusClass}`}>
-                                  {isPassed ? '✓' : idx + 1}
-                                </span>
-                                <span className={`stepper-label ${stepStatusClass}`}>
-                                  {state.name}
-                                </span>
+                    {(() => {
+                      const currentWf = activeWorkflow || (workflows && workflows.length > 0 ? workflows[0] : selectedIncidentWorkflow);
+                      if (!currentWf || !currentWf.states) return null;
+                      return (
+                        <div className="workflow-stepper-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', padding: '12px 16px', backgroundColor: 'var(--body-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', overflowX: 'auto', flexWrap: 'nowrap' }}>
+                          {currentWf.states.map((state, idx) => {
+                            const isCurrent = state.name.toLowerCase() === selectedIncident.status.toLowerCase();
+                            const currentStateIndex = currentWf.states.findIndex(s => s.name.toLowerCase() === selectedIncident.status.toLowerCase());
+                            const isPassed = idx < currentStateIndex;
+                            const stepStatusClass = isCurrent ? 'current' : (isPassed ? 'passed' : 'upcoming');
+                            return (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span className={`stepper-circle ${stepStatusClass}`}>
+                                    {isPassed ? '✓' : idx + 1}
+                                  </span>
+                                  <span className={`stepper-label ${stepStatusClass}`}>
+                                    {state.name}
+                                  </span>
+                                </div>
+                                {idx < currentWf.states.length - 1 && (
+                                  <span style={{ color: 'var(--border-color)', fontSize: '11px', fontWeight: 'bold' }}>→</span>
+                                )}
                               </div>
-                              {idx < selectedIncidentWorkflow.states.length - 1 && (
-                                <span style={{ color: 'var(--border-color)', fontSize: '11px', fontWeight: 'bold' }}>→</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
 
                     <div className="detail-meta-grid">
                       <div className="meta-item">
@@ -2868,6 +3051,12 @@ function App() {
                         </span>
                       </div>
                       <div className="meta-item">
+                        <span className="meta-label">Sévérité SLA</span>
+                        <span className="meta-val" style={{ fontWeight: '700', color: (selectedIncident.severity === 'Critique' || (!selectedIncident.severity && selectedIncident.priority === 'Critical')) ? '#dc2626' : (selectedIncident.severity === 'Important' || (!selectedIncident.severity && selectedIncident.priority === 'High')) ? '#ea580c' : '#2563eb' }}>
+                          {selectedIncident.severity ? `${selectedIncident.severity} (${selectedIncident.severity === 'Critique' ? '< 4h' : selectedIncident.severity === 'Important' ? '< 24h' : '< 3j'})` : (selectedIncident.priority === 'Critical' ? 'Critique (< 4h)' : selectedIncident.priority === 'High' ? 'Important (< 24h)' : 'Mineur (< 3j)')}
+                        </span>
+                      </div>
+                      <div className="meta-item">
                         <span className="meta-label">Dernière mise à jour</span>
                         <span className="meta-val">
                           {formatDate(selectedIncident.updatedAt)}
@@ -2880,12 +3069,42 @@ function App() {
                         </span>
                       </div>
                       <div className="meta-item">
-                        <span className="meta-label">Version Workflow</span>
+                        <span className="meta-label">Workflow appliqué</span>
                         <span className="meta-val" style={{ fontWeight: '700', color: 'var(--primary-600)' }}>
-                          {selectedIncident.workflow ? `${selectedIncident.workflow.name} (v${selectedIncident.workflow.version})` : 'Par défaut (v1)'}
+                          {selectedIncident.workflow ? selectedIncident.workflow.name : 'Workflow Standard'}
                         </span>
                       </div>
                     </div>
+
+                    {/* Jauge Visuelle SLA Propre & Pratique */}
+                    {selectedIncident.slaDueAt && selectedIncident.createdAt && selectedIncident.status !== 'Résolu' && selectedIncident.status !== 'Clôturé' && (() => {
+                      const start = new Date(selectedIncident.createdAt).getTime();
+                      const due = new Date(selectedIncident.slaDueAt).getTime();
+                      const total = Math.max(1, due - start);
+                      const elapsed = tickerTime - start;
+                      const pct = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+                      const diffMs = due - tickerTime;
+                      const isOverdue = diffMs < 0;
+                      const barColor = isOverdue ? '#ef4444' : pct > 80 ? '#f97316' : pct > 50 ? '#eab308' : '#22c55e';
+                      const sev = selectedIncident.severity || (selectedIncident.priority === 'Critical' ? 'Critique' : selectedIncident.priority === 'High' ? 'Important' : 'Mineur');
+                      const targetText = sev === 'Critique' ? '< 4h (Critique)' : sev === 'Important' ? '< 24h (Important)' : '< 3 jours (Mineur)';
+
+                      return (
+                        <div style={{ marginTop: '16px', marginBottom: '16px', padding: '12px 16px', backgroundColor: 'var(--body-bg)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-color)' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              ⏱️ <strong>Objectif SLA :</strong> {targetText}
+                            </span>
+                            <span style={{ color: isOverdue ? '#dc2626' : '#15803d', fontWeight: '700' }}>
+                              {formatSlaDuration(diffMs)}
+                            </span>
+                          </div>
+                          <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--slate-200, #e2e8f0)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: `${isOverdue ? 100 : pct}%`, height: '100%', backgroundColor: barColor, borderRadius: '4px', transition: 'width 0.4s ease-in-out' }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     <div className="form-group">
                       <label>Description</label>
@@ -2893,49 +3112,53 @@ function App() {
                     </div>
 
                     {/* Workflow Transitions Panel */}
-                    {selectedIncidentWorkflow && (
-                      <div className="workflow-actions-panel">
-                        <h3 className="widget-title" style={{ color: 'var(--text-main)', fontSize: '11px', marginBottom: '8px' }}>
-                          Moteur de Workflow : Actions Disponibles
-                        </h3>
-                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                          Transitions autorisées pour l'état <strong>{selectedIncident.status}</strong> :
-                        </p>
+                    {(() => {
+                      const currentWf = activeWorkflow || (workflows && workflows.length > 0 ? workflows[0] : selectedIncidentWorkflow);
+                      if (!currentWf || !currentWf.transitions) return null;
+                      return (
+                        <div className="workflow-actions-panel">
+                          <h3 className="widget-title" style={{ color: 'var(--text-main)', fontSize: '11px', marginBottom: '8px' }}>
+                            Moteur de Workflow : Actions Disponibles
+                          </h3>
+                          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                            Transitions autorisées pour l'état <strong>{selectedIncident.status}</strong> :
+                          </p>
 
-                        <div className="actions-buttons-container">
-                          {selectedIncidentWorkflow.transitions
-                            .filter(t => t.fromState.toLowerCase() === selectedIncident.status.toLowerCase())
-                            .map((t, idx) => {
-                              const hasRole = !t.roleRequired || getRoleName(currentUser.role).toLowerCase() === t.roleRequired.toLowerCase();
-                              return (
-                                <button
-                                  key={idx}
-                                  className="btn btn-primary btn-small"
-                                  style={{
-                                    background: hasRole ? 'linear-gradient(135deg, #1d4ed8, #1e40af)' : '#e2e8f0',
-                                    color: hasRole ? '#ffffff' : '#94a3b8',
-                                    border: hasRole ? 'none' : '1px solid #cbd5e1',
-                                    cursor: hasRole ? 'pointer' : 'not-allowed'
-                                  }}
-                                  onClick={() => handleTransitionClick(t)}
-                                  disabled={!hasRole}
-                                  title={t.roleRequired ? `Requis: ${t.roleRequired}` : ''}
-                                >
-                                  Passer à: {t.toState}
-                                  {t.roleRequired && <span style={{ fontSize: '9px', opacity: 0.8 }}> ({t.roleRequired})</span>}
-                                </button>
-                              );
-                            })
-                          }
+                          <div className="actions-buttons-container">
+                            {currentWf.transitions
+                              .filter(t => t.fromState.toLowerCase() === selectedIncident.status.toLowerCase())
+                              .map((t, idx) => {
+                                const hasRole = !t.roleRequired || getRoleName(currentUser.role).toLowerCase() === t.roleRequired.toLowerCase();
+                                return (
+                                  <button
+                                    key={idx}
+                                    className="btn btn-primary btn-small"
+                                    style={{
+                                      background: hasRole ? 'linear-gradient(135deg, #1d4ed8, #1e40af)' : '#e2e8f0',
+                                      color: hasRole ? '#ffffff' : '#94a3b8',
+                                      border: hasRole ? 'none' : '1px solid #cbd5e1',
+                                      cursor: hasRole ? 'pointer' : 'not-allowed'
+                                    }}
+                                    onClick={() => handleTransitionClick(t)}
+                                    disabled={!hasRole}
+                                    title={t.roleRequired ? `Requis: ${t.roleRequired}` : ''}
+                                  >
+                                    Passer à: {t.toState}
+                                    {t.roleRequired && <span style={{ fontSize: '9px', opacity: 0.8 }}> ({t.roleRequired})</span>}
+                                  </button>
+                                );
+                              })
+                            }
 
-                          {selectedIncidentWorkflow.transitions.filter(t => t.fromState.toLowerCase() === selectedIncident.status.toLowerCase()).length === 0 && (
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                              Aucune transition disponible depuis cet état. L'incident est à son étape finale.
-                            </span>
-                          )}
+                            {currentWf.transitions.filter(t => t.fromState.toLowerCase() === selectedIncident.status.toLowerCase()).length === 0 && (
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                Aucune transition disponible depuis cet état. L'incident est à son étape finale.
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
 
                   {/* Right Column: Collaborative Pane (History, Comments, Attachments) */}
@@ -3436,17 +3659,31 @@ function App() {
               </div>
             ) : currentView === 'dashboard' ? (
               // VIEW B: DASHBOARD
-              <div className="animate-fade-in">
-                <div className="page-header">
-                  <div>
-                    <h1 className="page-title">Tableau de bord</h1>
-                    <p className="page-subtitle">Suivi en temps réel et résolution des incidents par catégorie.</p>
-                  </div>
-                  <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-                    <Plus size={16} />
-                    Déclarer un incident
+              !hasPermission('PAGE_DASHBOARD') ? (
+                <div className="dashboard-card text-center" style={{ padding: '48px 24px', textAlign: 'center' }}>
+                  <Shield size={48} style={{ color: '#ef4444', margin: '0 auto 16px auto', display: 'block', opacity: 0.8 }} />
+                  <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-color)' }}>Accès Refusé au Tableau de Bord</h2>
+                  <p style={{ color: 'var(--text-muted)', marginTop: '8px', fontSize: '14px' }}>
+                    Votre rôle ne dispose pas de la permission <code>PAGE_DASHBOARD</code>. Veuillez contacter votre administrateur.
+                  </p>
+                  <button className="btn btn-primary" style={{ marginTop: '20px', display: 'inline-flex' }} onClick={() => setCurrentView('incidents')}>
+                    Accéder aux Incidents
                   </button>
                 </div>
+              ) : (
+                <div className="animate-fade-in">
+                  <div className="page-header">
+                    <div>
+                      <h1 className="page-title">Tableau de bord</h1>
+                      <p className="page-subtitle">Suivi en temps réel et résolution des incidents par catégorie.</p>
+                    </div>
+                    {hasPermission('INCIDENT_CREATE') && (
+                      <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+                        <Plus size={16} />
+                        Déclarer un incident
+                      </button>
+                    )}
+                  </div>
 
                 {/* KPI Grid */}
                 <div className="kpi-grid">
@@ -3570,6 +3807,7 @@ function App() {
                   </div>
                 </div>
               </div>
+              )
             ) : currentView === 'incidents' ? (
               // VIEW C: INCIDENTS INDEPENDENT LIST PAGE
               <div className="animate-fade-in">
@@ -3582,13 +3820,17 @@ function App() {
                     <button className="btn btn-secondary" onClick={handleExportCSV} title="Exporter au format CSV pour Excel">
                       Exporter Excel (CSV)
                     </button>
-                    <button className="btn btn-secondary" onClick={handleExportPDF} title="Générer un rapport textuel des incidents">
-                      Générer Rapport PDF
-                    </button>
-                    <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-                      <Plus size={16} />
-                      Déclarer un incident
-                    </button>
+                    {hasPermission('INCIDENT_EXPORT_PDF') && (
+                      <button className="btn btn-secondary" onClick={handleExportPDF} title="Générer un rapport textuel des incidents">
+                        Générer Rapport PDF
+                      </button>
+                    )}
+                    {hasPermission('INCIDENT_CREATE') && (
+                      <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
+                        <Plus size={16} />
+                        Déclarer un incident
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -3643,11 +3885,19 @@ function App() {
                     <label>Statut</label>
                     <select className="filter-select" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} style={{ height: '37px' }}>
                       <option value="Tous">Tous</option>
-                      <option value="Nouveau">Nouveau</option>
-                      <option value="Assigné">Assigné</option>
-                      <option value="En cours">En cours</option>
-                      <option value="Résolu">Résolu</option>
-                      <option value="Clôturé">Clôturé</option>
+                      {(activeWorkflow?.states || workflows[0]?.states) ? (
+                        (activeWorkflow?.states || workflows[0]?.states).map(s => (
+                          <option key={s.id || s.name} value={s.name}>{s.label || s.name}</option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="Nouveau">Nouveau</option>
+                          <option value="Assigné">Assigné</option>
+                          <option value="En cours">En cours</option>
+                          <option value="Résolu">Résolu</option>
+                          <option value="Clôturé">Clôturé</option>
+                        </>
+                      )}
                     </select>
                   </div>
 
@@ -3733,14 +3983,26 @@ function App() {
                                 <td>{inc.author.name}</td>
                                 <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{formatDate(inc.createdAt)}</td>
                                 <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    className="btn btn-secondary btn-small"
-                                    onClick={(e) => { e.stopPropagation(); handleSelectIncident(inc.incidentCode); }}
-                                    style={{ padding: '6px 10px', height: '28px' }}
-                                    title="Voir le détail"
-                                  >
-                                    <Eye size={13} />
-                                  </button>
+                                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                                    <button
+                                      className="btn btn-secondary btn-small"
+                                      onClick={(e) => { e.stopPropagation(); handleSelectIncident(inc.incidentCode); }}
+                                      style={{ padding: '6px 10px', height: '28px' }}
+                                      title="Voir le détail"
+                                    >
+                                      <Eye size={13} />
+                                    </button>
+                                    {getRoleName(currentUser.role) === 'Administrateur' && (
+                                      <button
+                                        className="btn btn-secondary btn-small"
+                                        onClick={(e) => handleDeleteIncident(inc.incidentCode, e)}
+                                        style={{ padding: '6px 10px', height: '28px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
+                                        title="Supprimer l'incident"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -3786,9 +4048,9 @@ function App() {
                   <div>
                     <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Layers className="text-primary-600" />
-                      Gestion des Workflows Dynamiques
+                      Gestion du Workflow Dynamique
                     </h1>
-                    <p className="page-subtitle">Configurez et personnalisez les états de cycle de vie et les transitions par catégorie d'incidents.</p>
+                    <p className="page-subtitle">Configurez et personnalisez les états de cycle de vie et les transitions de l'incident.</p>
                   </div>
                   <button onClick={handleSaveWorkflowGlobally} className="btn btn-primary">
                     Enregistrer les Modifications
@@ -3796,27 +4058,29 @@ function App() {
                 </div>
 
                 {/* Category Selection Tabs */}
-                <div className="wf-category-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
-                  {workflows.map(wf => (
-                    <button
-                      key={wf.id}
-                      onClick={() => setSelectedWorkflowId(wf.id)}
-                      className={`wf-tab ${wf.id === selectedWorkflowId ? 'active' : ''}`}
-                      style={{
-                        padding: '10px 16px',
-                        background: wf.id === selectedWorkflowId ? 'var(--primary-50)' : 'transparent',
-                        color: wf.id === selectedWorkflowId ? 'var(--primary-700)' : 'var(--text-muted)',
-                        border: 'none',
-                        borderBottom: wf.id === selectedWorkflowId ? '2px solid var(--primary-500)' : 'none',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '13px'
-                      }}
-                    >
-                      {wf.category} v{wf.version || 1} {wf.active ? '(Actif)' : '(Archivé)'}
-                    </button>
-                  ))}
-                </div>
+                {workflows.length > 1 && (
+                  <div className="wf-category-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
+                    {workflows.map(wf => (
+                      <button
+                        key={wf.id}
+                        onClick={() => setSelectedWorkflowId(wf.id)}
+                        className={`wf-tab ${wf.id === selectedWorkflowId ? 'active' : ''}`}
+                        style={{
+                          padding: '10px 16px',
+                          background: wf.id === selectedWorkflowId ? 'var(--primary-50)' : 'transparent',
+                          color: wf.id === selectedWorkflowId ? 'var(--primary-700)' : 'var(--text-muted)',
+                          border: 'none',
+                          borderBottom: wf.id === selectedWorkflowId ? '2px solid var(--primary-500)' : 'none',
+                          cursor: 'pointer',
+                          fontWeight: '700',
+                          fontSize: '13px'
+                        }}
+                      >
+                        {wf.name || wf.category || 'Workflow Standard'}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Visual / Textual Mode Toggle */}
                 {activeWorkflow && (
@@ -3844,8 +4108,8 @@ function App() {
                       <div className="card" style={{ padding: '24px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                           <h3 className="widget-title" style={{ margin: 0 }}>Paramètres du Workflow</h3>
-                          <span className="badge" style={{ backgroundColor: activeWorkflow.active ? 'var(--primary-50)' : 'var(--slate-100)', color: activeWorkflow.active ? 'var(--primary-700)' : 'var(--text-muted)', fontWeight: 'bold', border: '1px solid var(--border-color)' }}>
-                            Version {activeWorkflow.version || 1} — {activeWorkflow.active ? 'Actif' : 'Archivé (Historique)'}
+                          <span className="badge" style={{ backgroundColor: 'var(--primary-50)', color: 'var(--primary-700)', fontWeight: 'bold', border: '1px solid var(--border-color)' }}>
+                            Workflow Standard — Actif
                           </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
@@ -3969,29 +4233,54 @@ function App() {
                       <div className="card" style={{ padding: '24px' }}>
                         <h3 className="widget-title" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>Transitions Autorisées</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {activeWorkflow.transitions.map((t, idx) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--body-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                              <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '13px' }}>
-                                  <span>{t.fromState}</span>
-                                  <span>➔</span>
-                                  <span style={{ color: 'var(--primary-600)' }}>{t.toState}</span>
+                          {activeWorkflow.transitions.map((t, idx) => {
+                            const defaultRoles = ["Administrateur", "Responsable", "Opérateur", "Opérateur médical"];
+                            const currentRoleOptions = Array.from(new Set([
+                              ...defaultRoles,
+                              ...(rolesList || []).map(r => r.name).filter(Boolean),
+                              ...(t.roleRequired ? [t.roleRequired] : [])
+                            ]));
+                            return (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--body-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', gap: '12px', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: '140px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '13px' }}>
+                                    <span>{t.fromState}</span>
+                                    <span>➔</span>
+                                    <span style={{ color: 'var(--primary-600)' }}>{t.toState}</span>
+                                  </div>
+                                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                    {t.requiresComment ? '💬 Commentaire obligatoire' : '💬 Commentaire optionnel'}
+                                  </div>
                                 </div>
-                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                  {t.roleRequired ? `🔑 Rôle requis : ${t.roleRequired}` : '🔓 Ouvert à tous'}
-                                  {t.requiresComment && ' • 💬 Commentaire obligatoire'}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <label style={{ fontSize: '9px', color: 'var(--text-muted)', marginBottom: 0 }}>Rôle Autorisé</label>
+                                    <select
+                                      className="form-control"
+                                      style={{ fontSize: '11px', padding: '4px 8px', width: 'auto', minWidth: '150px', background: 'var(--card-bg)' }}
+                                      value={t.roleRequired || ''}
+                                      onChange={(e) => handleUpdateTransitionRole(t.fromState, t.toState, e.target.value)}
+                                      title="Modifier le rôle autorisé pour cette transition"
+                                    >
+                                      <option value="">🔓 Tous les utilisateurs</option>
+                                      {currentRoleOptions.map(r => (
+                                        <option key={r} value={r}>🔑 {r}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="icon-btn btn-secondary"
+                                    onClick={() => handleDeleteTransitionFromWorkflow(t.fromState, t.toState)}
+                                    style={{ color: '#ef4444', border: 'none', alignSelf: 'flex-end', marginBottom: '2px' }}
+                                    title="Supprimer la transition"
+                                  >
+                                    <X size={14} />
+                                  </button>
                                 </div>
                               </div>
-                              <button
-                                type="button"
-                                className="icon-btn btn-secondary"
-                                onClick={() => handleDeleteTransitionFromWorkflow(t.fromState, t.toState)}
-                                style={{ color: '#ef4444', border: 'none' }}
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
-                          ))}
+                            );
+                          })}
                           {activeWorkflow.transitions.length === 0 && (
                             <div style={{ textAlign: 'center', fontStyle: 'italic', fontSize: '12px', padding: '20px', color: 'var(--text-muted)' }}>
                               Aucune transition configurée.
@@ -4144,40 +4433,62 @@ function App() {
                       <div className="card" style={{ padding: '20px' }}>
                         <h3 className="widget-title" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>Configuration des Transitions ({activeWorkflow.transitions.length})</h3>
                         <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {activeWorkflow.transitions.map((t, idx) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px' }}>
-                              <div>
-                                <span style={{ fontWeight: 'bold' }}>{t.fromState} ➔ {t.toState}</span>
-                                <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                                  {t.roleRequired ? `🔑 ${t.roleRequired}` : '🔓 Tous'} {t.requiresComment ? ' • 💬 Commentaire requis' : ''}
+                          {activeWorkflow.transitions.map((t, idx) => {
+                            const defaultRoles = ["Administrateur", "Responsable", "Opérateur", "Opérateur médical"];
+                            const currentRoleOptions = Array.from(new Set([
+                              ...defaultRoles,
+                              ...(rolesList || []).map(r => r.name).filter(Boolean),
+                              ...(t.roleRequired ? [t.roleRequired] : [])
+                            ]));
+                            return (
+                              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--body-bg)', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', fontSize: '12px', gap: '8px', flexWrap: 'wrap' }}>
+                                <div>
+                                  <span style={{ fontWeight: 'bold' }}>{t.fromState} ➔ {t.toState}</span>
+                                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                    {t.requiresComment ? '💬 Commentaire requis' : '💬 Optionnel'}
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <select
+                                    className="form-control"
+                                    style={{ fontSize: '10px', padding: '2px 6px', height: '26px', width: 'auto', minWidth: '120px', background: 'var(--card-bg)' }}
+                                    value={t.roleRequired || ''}
+                                    onChange={(e) => handleUpdateTransitionRole(t.fromState, t.toState, e.target.value)}
+                                    title="Modifier le rôle autorisé pour cette transition"
+                                  >
+                                    <option value="">🔓 Tous</option>
+                                    {currentRoleOptions.map(r => (
+                                      <option key={r} value={r}>🔑 {r}</option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-small"
+                                    style={{ padding: '2px 6px', fontSize: '9px', height: '26px' }}
+                                    onClick={() => {
+                                      const req = !t.requiresComment;
+                                      const updated = activeWorkflow.transitions.map((tr, i) => i === idx ? { ...tr, requiresComment: req } : tr);
+                                      const updatedWf = { ...activeWorkflow, transitions: updated };
+                                      setActiveWorkflow(updatedWf);
+                                      setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+                                    }}
+                                    title="Activer/Désactiver le commentaire obligatoire"
+                                  >
+                                    💬 Commentaire
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="icon-btn btn-secondary"
+                                    onClick={() => handleDeleteTransitionFromWorkflow(t.fromState, t.toState)}
+                                    style={{ color: '#ef4444', border: 'none', padding: '2px' }}
+                                    title="Supprimer la transition"
+                                  >
+                                    <X size={12} />
+                                  </button>
                                 </div>
                               </div>
-                              <div style={{ display: 'flex', gap: '4px' }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary btn-small"
-                                  style={{ padding: '2px 6px', fontSize: '9px' }}
-                                  onClick={() => {
-                                    const req = !t.requiresComment;
-                                    const updated = activeWorkflow.transitions.map((tr, i) => i === idx ? { ...tr, requiresComment: req } : tr);
-                                    const updatedWf = { ...activeWorkflow, transitions: updated };
-                                    setActiveWorkflow(updatedWf);
-                                    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
-                                  }}
-                                >
-                                  💬 Commentaire
-                                </button>
-                                <button
-                                  type="button"
-                                  className="icon-btn btn-secondary"
-                                  onClick={() => handleDeleteTransitionFromWorkflow(t.fromState, t.toState)}
-                                  style={{ color: '#ef4444', border: 'none', padding: '2px' }}
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -4432,19 +4743,6 @@ function App() {
                       </div>
                       <div className="stat-subtext">Utilisateurs avec privilèges système</div>
                     </div>
-
-                    <div className="stat-card">
-                      <div className="stat-header">
-                        <span className="stat-title">Taux de Couverture Rôles</span>
-                        <div style={{ padding: '8px', borderRadius: '10px', backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
-                          <CheckCircle className="text-emerald-600" size={20} />
-                        </div>
-                      </div>
-                      <div className="stat-value">
-                        {usersList.length > 0 ? Math.round((usersList.filter(u => u.role != null).length / usersList.length) * 100) : 100}%
-                      </div>
-                      <div className="stat-subtext">{usersList.filter(u => u.role != null).length} sur {usersList.length} comptes assignés</div>
-                    </div>
                   </div>
 
                   {/* Filter panel for roles */}
@@ -4614,6 +4912,85 @@ function App() {
                       </table>
                     </div>
                   </div>
+
+                  {/* Matrice Dynamique des Permissions RBAC (Cases à cocher) */}
+                  <div className="dashboard-card" style={{ padding: '24px', marginTop: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <CheckSquare size={20} className="text-primary-600" />
+                          Matrice Dynamique des Habilitations RBAC
+                        </h3>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                          Cochez ou décochez les fonctionnalités autorisées pour chaque rôle en temps réel. La mise à jour est instantanée.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="datagrid-container" style={{ overflowX: 'auto' }}>
+                      <table className="datagrid">
+                        <thead>
+                          <tr>
+                            <th style={{ width: '280px' }}>Module & Fonctionnalité</th>
+                            <th style={{ width: '150px' }}>Code Permission</th>
+                            {rolesList.map(role => (
+                              <th key={role.id} style={{ textAlign: 'center', width: '160px' }}>
+                                <span className="badge" style={{ backgroundColor: 'var(--slate-100)', color: 'var(--slate-800)', padding: '6px 10px', fontSize: '12px', fontWeight: '700' }}>
+                                  {role.name}
+                                </span>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {permissionsList.length === 0 ? (
+                            <tr>
+                              <td colSpan={2 + rolesList.length} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                                Chargement de la matrice de permissions...
+                              </td>
+                            </tr>
+                          ) : (
+                            permissionsList.map((perm) => (
+                              <tr key={perm.id || perm.code}>
+                                <td>
+                                  <strong style={{ fontSize: '13px', color: 'var(--text-color)' }}>{perm.label}</strong>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{perm.description}</div>
+                                </td>
+                                <td>
+                                  <span style={{ fontSize: '11px', fontFamily: 'monospace', padding: '2px 6px', backgroundColor: 'var(--slate-100)', borderRadius: '4px', color: 'var(--slate-700)' }}>
+                                    {perm.code}
+                                  </span>
+                                </td>
+                                {rolesList.map((role) => {
+                                  const rolePermCodes = (role.permissions || []).map(p => typeof p === 'string' ? p : p.code);
+                                  const isChecked = rolePermCodes.includes(perm.code) || role.name === 'Administrateur';
+                                  const isAdminRole = role.name === 'Administrateur';
+
+                                  return (
+                                    <td key={role.id} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        disabled={isAdminRole}
+                                        onChange={() => handleTogglePermission(role.id, perm.code)}
+                                        style={{
+                                          width: '18px',
+                                          height: '18px',
+                                          cursor: isAdminRole ? 'not-allowed' : 'pointer',
+                                          accentColor: 'var(--primary-600)'
+                                        }}
+                                        title={isAdminRole ? "L'Administrateur possède tous les privilèges système" : `Bascule de la permission ${perm.label} pour ${role.name}`}
+                                      />
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               )
             ) : null}
@@ -4647,7 +5024,7 @@ function App() {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                   <div className="form-group">
                     <label>Catégorie *</label>
                     <select
@@ -4675,6 +5052,20 @@ function App() {
                       <option value="Medium">Medium</option>
                       <option value="High">High</option>
                       <option value="Critical">Critical</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Sévérité SLA *</label>
+                    <select
+                      className="form-control"
+                      value={editIncidentForm.severity || 'Mineur'}
+                      onChange={(e) => setEditIncidentForm({ ...editIncidentForm, severity: e.target.value })}
+                      style={{ background: 'var(--card-bg)', fontWeight: '600', color: 'var(--primary-600)' }}
+                    >
+                      <option value="Critique">Critique (&lt; 4h)</option>
+                      <option value="Important">Important (&lt; 24h)</option>
+                      <option value="Mineur">Mineur (&lt; 3 jours)</option>
                     </select>
                   </div>
                 </div>
@@ -4741,7 +5132,7 @@ function App() {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                   <div className="form-group">
                     <label>Catégorie *</label>
                     <select
@@ -4769,6 +5160,20 @@ function App() {
                       <option value="Medium">Medium</option>
                       <option value="High">High</option>
                       <option value="Critical">Critical</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Sévérité SLA *</label>
+                    <select
+                      className="form-control"
+                      value={newIncident.severity || 'Mineur'}
+                      onChange={(e) => setNewIncident({ ...newIncident, severity: e.target.value })}
+                      style={{ background: 'var(--card-bg)', fontWeight: '600', color: 'var(--primary-600)' }}
+                    >
+                      <option value="Critique">Critique (&lt; 4h)</option>
+                      <option value="Important">Important (&lt; 24h)</option>
+                      <option value="Mineur">Mineur (&lt; 3 jours)</option>
                     </select>
                   </div>
                 </div>

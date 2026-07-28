@@ -1,0 +1,389 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.2cm, right=2.2cm}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, shadows}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{float}
+
+% Palette de couleurs professionnelle
+\definecolor{navyprimary}{RGB}{15, 23, 42}
+\definecolor{blueaccent}{RGB}{29, 78, 216}
+\definecolor{slategray}{RGB}{71, 85, 105}
+\definecolor{codebg}{RGB}{248, 250, 252}
+\definecolor{codeframe}{RGB}{226, 232, 240}
+\definecolor{greenaccent}{RGB}{22, 101, 52}
+\definecolor{purplaccent}{RGB}{126, 34, 206}
+
+% Configuration de hyperref
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blueaccent,
+    filecolor=purplaccent,
+    urlcolor=blueaccent,
+    pdftitle={Rapport d'Architecture IncidentFlow},
+    pdfpagemode=FullScreen
+}
+
+% Configuration de headheight pour fancyhdr
+\setlength{\headheight}{14.5pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{slategray}{\small IncidentFlow --- Architecture \& Flux de Données}}
+\lhead{\textcolor{slategray}{\small Rapport Technique}}
+\rfoot{\textcolor{slategray}{\small Page \thepage}}
+\lfoot{\textcolor{slategray}{\small NetMar Technologies}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Définition de JavaScript pour listings
+\lstdefinelanguage{JavaScript}{
+  keywords={break, case, catch, continue, debugger, default, delete, do, else, finally, for, function, if, in, instanceof, new, return, switch, this, throw, try, typeof, var, void, while, with, let, const, async, await, import, export, from},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]"
+}
+
+% Configuration de listings pour le code
+\lstset{
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{codeframe},
+    basicstyle=\ttfamily\footnotesize\color{navyprimary},
+    keywordstyle=\bfseries\color{blueaccent},
+    commentstyle=\itshape\color{slategray},
+    stringstyle=\color{greenaccent},
+    breaklines=true,
+    captionpos=b,
+    showstringspaces=false,
+    tabsize=2
+}
+
+\begin{document}
+
+% Page de titre
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+    
+    {\Huge \bfseries \textcolor{navyprimary}{IncidentFlow}}\\[0.4cm]
+    {\Large \textcolor{blueaccent}{Spécification Détaillée de l'Architecture \& du Flux de Données}}\\[0.2cm]
+    {\large \textcolor{slategray}{Des Entités Base de Données à l'Interface Utilisateur Real-Time}}\\[1.5cm]
+    
+    \begin{tcolorbox}[colback=blueaccent!5,colframe=blueaccent,arc=6pt,title=\textbf{Synthèse du Document}]
+    Ce document présente le fonctionnement interne du système \textbf{IncidentFlow}. Il détaille le parcours complet des données relatif aux \textbf{Utilisateurs}, aux \textbf{Rôles}, et au \textbf{Workflow Dynamique} (États et Transitions), depuis la persistance en base de données PostgreSQL jusqu'à l'affichage et la synchronisation en temps réel sur le frontend React.
+    \end{tcolorbox}
+
+    \vfill
+    
+    \begin{tabular}{ll}
+        \textbf{Application :} & IncidentFlow (Gestion d'Incidents Interne) \\
+        \textbf{Stack Backend :} & Java 17, Spring Boot 3, JPA / Hibernate, PostgreSQL \\
+        \textbf{Stack Frontend :} & React 19, Vite, TailwindCSS / Vanilla CSS \\
+        \textbf{Auteur :} & Équipe de Développement NetMar \\
+        \textbf{Date :} & \today \\
+    \end{tabular}
+    
+    \vspace*{0.8cm}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ---------------------------------------------------------
+% SECTION 1: VUE D'ENSEMBLE DE L'ARCHITECTURE
+% ---------------------------------------------------------
+\section{Vue d'Ensemble de l'Architecture 3-Tiers}
+
+L'application \textbf{IncidentFlow} repose sur une architecture robuste à trois tiers. Les composants interagissent de manière découplée via des API REST normées et du JSON.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.8cm, auto, >=Stealth, 
+    layer/.style={rectangle, draw=navyprimary, fill=codebg, rounded corners=6pt, minimum width=14cm, minimum height=2.2cm, thick},
+    component/.style={rectangle, draw=blueaccent, fill=white, rounded corners=4pt, minimum width=3.6cm, minimum height=1.2cm, font=\small\bfseries, align=center}]
+
+    % Couche Frontend
+    \node[layer, label=above:{\textbf{\textcolor{navyprimary}{Couche 1 : Frontend (React 19 / Vite)}}}] (frontlayer) {};
+    \node[component] (reactui) at (frontlayer.west) [xshift=2.5cm] {Composants UI\\(\texttt{App.jsx})};
+    \node[component] (reactstate) at (frontlayer.center) {Gestion d'État\\(\texttt{useState}, \texttt{useEffect})};
+    \node[component] (fetchapi) at (frontlayer.east) [xshift=-2.5cm] {Client API Fetch\\(\texttt{getHeaders()})};
+
+    % Couche Backend
+    \node[layer, label=above:{\textbf{\textcolor{navyprimary}{Couche 2 : Backend (Spring Boot 3)}}}, below=1.5cm of frontlayer] (backlayer) {};
+    \node[component] (controller) at (backlayer.west) [xshift=2.5cm] {Contrôleurs REST\\(\texttt{WorkflowController})};
+    \node[component] (service) at (backlayer.center) {Couche Métier\\(\texttt{WorkflowService})};
+    \node[component] (repo) at (backlayer.east) [xshift=-2.5cm] {JPA Repositories\\(\texttt{WorkflowRepository})};
+
+    % Couche BDD
+    \node[layer, label=above:{\textbf{\textcolor{navyprimary}{Couche 3 : Base de Données (PostgreSQL)}}}, below=1.5cm of backlayer] (dblayer) {};
+    \node[component] (dbusers) at (dblayer.west) [xshift=2.5cm] {Table \texttt{users}\\+ \texttt{roles}};
+    \node[component] (dbwf) at (dblayer.center) {Table \texttt{workflows}};
+    \node[component] (dbstates) at (dblayer.east) [xshift=-2.5cm] {Tables \texttt{workflow\_states}\\+ \texttt{transitions}};
+
+    % Flèches de communication
+    \draw[<->, very thick, color=blueaccent] (fetchapi) -- node[right, font=\footnotesize] {HTTP REST / JSON} (controller);
+    \draw[<->, very thick, color=blueaccent] (controller) -- (service);
+    \draw[<->, very thick, color=blueaccent] (service) -- (repo);
+    \draw[<->, very thick, color=blueaccent] (repo) -- node[right, font=\footnotesize] {JPA / SQL / Hibernate} (dblayer);
+
+\end{tikzpicture}
+\caption{Diagramme de flux de données de bout en bout de l'application IncidentFlow}
+\end{figure}
+
+% ---------------------------------------------------------
+% SECTION 2: COUCHE BASE DE DONNÉES ET MODÈLE OBJET JPA
+% ---------------------------------------------------------
+\section{Couche 1 : Base de Données \& Modèle Objet JPA}
+
+La persistance des données s'appuie sur le SGBD \textbf{PostgreSQL}. La modélisation est représentée côté Java par des entités JPA (Java Persistence API) annotées avec Hibernate.
+
+\subsection{Gestion des Utilisateurs et des Rôles}
+Les utilisateurs et les rôles sont modélisés par deux entités liées par une relation de type \texttt{@ManyToOne}.
+
+\begin{itemize}
+    \item \textbf{Fichier Rôle :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/Role.java}
+    \item \textbf{Fichier Utilisateur :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/User.java}
+\end{itemize}
+
+\begin{lstlisting}[language=Java, caption=Structure JPA de l'entité User et sa relation avec Role]
+@Entity
+@Table(name = "users")
+public class User {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false, unique = true)
+    private String email;
+    
+    private String name;
+    
+    @ManyToOne
+    @JoinColumn(name = "role_id")
+    private Role role; // Contient "Administrateur", "Responsable", "Operateur", etc.
+}
+\end{lstlisting}
+
+\subsection{Modélisation du Workflow Dynamique (États et Transitions)}
+Le moteur de workflow est composé de trois entités en cascade : \texttt{Workflow}, \texttt{WorkflowState} et \texttt{WorkflowTransition}.
+
+\begin{itemize}
+    \item \textbf{Fichier d'Entité :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/Workflow.java}
+    \item \textbf{Fichier États :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/WorkflowState.java}
+    \item \textbf{Fichier Transitions :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/WorkflowTransition.java}
+\end{itemize}
+
+\begin{lstlisting}[language=Java, caption=Association en Cascade et Orphelins du Workflow]
+@Entity
+@Table(name = "workflows")
+public class Workflow {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    
+    @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<WorkflowState> states = new ArrayList<>();
+
+    @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<WorkflowTransition> transitions = new ArrayList<>();
+}
+\end{lstlisting}
+
+\subsection{Initialisation des Données en Base (\texttt{DataInitializer.java})}
+Au démarrage du serveur backend, la classe d'initialisation vérifie l'existence des rôles et du workflow standard.
+
+\begin{itemize}
+    \item \textbf{Fichier Source :} \texttt{backend/src/main/java/com/netmar/incidentflow/config/DataInitializer.java}
+\end{itemize}
+
+Si aucun workflow n'est présent (\texttt{workflowRepository.count() == 0}), un workflow par défaut nommé \textbf{Workflow Standard} est créé avec 5 états principaux (\textit{Nouveau}, \textit{Assigné}, \textit{En cours}, \textit{Résolu}, \textit{Clôturé}) et leurs transitions respectives.
+
+% ---------------------------------------------------------
+% SECTION 3: COUCHE BACKEND (SPRING BOOT 3)
+% ---------------------------------------------------------
+\section{Couche 2 : Couche Métier \& REST Backend (Spring Boot 3)}
+
+La couche backend assure la sécurité, la validation métier, le traitement des entités détachées JPA et l'exposition des API REST.
+
+\subsection{Accès aux Données (Repositories)}
+Les interfaces Spring Data JPA permettent d'exécuter les requêtes SQL nécessaires :
+\begin{itemize}
+    \item \texttt{UserRepository.java} : \texttt{findByEmail(String email)}
+    \item \texttt{RoleRepository.java} : \texttt{findByName(String name)}
+    \item \texttt{WorkflowRepository.java} : \texttt{findByCategory(String category)}
+\end{itemize}
+
+\subsection{Couche Services \& Gestion des Entités Détachées JPA}
+La logique métier est centralisée dans \texttt{UserService.java} et \texttt{WorkflowService.java}.
+
+\subsubsection{Résolution du Bug Détaché JPA dans \texttt{WorkflowService.java}}
+Lorsqu'un utilisateur modifie un workflow depuis le frontend, les objets JSON reçus contiennent des identifiants existants d'états mais ne sont pas rattachés à la session Hibernate courante. Un \texttt{repository.save()} direct provoquait l'erreur \texttt{detached entity passed to persist}.
+
+\begin{itemize}
+    \item \textbf{Fichier Modifié :} \texttt{backend/src/main/java/com/netmar/incidentflow/service/WorkflowService.java}
+\end{itemize}
+
+\begin{lstlisting}[language=Java, caption=Résolution de la persistance des entités détachées]
+@Transactional
+@CacheEvict(value = {"workflows", "workflows-category"}, allEntries = true)
+public Workflow saveWorkflow(Workflow workflow) {
+    if (workflow.getId() != null) {
+        // 1. Charger l'entite geree par JPA
+        Workflow existing = workflowRepository.findById(workflow.getId()).orElseThrow();
+        existing.setName(workflow.getName());
+        
+        // 2. Vider les collections (declenche orphanRemoval = true)
+        existing.getStates().clear();
+        existing.getTransitions().clear();
+        
+        // 3. Re-instancier et rattacher les nouveaux enfants a l'entite geree
+        if (workflow.getStates() != null) {
+            for (WorkflowState s : workflow.getStates()) {
+                existing.getStates().add(WorkflowState.builder()
+                        .name(s.getName()).label(s.getLabel())
+                        .colorClass(s.getColorClass()).workflow(existing).build());
+            }
+        }
+        return workflowRepository.save(existing);
+    }
+    return workflowRepository.save(workflow);
+}
+\end{lstlisting}
+
+\subsection{Contrôleurs REST (API Endpoints)}
+Les données sont exposées au frontend via les contrôleurs REST :
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{llll}
+\toprule
+\textbf{Méthode} & \textbf{Endpoint API} & \textbf{Contrôleur Backend} & \textbf{Description} \\
+\midrule
+\texttt{GET} & \texttt{/api/users} & \texttt{UserController.java} & Récupère tous les utilisateurs \\
+\texttt{GET} & \texttt{/api/roles} & \texttt{UserController.java} & Récupère la liste des rôles \\
+\texttt{GET} & \texttt{/api/workflows} & \texttt{WorkflowController.java} & Récupère le workflow unique \\
+\texttt{PUT} & \texttt{/api/workflows/\{id\}} & \texttt{WorkflowController.java} & Enregistre les modifications du workflow \\
+\texttt{DELETE} & \texttt{/api/incidents/\{code\}} & \texttt{IncidentController.java} & Supprime un incident (Admin requis) \\
+\bottomrule
+\end{tabular}
+\caption{Principaux points de terminaison REST de l'application}
+\end{table}
+
+% ---------------------------------------------------------
+% SECTION 4: COUCHE FRONTEND (REACT 19 / VITE)
+% ---------------------------------------------------------
+\section{Couche 3 : Interface Utilisateur Frontend (React 19 / Vite)}
+
+Le frontend React consomme l'API REST via la fonction système \texttt{fetch} et met à jour dynamiquement l'interface grâce au système d'états réactifs de React.
+
+\subsection{Chargement Initial et Reconstitution des États (\texttt{App.jsx})}
+Au chargement du composant principal \texttt{App.jsx}, le hook \texttt{useEffect} déclenche les requêtes asynchrones pour récupérer les workflows, les utilisateurs et les incidents.
+
+\begin{itemize}
+    \item \textbf{Fichier Frontend Principal :} \texttt{frontend/src/App.jsx}
+\end{itemize}
+
+\begin{lstlisting}[language=JavaScript, caption=Appels asynchrones et synchronisation d'état React]
+const [workflows, setWorkflows] = useState([]);
+const [activeWorkflow, setActiveWorkflow] = useState(null);
+
+const fetchWorkflows = async () => {
+  try {
+    const res = await fetch(`${API_BASE}/workflows`, { headers: getHeaders() });
+    if (res.ok) {
+      const data = await res.json();
+      setWorkflows(data);
+      if (data.length > 0) setActiveWorkflow(data[0]);
+    }
+  } catch (err) { console.error(err); }
+};
+\end{lstlisting}
+
+\subsection{Propagation en Temps Réel dans l'Interface (Real-Time UI Sync)}
+Chaque modification du workflow (ajout/suppression d'un état ou d'une transition) est immédiatement propagée sur trois composants clés de l'interface :
+
+\begin{enumerate}
+    \item \textbf{Éditeur Graphique de Workflow :} L'administrateur modifie les nœuds et les connexions dans l'éditeur interactif.
+    \item \textbf{Filtre de Statut Dynamique dans la Liste des Incidents :} Le menu déroulant de sélection du statut s'alimente directement depuis \texttt{activeWorkflow.states} :
+\begin{lstlisting}[language=JavaScript]
+<select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+  <option value="Tous">Tous</option>
+  {activeWorkflow?.states.map(s => (
+    <option key={s.id || s.name} value={s.name}>{s.label || s.name}</option>
+  ))}
+</select>
+\end{lstlisting}
+    \item \textbf{Stepper Horizontal \& Boutons d'Action (Fiche de Détail) :} Le stepper visuel d'avancement ainsi que les boutons d'action autorisés (\textit{Passer à : En cours}, etc.) s'évaluent dynamiquement en fonction des états du workflow actif :
+\begin{lstlisting}[language=JavaScript]
+const currentWf = activeWorkflow || workflows[0];
+// Rendu dynamique du Stepper Horizontal et des Actions Disponibles
+\end{lstlisting}
+\end{enumerate}
+
+% ---------------------------------------------------------
+% SECTION 5: SCÉNARIO COMPLET ÉTAPE PAR ÉTAPE
+% ---------------------------------------------------------
+\section{Scénario Complet : De la Modification en Base au Rendu Temps Réel}
+
+Pour illustrer le passage complet des données à votre encadrant, voici les 6 étapes de l'exécution complète lorsqu'un Administrateur ajoute un état au workflow :
+
+\begin{tcolorbox}[colback=greenaccent!5,colframe=greenaccent,arc=4pt,title=\textbf{Parcours d'une Modification en 6 Étapes}]
+\begin{enumerate}
+    \item \textbf{Action Utilisateur (Frontend) :} L'administrateur ajoute un nouvel état (ex: \textit{En Validation}) dans la page de gestion du Workflow et clique sur \textit{"Enregistrer les modifications"}.
+    \item \textbf{Requête HTTP PUT (Client REST) :} React envoie une requête \texttt{PUT /api/workflows/1} avec le payload JSON structuré contenant les nouveaux états et transitions.
+    \item \textbf{Réception \& Sécurité (Backend) :} \texttt{WorkflowController.java} reçoit la requête, transmet l'objet à \texttt{WorkflowService.java} et vérifie le rôle de l'utilisateur.
+    \item \textbf{Traitement JPA \& Persistance SQL (Service \& Database) :}
+    \begin{itemize}
+        \item \texttt{WorkflowService} charge l'entité gérée \texttt{existing}.
+        \item Effacement des anciennes collections via \texttt{.clear()} (déclenchant les \texttt{DELETE SQL}).
+        \item Insertion des nouveaux états via \texttt{save()} (déclenchant les \texttt{INSERT SQL} dans \texttt{workflow\_states}).
+    \end{itemize}
+    \item \textbf{Réponse HTTP 200 \& Mise à jour du State React :} Le backend renvoie l'objet \texttt{Workflow} mis à jour. \texttt{App.jsx} met à jour son état React local via \texttt{setActiveWorkflow(updated)} et déclenche un \texttt{fetchIncidents()}.
+    \item \textbf{Mise à Jour Visuelle Temps Réel (DOM React) :} React ré-évalue le composant. Le nouvel état \textit{"En Validation"} apparaît instantanément dans :
+    \begin{itemize}
+        \item Le menu déroulant du filtre de statut de la page d'incidents.
+        \item Le stepper horizontal de progression de la fiche détaillée d'incident.
+        \item Le panneau des actions de transition disponibles.
+    \end{itemize}
+\end{enumerate}
+\end{tcolorbox}
+
+% ---------------------------------------------------------
+% SECTION 6: TABLEAU RÉCAPITULATIF DES FICHIERS
+% ---------------------------------------------------------
+\section{Tableau Récapitulatif des Fichiers du Projet}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Composant / Fichier} & \textbf{Emplacement dans le Projet} & \textbf{Rôle Principal dans le Flux} \\
+\midrule
+\texttt{User.java} & \texttt{backend/.../model/User.java} & Entité JPA décrivant l'utilisateur \\
+\texttt{Role.java} & \texttt{backend/.../model/Role.java} & Entité JPA décrivant les rôles/permissions \\
+\texttt{Workflow.java} & \texttt{backend/.../model/Workflow.java} & Entité racine du moteur de workflow \\
+\texttt{WorkflowState.java} & \texttt{backend/.../model/WorkflowState.java} & Entité enfant décrivant chaque état \\
+\texttt{WorkflowTransition.java} & \texttt{backend/.../model/WorkflowTransition.java} & Entité enfant décrivant les transitions \\
+\texttt{DataInitializer.java} & \texttt{backend/.../config/DataInitializer.java} & Script de seeding initial au démarrage \\
+\texttt{UserService.java} & \texttt{backend/.../service/UserService.java} & Gestion métier utilisateurs/rôles/auth \\
+\texttt{WorkflowService.java} & \texttt{backend/.../service/WorkflowService.java} & Logique de persistance et re-attachement \\
+\texttt{WorkflowController.java} & \texttt{backend/.../controller/WorkflowController.java} & Endpoints REST pour le workflow \\
+\texttt{IncidentController.java} & \texttt{backend/.../controller/IncidentController.java} & Endpoints REST incidents + suppression \\
+\texttt{App.jsx} & \texttt{frontend/src/App.jsx} & Interface React, état global et rendu UI \\
+\bottomrule
+\end{tabular}
+\caption{Matrice des fichiers clés du projet IncidentFlow}
+\end{table}
+
+\end{document}

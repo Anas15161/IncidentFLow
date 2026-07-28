@@ -13,17 +13,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.List;
 
+import com.netmar.incidentflow.model.Permission;
+import com.netmar.incidentflow.repository.PermissionRepository;
+import java.util.HashSet;
+import java.util.Set;
+
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
     private final HttpServletRequest request;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, HttpServletRequest request, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, PermissionRepository permissionRepository, HttpServletRequest request, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.permissionRepository = permissionRepository;
         this.request = request;
         this.passwordEncoder = passwordEncoder;
     }
@@ -34,6 +41,24 @@ public class UserService {
 
     public List<Role> getAllRoles() {
         return roleRepository.findAll();
+    }
+
+    public List<Permission> getAllPermissions() {
+        return permissionRepository.findAll();
+    }
+
+    public Role updateRolePermissions(Long roleId, List<String> permissionCodes) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Rôle non trouvé avec l'ID : " + roleId));
+
+        Set<Permission> newPermissions = new HashSet<>();
+        if (permissionCodes != null) {
+            for (String code : permissionCodes) {
+                permissionRepository.findByCode(code).ifPresent(newPermissions::add);
+            }
+        }
+        role.setPermissions(newPermissions);
+        return roleRepository.save(role);
     }
 
     public Role saveRole(Role role) {

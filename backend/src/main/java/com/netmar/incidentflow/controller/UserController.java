@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
+import com.netmar.incidentflow.model.Permission;
+
 @RestController
 @RequestMapping("/api")
 public class UserController {
@@ -31,6 +33,16 @@ public class UserController {
     @GetMapping("/roles")
     public List<Role> getRoles() {
         return userService.getAllRoles();
+    }
+
+    @GetMapping("/permissions")
+    public List<Permission> getPermissions() {
+        return userService.getAllPermissions();
+    }
+
+    @PutMapping("/roles/{id}/permissions")
+    public Role updateRolePermissions(@PathVariable Long id, @RequestBody List<String> permissionCodes) {
+        return userService.updateRolePermissions(id, permissionCodes);
     }
 
     @PostMapping("/roles")

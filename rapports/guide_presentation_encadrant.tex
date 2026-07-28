@@ -1,0 +1,265 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.2cm, right=2.2cm}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{float}
+
+% Palette de couleurs professionnelle
+\definecolor{navyprimary}{RGB}{15, 23, 42}
+\definecolor{blueaccent}{RGB}{29, 78, 216}
+\definecolor{slategray}{RGB}{71, 85, 105}
+\definecolor{codebg}{RGB}{248, 250, 252}
+\definecolor{codeframe}{RGB}{226, 232, 240}
+\definecolor{greenaccent}{RGB}{22, 101, 52}
+\definecolor{purplaccent}{RGB}{126, 34, 206}
+\definecolor{redaccent}{RGB}{185, 28, 28}
+
+% Configuration de hyperref
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blueaccent,
+    filecolor=purplaccent,
+    urlcolor=blueaccent,
+    pdftitle={Guide de Présentation Encadrant - IncidentFlow},
+    pdfpagemode=FullScreen
+}
+
+% Configuration de fancyhdr
+\setlength{\headheight}{14.5pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{slategray}{\small IncidentFlow --- Guide de Présentation Encadrant}}
+\lhead{\textcolor{slategray}{\small Support de Démonstration}}
+\rfoot{\textcolor{slategray}{\small Page \thepage}}
+\lfoot{\textcolor{slategray}{\small NetMar Technologies}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Définition du langage SQL pour listings
+\lstset{
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{codeframe},
+    basicstyle=\ttfamily\footnotesize\color{navyprimary},
+    keywordstyle=\bfseries\color{blueaccent},
+    commentstyle=\itshape\color{slategray},
+    stringstyle=\color{greenaccent},
+    breaklines=true,
+    captionpos=b,
+    showstringspaces=false,
+    tabsize=2
+}
+
+\begin{document}
+
+% Page de Titre
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+    
+    {\Huge \bfseries \textcolor{navyprimary}{IncidentFlow}}\\[0.4cm]
+    {\Large \textcolor{blueaccent}{Guide Pratique de Présentation \& Démonstration Encadrant}}\\[0.2cm]
+    {\large \textcolor{slategray}{Tracé des Fichiers Code Source \& Procédure pgAdmin SQL}}\\[1.5cm]
+    
+    \begin{tcolorbox}[colback=blueaccent!5,colframe=blueaccent,arc=6pt,title=\textbf{Objectif du Support}]
+    Ce document fournit une structure pas-à-pas pour présenter l'application \textbf{IncidentFlow} à votre encadrant. Il regroupe la liste exacte des fichiers à montrer dans le code source (du modèle de données au frontend) ainsi que les requêtes SQL prêtes à l'emploi dans \textbf{pgAdmin} pour prouver la persistance en base de données.
+    \end{tcolorbox}
+
+    \vfill
+    
+    \begin{tabular}{ll}
+        \textbf{Application :} & IncidentFlow (Gestion d'Incidents Interne) \\
+        \textbf{Composants :} & Users, Roles, Moteur de Workflow Real-time \\
+        \textbf{Outil BDD :} & PostgreSQL 16 + pgAdmin 4 \\
+        \textbf{Auteur :} & Équipe de Développement NetMar \\
+        \textbf{Date :} & \today \\
+    \end{tabular}
+    
+    \vspace*{0.8cm}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ---------------------------------------------------------
+% SECTION 1: SCHÉMA DU FLUX DES DONNÉES
+% ---------------------------------------------------------
+\section{Architecture Globale \& Parcours des Données}
+
+Lors de votre présentation, vous pouvez expliquer le schéma suivant qui résume le passage des données des utilisateurs, des rôles et des workflows :
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.5cm, auto, >=Stealth, 
+    box/.style={rectangle, draw=navyprimary, fill=codebg, rounded corners=5pt, minimum width=13cm, minimum height=1.2cm, font=\small\bfseries, align=center}]
+
+    \node[box, fill=blueaccent!10] (db) {1. Base de Données PostgreSQL (Tables \texttt{users}, \texttt{roles}, \texttt{workflows}, \texttt{workflow\_states})};
+    \node[box, below=1cm of db] (jpa) {2. Entités JPA Model (\texttt{User.java}, \texttt{Role.java}, \texttt{Workflow.java}, \texttt{WorkflowState.java})};
+    \node[box, below=1cm of jpa] (service) {3. Service Layer Métier (\texttt{UserService.java}, \texttt{WorkflowService.java})};
+    \node[box, below=1cm of service] (rest) {4. Contrôleurs REST (\texttt{UserController.java}, \texttt{WorkflowController.java})};
+    \node[box, fill=greenaccent!10, below=1cm of rest] (ui) {5. Frontend React (\texttt{App.jsx} : Stepper, Filtres Statut, Canvas Real-Time)};
+
+    \draw[->, very thick, color=blueaccent] (db) -- (jpa);
+    \draw[->, very thick, color=blueaccent] (jpa) -- (service);
+    \draw[->, very thick, color=blueaccent] (service) -- (rest);
+    \draw[<->, very thick, color=greenaccent] (rest) -- node[right, font=\footnotesize] {HTTP REST / JSON} (ui);
+
+\end{tikzpicture}
+\caption{Chaîne de transmission des données dans IncidentFlow}
+\end{figure}
+
+% ---------------------------------------------------------
+% SECTION 2: FICHIERS EXACTS DU CODE À MONTRER
+% ---------------------------------------------------------
+\section{Partie 1 : Les Fichiers Exacts du Code à Montrer}
+
+Suivez cette séquence dans votre IDE (VSCode / IntelliJ) pour montrer exactement où passent les données.
+
+\subsection{Étape 1 : Modélisation des Données (Base de Données vers Java JPA)}
+Montrez à votre encadrant les classes annotées avec Hibernate :
+\begin{enumerate}
+    \item \textbf{Les Rôles :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/Role.java}
+    \item \textbf{Les Utilisateurs :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/User.java}
+    \begin{itemize}
+        \item Montrez l'annotation \texttt{@ManyToOne} reliant chaque utilisateur à son rôle.
+    \end{itemize}
+    \item \textbf{Le Workflow Racine :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/Workflow.java}
+    \begin{itemize}
+        \item Montrez l'annotation \texttt{@OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true)} sur les collections d'états et de transitions.
+    \end{itemize}
+    \item \textbf{Les États du Workflow :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/WorkflowState.java}
+    \item \textbf{Les Transitions du Workflow :} \texttt{backend/src/main/java/com/netmar/incidentflow/model/WorkflowTransition.java}
+    \item \textbf{L'Initialisation en Base au Démarrage :} \texttt{backend/src/main/java/com/netmar/incidentflow/config/DataInitializer.java}
+    \begin{itemize}
+        \item Montrez la méthode \texttt{run()} qui peuple la base PostgreSQL au lancement avec les rôles par défaut et le \textit{Workflow Standard}.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Étape 2 : Logique Métier \& Traitement des Entités (Service Layer)}
+\begin{enumerate}
+    \item \textbf{\texttt{UserService.java}} (\texttt{backend/src/main/java/com/netmar/incidentflow/service/UserService.java})
+    \begin{itemize}
+        \item Montrez les méthodes \texttt{getAllUsers()}, \texttt{getAllRoles()} et \texttt{getCurrentUser()}.
+    \end{itemize}
+    \item \textbf{\texttt{WorkflowService.java}} (\texttt{backend/src/main/java/com/netmar/incidentflow/service/WorkflowService.java})
+    \begin{itemize}
+        \item Montrez la méthode \texttt{getAllWorkflows()}.
+        \item \textbf{Point Clé :} Montrez la méthode \texttt{saveWorkflow()} et expliquez comment l'application charge l'entité gérée par Hibernate (\texttt{findById}), vide les anciennes collections (\texttt{.clear()}) puis ré-attache les nouveaux états pour éviter les erreurs d'entités détachées JPA.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Étape 3 : Points d'Entrée API REST (Controllers Backend)}
+\begin{enumerate}
+    \item \textbf{\texttt{WorkflowController.java}} (\texttt{backend/src/main/java/com/netmar/incidentflow/controller/WorkflowController.java})
+    \begin{itemize}
+        \item Montrez \texttt{GET /api/workflows} et \texttt{PUT /api/workflows/\{id\}}.
+    \end{itemize}
+    \item \textbf{\texttt{UserController.java}} (\texttt{backend/src/main/java/com/netmar/incidentflow/controller/UserController.java})
+    \begin{itemize}
+        \item Montrez \texttt{GET /api/users} et \texttt{GET /api/roles}.
+    \end{itemize}
+    \item \textbf{\texttt{IncidentController.java}} (\texttt{backend/src/main/java/com/netmar/incidentflow/controller/IncidentController.java})
+    \begin{itemize}
+        \item Montrez la méthode de suppression réservée à l'Admin : \texttt{DELETE /api/incidents/\{code\}}.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Étape 4 : Interface Réactive Frontend (React 19 / Vite)}
+Ouvrez le fichier \texttt{frontend/src/App.jsx} :
+\begin{enumerate}
+    \item \textbf{Requêtes Async :} Montrez les fonctions \texttt{fetchWorkflows()} et \texttt{fetchUsers()} appelées dans le hook \texttt{useEffect}.
+    \item \textbf{Variables d'État React :} Montrez \texttt{activeWorkflow}, \texttt{workflows} et \texttt{usersList}.
+    \item \textbf{Rendu en Temps Réel :}
+    \begin{itemize}
+        \item Le menu déroulant du filtre de statut dans la liste des incidents s'alimentant depuis \texttt{activeWorkflow.states}.
+        \item Le \textbf{Stepper horizontal d'avancement} (\texttt{workflow-stepper-container}).
+        \item Le \textbf{Panneau des boutons d'actions disponibles} (\texttt{workflow-actions-panel}).
+    \end{itemize}
+\end{enumerate}
+
+% ---------------------------------------------------------
+% SECTION 3: GUIDE PRATIQUE PGADMIN ET SQL
+% ---------------------------------------------------------
+\section{Partie 2 : Guide Pratique pgAdmin \& Requêtes SQL}
+
+\subsection{Paramètres de Connexion PostgreSQL dans pgAdmin}
+Dans \textbf{pgAdmin 4}, créez ou ouvrez la connexion à la base de données avec les identifiants du projet :
+
+\begin{tcolorbox}[colback=blueaccent!5,colframe=blueaccent,arc=4pt,title=\textbf{Identifiants de Connexion pgAdmin}]
+\begin{itemize}
+    \item \textbf{Host name / address :} \texttt{localhost} (ou \texttt{127.0.0.1})
+    \item \textbf{Port :} \texttt{5433} \textit{(Port PostgreSQL exposé par Docker Compose)}
+    \item \textbf{Maintenance database :} \texttt{IncidentFlow\_db}
+    \item \textbf{Username :} \texttt{IncidentFlow\_user}
+    \item \textbf{Password :} \texttt{incidentflow\_secure\_db\_pass}
+\end{itemize}
+\end{tcolorbox}
+
+\subsection{Procédure d'Exécution des Requêtes SQL}
+\begin{enumerate}
+    \item Dans l'arborescence gauche de pgAdmin, développez \textbf{Servers} $\rightarrow$ \textbf{IncidentFlow\_db}.
+    \item Faites un clic droit sur la base \textbf{IncidentFlow\_db} et sélectionnez \textbf{Query Tool} (ou \textit{Outils} $\rightarrow$ \textit{Outil de requête}).
+    \item Saisissez et exécutez les requêtes SQL ci-dessous (touche \textbf{F5}).
+\end{enumerate}
+
+\subsection{Requêtes SQL de Démonstration}
+
+\subsubsection{1. Afficher les Rôles :}
+\begin{lstlisting}[language=SQL, caption=Consultation des rôles en base de données]
+SELECT id, name, description 
+FROM roles;
+\end{lstlisting}
+
+\subsubsection{2. Afficher les Utilisateurs avec leur Rôle rattaché :}
+\begin{lstlisting}[language=SQL, caption=Jointure entre Utilisateurs et Rôles]
+SELECT u.id, u.name, u.email, u.post, u.department, r.name AS role_nom
+FROM users u
+LEFT JOIN roles r ON u.role_id = r.id;
+\end{lstlisting}
+
+\subsubsection{3. Afficher le Workflow Actif :}
+\begin{lstlisting}[language=SQL, caption=Consultation de l'entité Workflow]
+SELECT id, name, category, active 
+FROM workflows;
+\end{lstlisting}
+
+\subsubsection{4. Afficher tous les États du Workflow :}
+\begin{lstlisting}[language=SQL, caption=Consultation des états rattachés au workflow]
+SELECT s.id, s.name, s.label, s.color_class, w.name AS workflow_nom
+FROM workflow_states s
+JOIN workflows w ON s.workflow_id = w.id
+ORDER BY s.id ASC;
+\end{lstlisting}
+
+\subsubsection{5. Afficher les Transitions Autorisées :}
+\begin{lstlisting}[language=SQL, caption=Consultation du graphe de transitions du workflow]
+SELECT t.id, t.from_state, t.to_state, t.role_required, w.name AS workflow_nom
+FROM workflow_transitions t
+JOIN workflows w ON t.workflow_id = w.id;
+\end{lstlisting}
+
+\subsection{Scénario de Démonstration "Live" devant l'Encadrant}
+
+\begin{tcolorbox}[colback=greenaccent!5,colframe=greenaccent,arc=4pt,title=\textbf{Déroulé du Scénario de Démonstration}]
+\begin{enumerate}
+    \item \textbf{Étape A (Web) :} Dans l'interface web React, allez dans l'onglet \textit{"Gestion du Workflow"}.
+    \item \textbf{Étape B (Web) :} Ajoutez un nouvel état (ex: \textit{"Validation SR"}) et enregistrez.
+    \item \textbf{Étape C (pgAdmin) :} Basculez sur \textbf{pgAdmin} et exécutez la requête SQL des états :
+\begin{lstlisting}[language=SQL]
+SELECT id, name, label FROM workflow_states ORDER BY id DESC;
+\end{lstlisting}
+    \item \textbf{Résultat :} Montrez à votre encadrant la nouvelle ligne \textit{"Validation SR"} insérée en temps réel dans la table PostgreSQL !
+\end{enumerate}
+\end{tcolorbox}
+
+\end{document}

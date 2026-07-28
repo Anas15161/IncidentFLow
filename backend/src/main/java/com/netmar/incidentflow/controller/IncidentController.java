@@ -362,6 +362,13 @@ public class IncidentController {
         }
     }
 
+    @DeleteMapping("/{code}")
+    public ResponseEntity<Void> deleteIncident(@PathVariable String code) {
+        User currentUser = userService.getCurrentUser();
+        incidentService.deleteIncident(code, currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
     @Getter
     @Setter
     public static class TransitionRequest {

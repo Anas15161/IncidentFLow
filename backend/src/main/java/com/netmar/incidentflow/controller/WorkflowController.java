@@ -39,13 +39,8 @@ public class WorkflowController {
 
     @PutMapping("/{id}")
     public Workflow updateWorkflow(@PathVariable Long id, @RequestBody Workflow workflowDetails) {
-        Workflow workflow = workflowService.getWorkflowById(id);
-        workflow.setName(workflowDetails.getName());
-        workflow.setCategory(workflowDetails.getCategory());
-        workflow.setActive(workflowDetails.isActive());
-        workflow.setStates(workflowDetails.getStates());
-        workflow.setTransitions(workflowDetails.getTransitions());
-        return workflowService.saveWorkflow(workflow);
+        workflowDetails.setId(id);
+        return workflowService.saveWorkflow(workflowDetails);
     }
 
     @DeleteMapping("/{id}")

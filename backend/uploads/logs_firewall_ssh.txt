@@ -1,0 +1,7 @@
+Jun 15 08:23:11 firewall-core sshd[12455]: Invalid user admin from 192.168.1.150 port 55432
+Jun 15 08:23:14 firewall-core sshd[12455]: Connection closed by authenticating user admin 192.168.1.150 port 55432 [preauth]
+Jun 15 08:24:02 firewall-core sshd[12460]: Invalid user admin from 192.168.1.150 port 55438
+Jun 15 08:24:05 firewall-core sshd[12460]: Connection closed by authenticating user admin 192.168.1.150 port 55438 [preauth]
+Jun 15 08:25:00 firewall-core sshd[12472]: Invalid user test from 192.168.1.150 port 55442
+Jun 15 08:25:01 firewall-core sshd[12472]: Connection closed by authenticating user test 192.168.1.150 port 55442 [preauth]
+Jun 15 08:26:30 firewall-core sshd[12480]: Connection closed by authenticating user admin 192.168.1.150 port 55450 [preauth]
