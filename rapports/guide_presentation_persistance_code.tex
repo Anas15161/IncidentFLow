@@ -1,0 +1,376 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.2cm, right=2.2cm}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, shadows, fit}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{float}
+
+% Palette de couleurs professionnelle
+\definecolor{navyprimary}{RGB}{15, 23, 42}
+\definecolor{blueaccent}{RGB}{29, 78, 216}
+\definecolor{slategray}{RGB}{71, 85, 105}
+\definecolor{codebg}{RGB}{248, 250, 252}
+\definecolor{codeframe}{RGB}{226, 232, 240}
+\definecolor{greenaccent}{RGB}{22, 101, 52}
+\definecolor{purplaccent}{RGB}{126, 34, 206}
+\definecolor{amberaccent}{RGB}{180, 83, 9}
+
+% Configuration de hyperref
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blueaccent,
+    filecolor=purplaccent,
+    urlcolor=blueaccent,
+    pdftitle={Guide de Présentation Code & Persistance - IncidentFlow},
+    pdfauthor={NetMar Technologies},
+    pdfpagemode=UseOutlines
+}
+
+% Configuration de headheight pour fancyhdr
+\setlength{\headheight}{14.5pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{slategray}{\small IncidentFlow --- Reperes Code \& Soutenance}}
+\lhead{\textcolor{slategray}{\small Guide de Présentation Oral}}
+\rfoot{\textcolor{slategray}{\small Page \thepage}}
+\lfoot{\textcolor{slategray}{\small NetMar Technologies}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Définition de style pour les boîtes colorées
+\newtcolorbox{profbox}[1][]{
+  colback=blueaccent!5,
+  colframe=blueaccent,
+  fonttitle=\bfseries\color{white},
+  coltitle=white,
+  title=Discours à présenter au Professeur / Encadrant,
+  enhanced,
+  drop shadow,
+  #1
+}
+
+\newtcolorbox{codebox}[1][]{
+  colback=codebg,
+  colframe=codeframe,
+  fonttitle=\bfseries\color{navyprimary},
+  enhanced,
+  #1
+}
+
+% Listings pour le code
+\lstdefinelanguage{CustomJava}{
+  language=Java,
+  keywordstyle=\color{blueaccent}\bfseries,
+  commentstyle=\color{slategray}\itshape,
+  stringstyle=\color{greenaccent},
+  numberstyle=\tiny\color{slategray},
+  breaklines=true,
+  showstringspaces=false,
+  basicstyle=\ttfamily\small,
+  tabsize=2
+}
+
+\lstset{
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{codeframe},
+    captionpos=b,
+    numbers=left,
+    numbersep=8pt,
+    xleftmargin=12pt
+}
+
+\begin{document}
+
+% Page de Titre
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+    
+    {\Huge \bfseries \color{navyprimary} IncidentFlow}\\[0.4cm]
+    {\LARGE \color{blueaccent} Guide de Présentation Code \& Persistance}\\[0.2cm]
+    {\large \color{slategray} Repères Fichier par Fichier pour la Soutenance}\\[1.5cm]
+    
+    \rule{\linewidth}{0.5mm}\\[0.6cm]
+    {\Large \bfseries Affichage Frontend (React) \& Persistance Backend (Spring Boot / JPA / PostgreSQL)}\\[0.3cm]
+    {\large \textbf{Localisation des Données des Utilisateurs, Rôles \& Workflows Dynamiques}}\\[0.6cm]
+    \rule{\linewidth}{0.5mm}\\[2cm]
+    
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushleft} \large
+            \textbf{Auteur :}\\
+            NetMar Technologies\\
+            Équipe IncidentFlow
+        \end{flushleft}
+    \end{minipage}
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushright} \large
+            \textbf{Destination :}\\
+            Démonstration \& Soutenance\\
+            Encadrant / Professeur
+        \end{flushright}
+    \end{minipage}
+
+    \vfill
+    {\large Juillet 2026}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% 1. DISCOURS SYNTHÉTIQUE POUR LE PROFESSEUR
+\section{Discours de Présentation Synthétique (À dire à l'oral)}
+
+Lorsque le professeur ou l'encadrant vous demande : \textit{« Montrez-moi dans le code où les données s'affichent et où elles sont persistées »}, vous pouvez présenter l'architecture avec la démonstration suivante :
+
+\begin{profbox}
+« Monsieur, l'application est découpée en deux couches principales :
+
+1. \textbf{Côté Frontend (React)} : Les données (Workflows, Utilisateurs, Rôles) sont chargées depuis l'API REST via la méthode \texttt{fetchWorkflows()} dans \texttt{App.jsx}. Elles sont stockées dans des états React (\texttt{useState}). L'utilisateur peut modifier en temps réel le rôle autorisé pour chaque transition dans la liste déroulante (\texttt{<select>}). Lors du clic sur Enregistrer, la fonction \texttt{handleSaveWorkflowGlobally()} transmet le JSON au backend par une requête HTTP \texttt{PUT}.
+
+2. \textbf{Côté Backend (Spring Boot \& PostgreSQL)} : Le contrôleur REST \texttt{WorkflowController} réceptionne la requête sur \texttt{PUT /api/workflows/\{id\}} et la transmet à \texttt{WorkflowService}. Le service exécute une transaction JPA (\texttt{@Transactional}) qui nettoie les anciennes entités enfant (\texttt{orphanRemoval}) et persiste les nouvelles entités \texttt{WorkflowState} et \texttt{WorkflowTransition} (comprenant la colonne \texttt{role\_required}) directement dans PostgreSQL via Spring Data JPA. »
+\end{profbox}
+
+---
+
+% 2. COUCHE FRONTEND : AFFICHAGE & ÉDITION (REACT)
+\section{Couche Frontend : Affichage et Édition (React UI)}
+
+\subsection{1. Stockage dans l'État React (\texttt{useState}) et Chargement REST}
+Les données du workflow actif et de la liste des utilisateurs et rôles sont gérées dans l'état principal du composant React.
+
+\begin{codebox}[title=Localisation dans le Code :]
+\textbf{Fichier :} \small\texttt{frontend/src/App.jsx} (Lignes 196 à 199 \& Lignes 825 à 837)
+\end{codebox}
+
+\begin{lstlisting}[language=CustomJava, caption={Stockage local et appel API de recuperation dans App.jsx}]
+// Lignes 196-199 : Etats React pour les workflows, utilisateurs et roles
+const [workflows, setWorkflows] = useState([]);
+const [activeWorkflow, setActiveWorkflow] = useState(null);
+const [rolesList, setRolesList] = useState([]);
+
+// Lignes 825-837 : Chargement depuis le Backend via API REST
+const fetchWorkflows = async () => {
+  const res = await fetch(`${API_BASE}/workflows`, { headers: getHeaders() });
+  if (res.ok) {
+    const data = await res.json();
+    setWorkflows(data);
+    if (data.length > 0) setActiveWorkflow(data[0]);
+  }
+};
+\end{lstlisting}
+
+\subsection{2. Affichage et Modification Dynamique du Rôle par Transition}
+Chaque transition (\texttt{fromState} $\rightarrow$ \texttt{toState}) est affichée avec une liste déroulante interactive permettant d'assigner le rôle autorisé (\texttt{roleRequired}).
+
+\begin{codebox}[title=Localisation dans le Code :]
+\textbf{Fichier :} \small\texttt{frontend/src/App.jsx} (Lignes 1457 à 1468 \& Lignes 4236 à 4280)
+\end{codebox}
+
+\begin{lstlisting}[language=CustomJava, caption={Mise a jour dynamique de l'etat local dans App.jsx}]
+// Lignes 1457-1468 : Fonction de mise a jour du role autorise
+const handleUpdateTransitionRole = (fromState, toState, roleRequired) => {
+  if (!activeWorkflow) return;
+  const updatedTrans = activeWorkflow.transitions.map(t => {
+    if (t.fromState === fromState && t.toState === toState) {
+      return { ...t, roleRequired: roleRequired || null };
+    }
+    return t;
+  });
+  const updatedWf = { ...activeWorkflow, transitions: updatedTrans };
+  setActiveWorkflow(updatedWf);
+};
+\end{lstlisting}
+
+\begin{lstlisting}[language=CustomJava, caption={Rendu JSX de la liste deroulante de role par transition dans App.jsx}]
+// Lignes 4236-4280 : Rendu HTML/JSX de la liste des transitions avec <select>
+{activeWorkflow.transitions.map((t, idx) => (
+  <div key={idx} className="transition-row">
+    <span>{t.fromState} -> {t.toState}</span>
+    
+    <!-- Liste deroulante du Role Autorise -->
+    <select
+      value={t.roleRequired || ''}
+      onChange={(e) => handleUpdateTransitionRole(t.fromState, t.toState, e.target.value)}
+    >
+      <option value="">Tous les utilisateurs</option>
+      <option value="Administrateur">Administrateur</option>
+      <option value="Responsable">Responsable</option>
+      <option value="Operateur">Operateur</option>
+    </select>
+  </div>
+))}
+\end{lstlisting}
+
+\subsection{3. Envoi de la Sauvegarde au Backend}
+
+\begin{codebox}[title=Localisation dans le Code :]
+\textbf{Fichier :} \small\texttt{frontend/src/App.jsx} (Lignes 1310 à 1339)
+\end{codebox}
+
+\begin{lstlisting}[language=CustomJava, caption={Envoi HTTP PUT vers l'API Backend dans App.jsx}]
+// Lignes 1310-1339 : Publication globale du workflow vers le Backend
+const handleSaveWorkflowGlobally = async () => {
+  const res = await fetch(`${API_BASE}/workflows/${activeWorkflow.id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(activeWorkflow)
+  });
+  const updated = await res.json();
+  setActiveWorkflow(updated);
+};
+\end{lstlisting}
+
+---
+
+% 3. COUCHE BACKEND : PERSISTANCE JPA & POSTGRESQL
+\section{Couche Backend : Persistance JPA, Services et PostgreSQL}
+
+\subsection{1. Point d'Entrée HTTP (Contrôleur REST)}
+
+\begin{codebox}[title=Localisation dans le Code :]
+\textbf{Fichier :} \small\texttt{backend/src/main/java/com/netmar/incidentflow/controller/WorkflowController.java} (Lignes 40 à 44)
+\end{codebox}
+
+\begin{lstlisting}[language=CustomJava, caption={Endpoint PUT d'enregistrement dans WorkflowController.java}]
+@PutMapping("/{id}")
+public Workflow updateWorkflow(@PathVariable Long id, @RequestBody Workflow workflowDetails) {
+    workflowDetails.setId(id);
+    return workflowService.saveWorkflow(workflowDetails);
+}
+\end{lstlisting}
+
+\subsection{2. Logique Transactionnelle de Persistance (\texttt{WorkflowService})}
+Le service exécute l'enregistrement en base de données avec nettoyage des entités orphelines et gestion des versions.
+
+\begin{codebox}[title=Localisation dans le Code :]
+\textbf{Fichier :} \small\texttt{backend/src/main/java/com/netmar/incidentflow/service/WorkflowService.java} (Lignes 51 à 160)
+\end{codebox}
+
+\begin{lstlisting}[language=CustomJava, caption={Algorithme de persistance transactionnel dans WorkflowService.java}]
+@Transactional
+@CacheEvict(value = {"workflows", "workflows-category"}, allEntries = true)
+public Workflow saveWorkflow(Workflow workflow) {
+    validateWorkflowGraph(workflow); // Verification DFS de l'integrite du graphe
+
+    Workflow existing = workflowRepository.findById(workflow.getId())
+            .orElseGet(() -> workflow);
+
+    if (existing != workflow) {
+        existing.setName(workflow.getName());
+        existing.setCategory(workflow.getCategory());
+        existing.setActive(workflow.isActive());
+
+        // Supprime les anciens etats et insere les nouveaux (orphanRemoval)
+        existing.getStates().clear();
+        for (WorkflowState state : workflow.getStates()) {
+            existing.getStates().add(WorkflowState.builder()
+                    .name(state.getName()).label(state.getLabel())
+                    .colorClass(state.getColorClass()).active(state.isActive())
+                    .workflow(existing).build());
+        }
+
+        // Supprime les anciennes transitions et insere les nouvelles avec roleRequired
+        existing.getTransitions().clear();
+        for (WorkflowTransition transition : workflow.getTransitions()) {
+            existing.getTransitions().add(WorkflowTransition.builder()
+                    .fromState(transition.getFromState()).toState(transition.getToState())
+                    .roleRequired(transition.getRoleRequired())
+                    .requiresComment(transition.isRequiresComment())
+                    .workflow(existing).build());
+        }
+    }
+    return workflowRepository.save(existing); // Execution SQL via Hibernate
+}
+\end{lstlisting}
+
+\subsection{3. Modèle d'Entités JPA (\texttt{Workflow}, \texttt{WorkflowTransition}, \texttt{User}, \texttt{Role})}
+
+\begin{codebox}[title=Localisation dans le Code :]
+\textbf{Fichiers :}
+\begin{itemize}
+    \item \small\texttt{backend/src/main/java/com/netmar/incidentflow/model/Workflow.java} (Lignes 35 à 41)
+    \item \small\texttt{backend/src/main/java/com/netmar/incidentflow/model/WorkflowTransition.java} (Lignes 26 à 36)
+    \item \small\texttt{backend/src/main/java/com/netmar/incidentflow/model/Role.java} (Lignes 22 à 31)
+\end{itemize}
+\end{codebox}
+
+\begin{lstlisting}[language=CustomJava, caption={Annotations de cascade JPA dans Workflow.java et WorkflowTransition.java}]
+// Dans Workflow.java : Cascade complete et suppression d'orphelins
+@OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+private List<WorkflowState> states = new ArrayList<>();
+
+@OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+private List<WorkflowTransition> transitions = new ArrayList<>();
+
+// Dans WorkflowTransition.java : Propriete du role requis
+@Column(name = "role_required")
+private String roleRequired;
+\end{lstlisting}
+
+---
+
+% 4. TABLEAU RÉCAPITULATIF POUR LA SOUTENANCE
+\section{Tableau Récapitulatif des Repères dans le Code}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{>{\bfseries}p{3.2cm} p{3.8cm} p{5.5cm} p{2.0cm}}
+\toprule
+\color{navyprimary}Composant & \color{navyprimary}Rôle / Fonction & \color{navyprimary}Fichier & \color{navyprimary}Lignes \\
+\midrule
+Formulaire UI & Affichage transitions \& rôle & \texttt{frontend/src/App.jsx} & L4236--4280 \\
+Mise à jour State & Modification rôle dynamique & \texttt{frontend/src/App.jsx} & L1457--1468 \\
+Publication REST & Appel HTTP PUT vers API & \texttt{frontend/src/App.jsx} & L1310--1339 \\
+Contrôleur REST & Endpoint \texttt{PUT /api/workflows} & \texttt{WorkflowController.java} & L40--44 \\
+Service Persistance & Sauvegarde transactionnelle JPA & \texttt{WorkflowService.java} & L51--160 \\
+Entité Workflow & Cascade JPA \& Orphan Removal & \texttt{Workflow.java} & L35--41 \\
+Entité Transition & Colonne \texttt{role\_required} & \texttt{WorkflowTransition.java} & L26--36 \\
+Matrice RBAC & Jointure Roles/Permissions & \texttt{Role.java} & L22--31 \\
+\bottomrule
+\end{tabular}
+\caption{Tableau de repérage rapide pour les questions du professeur.}
+\end{table}
+
+---
+
+% 5. SCHÉMA FLUX DE PERSISTANCE (TIKZ)
+\section{Schéma Synthétique du Flux de Persistance}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm,
+    stepBox/.style={rectangle, draw=navyprimary, fill=codebg, rounded corners, thick, minimum width=4cm, minimum height=1.1cm, align=center, font=\small\bfseries, drop shadow},
+    arrow/.style={-{Stealth[scale=1.2]}, thick, draw=blueaccent}
+]
+
+\node[stepBox] (step1) {1. Saisie Utilisateur (React)\\ \normalfont\tiny Choix du rôle dans <select>};
+\node[stepBox, right=2.5cm of step1] (step2) {2. State React (\texttt{activeWorkflow})\\ \normalfont\tiny Notification du composant local};
+\node[stepBox, below=1.8cm of step2] (step3) {3. Requête HTTP PUT\\ \normalfont\tiny Transmet le JSON complet à Spring};
+\node[stepBox, left=2.5cm of step3] (step4) {4. \texttt{WorkflowController}\\ \normalfont\tiny Réception et validation REST};
+\node[stepBox, below=1.8cm of step4] (step5) {5. \texttt{WorkflowService}\\ \normalfont\tiny \texttt{@Transactional} + \texttt{orphanRemoval}};
+\node[stepBox, right=2.5cm of step5] (step6) {6. Base PostgreSQL\\ \normalfont\tiny SQL \texttt{UPDATE} / \texttt{DELETE} / \texttt{INSERT}};
+
+\draw[arrow] (step1) -- (step2);
+\draw[arrow] (step2) -- (step3);
+\draw[arrow] (step3) -- (step4);
+\draw[arrow] (step4) -- (step5);
+\draw[arrow] (step5) -- (step6);
+
+\end{tikzpicture}
+\caption{Flux complet d'affichage et de persistance des données.}
+\end{figure}
+
+\end{document}

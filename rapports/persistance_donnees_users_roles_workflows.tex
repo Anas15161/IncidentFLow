@@ -1,0 +1,454 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.2cm, right=2.2cm}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, shadows, fit}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{float}
+
+% Palette de couleurs professionnelle
+\definecolor{navyprimary}{RGB}{15, 23, 42}
+\definecolor{blueaccent}{RGB}{29, 78, 216}
+\definecolor{slategray}{RGB}{71, 85, 105}
+\definecolor{codebg}{RGB}{248, 250, 252}
+\definecolor{codeframe}{RGB}{226, 232, 240}
+\definecolor{greenaccent}{RGB}{22, 101, 52}
+\definecolor{purplaccent}{RGB}{126, 34, 206}
+\definecolor{amberaccent}{RGB}{180, 83, 9}
+
+% Configuration de hyperref
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blueaccent,
+    filecolor=purplaccent,
+    urlcolor=blueaccent,
+    pdftitle={Rapport de Persistance des Données - IncidentFlow},
+    pdfauthor={NetMar Technologies},
+    pdfpagemode=UseOutlines
+}
+
+% Configuration de headheight pour fancyhdr
+\setlength{\headheight}{14.5pt}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{slategray}{\small IncidentFlow --- Persistance Utilisateurs, Rôles \& Workflows}}
+\lhead{\textcolor{slategray}{\small Spécification Technique Backend}}
+\rfoot{\textcolor{slategray}{\small Page \thepage}}
+\lfoot{\textcolor{slategray}{\small NetMar Technologies}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Définition de Java pour listings
+\lstdefinelanguage{CustomJava}{
+  language=Java,
+  keywordstyle=\color{blueaccent}\bfseries,
+  commentstyle=\color{slategray}\itshape,
+  stringstyle=\color{greenaccent},
+  numberstyle=\tiny\color{slategray},
+  breaklines=true,
+  showstringspaces=false,
+  basicstyle=\ttfamily\small,
+  tabsize=2
+}
+
+\lstset{
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{codeframe},
+    captionpos=b,
+    numbers=left,
+    numbersep=8pt,
+    xleftmargin=12pt
+}
+
+\begin{document}
+
+% Page de titre
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+    
+    {\Huge \bfseries \color{navyprimary} IncidentFlow}\\[0.4cm]
+    {\LARGE \color{blueaccent} Architectures \& Mécanismes de Persistance des Données}\\[0.2cm]
+    {\large \color{slategray} Spécification Technique de Persistance JPA / Hibernate}\\[1.5cm]
+    
+    \rule{\linewidth}{0.5mm}\\[0.6cm]
+    {\Large \bfseries Modélisation et Spécifications des Entités}\\[0.3cm]
+    {\large \textbf{Utilisateurs, Rôles, Permissions \& Workflows Dynamiques}}\\[0.6cm]
+    \rule{\linewidth}{0.5mm}\\[2cm]
+    
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushleft} \large
+            \textbf{Auteur :}\\
+            Équipe de Développement IncidentFlow\\
+            NetMar Technologies
+        \end{flushleft}
+    \end{minipage}
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushright} \large
+            \textbf{Composants analysés :}\\
+            Spring Data JPA / Hibernate 6\\
+            PostgreSQL 16 \& Cache Redis
+        \end{flushright}
+    \end{minipage}
+
+    \vfill
+    {\large Année Universitaire / Stage 2026}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% 1. INTRODUCTION
+\section{Introduction et Vue d'Ensemble de l'Architecture}
+
+L'application \textbf{IncidentFlow} est une plateforme de gestion dynamique d'incidents IT et médicaux s'appuyant sur un moteur de \textit{State Machine} personnalisable. La robustesse et l'intégrité de la plateforme reposent sur la couche de persistance de données gérée par \textbf{Spring Data JPA} et \textbf{Hibernate ORM 6}, couplée à une base de données relationnelle \textbf{PostgreSQL 16} et à une couche de cache distribué \textbf{Redis}.
+
+Ce document spécifie en détail la modélisation, le comportement transactionnel et les stratégies d'association JPA pour les trois piliers fondamentaux du système :
+\begin{itemize}
+    \item \textbf{La Gestion des Utilisateurs (\texttt{User})} : Authentification, profils et affectations organisationnelles.
+    \item \textbf{La Matrice de Sécurité RBAC (\texttt{Role} \& \texttt{Permission})} : Attribution dynamique des droits système et contrôle d'accès fin.
+    \item \textbf{Les Workflows Dynamiques (\texttt{Workflow}, \texttt{WorkflowState}, \texttt{WorkflowTransition})} : Définition visuelle des cycles de vie d'incidents, gestion des contraintes de transition et des rôles requis.
+\end{itemize}
+
+---
+
+% 2. MODÈLE CONCEPTUEL ET SCHÉMA RELATIONNEL
+\section{Modèle de Données et Relations JPA}
+
+\subsection{Diagramme Entité-Association (ERD)}
+
+Le schéma relationnel ci-dessous illustre la structure des tables PostgreSQL et les liens de clés étrangères reliant les utilisateurs, les rôles, les permissions et les composants de workflows.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2.2cm and 2.8cm,
+    entity/.style={rectangle, draw=navyprimary, fill=codebg, rounded corners, thick, minimum width=3.2cm, minimum height=1.2cm, align=center, font=\small\bfseries, drop shadow},
+    arrow/.style={-{Stealth[scale=1.2]}, thick, draw=blueaccent}
+]
+
+% Entités Sécurité & Utilisateurs
+\node[entity] (role) {Role\\ \normalfont\tiny (id, name, description)};
+\node[entity, right=of role] (user) {User\\ \normalfont\tiny (id, email, password, role\_id)};
+\node[entity, left=of role] (perm) {Permission\\ \normalfont\tiny (id, code, label, module)};
+
+% Entités Workflows
+\node[entity, below=2.5cm of role] (wf) {Workflow\\ \normalfont\tiny (id, name, category, version, active)};
+\node[entity, below left=2cm and 0.8cm of wf] (state) {WorkflowState\\ \normalfont\tiny (id, name, label, workflow\_id)};
+\node[entity, below right=2cm and 0.8cm of wf] (trans) {WorkflowTransition\\ \normalfont\tiny (id, from\_state, to\_state, role\_required)};
+
+% Liens & Cardinalités
+\draw[arrow] (perm) -- node[above, font=\tiny] {N:M (role\_permissions)} (role);
+\draw[arrow] (role) -- node[above, font=\tiny] {1:N (role\_id)} (user);
+\draw[arrow] (wf) -- node[left, font=\tiny] {1:N (Cascade.ALL)} (state);
+\draw[arrow] (wf) -- node[right, font=\tiny] {1:N (Cascade.ALL)} (trans);
+
+\end{tikzpicture}
+\caption{Diagramme Entité-Association de la persistance IncidentFlow.}
+\end{figure}
+
+---
+
+% 3. PERSISTANCE DES UTILISATEURS ET RÔLES (RBAC)
+\section{Persistance des Utilisateurs, Rôles et Permissions (RBAC)}
+
+\subsection{Entités \texttt{Role} et \texttt{Permission}}
+
+Le système RBAC (\textit{Role-Based Access Control}) s'appuie sur une relation Many-to-Many entre les entités \texttt{Role} et \texttt{Permission}.
+
+\begin{lstlisting}[language=CustomJava, caption={Mapping JPA de l'entite Role.}]
+@Entity
+@Table(name = "roles")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Role implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String name;
+
+    private String description;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "role_permissions",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    @Builder.Default
+    private Set<Permission> permissions = new HashSet<>();
+}
+\end{lstlisting}
+
+\subsubsection{Points Clés de Persistance RBAC :}
+\begin{enumerate}
+    \item \textbf{Chargement Immédiat (\texttt{FetchType.EAGER})} : Les permissions associées à un rôle sont chargées immédiatement lors de l'authentification pour alimenter le contexte de sécurité Spring Security sans requêtes N+1.
+    \item \textbf{Jointure \texttt{role\_permissions}} : La table d'association conserve la correspondance exacte entre les identifiants de rôles et de privilèges.
+\end{enumerate}
+
+\subsection{Entité \texttt{User}}
+
+L'utilisateur possède une association Many-to-One vers la table des rôles :
+
+\begin{lstlisting}[language=CustomJava, caption={Extrait de l'entite User.}]
+@Entity
+@Table(name = "users")
+public class User implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @Column(nullable = false)
+    private String password;
+
+    @ManyToOne(optional = false, fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
+}
+\end{lstlisting}
+
+---
+
+% 4. PERSISTANCE DES WORKFLOWS DYNAMIQUES
+\section{Persistance des Workflows, États et Transitions}
+
+La gestion des workflows dynamiques est la fonctionnalité cœur de l'application. Un workflow est composé d'un ensemble d'états (\texttt{WorkflowState}) et de règles de transition autorisées (\texttt{WorkflowTransition}).
+
+\subsection{Entité \texttt{Workflow}}
+
+L'entité principale \texttt{Workflow} agrège ses états et transitions via une cascade complète et une gestion stricte des entités orphelines (\texttt{orphanRemoval = true}).
+
+\begin{lstlisting}[language=CustomJava, caption={Entite Workflow et ses collections associees.}]
+@Entity
+@Table(name = "workflows")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Workflow implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String category;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int version = 1;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
+    @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
+    private List<WorkflowState> states = new ArrayList<>();
+
+    @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @Builder.Default
+    private List<WorkflowTransition> transitions = new ArrayList<>();
+}
+\end{lstlisting}
+
+\subsection{Entités \texttt{WorkflowState} et \texttt{WorkflowTransition}}
+
+Chaque transition contient désormais un champ \texttt{roleRequired} permettant de restreindre la réalisation d'un changement d'état à un rôle spécifique.
+
+\begin{lstlisting}[language=CustomJava, caption={Entite WorkflowTransition avec restriction de role.}]
+@Entity
+@Table(name = "workflow_transitions")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class WorkflowTransition implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "from_state", nullable = false)
+    private String fromState;
+
+    @Column(name = "to_state", nullable = false)
+    private String toState;
+
+    @Column(name = "role_required")
+    private String roleRequired; // Exemple: "Administrateur", "Responsable", null
+
+    @Column(name = "requires_comment", nullable = false)
+    @Builder.Default
+    private boolean requiresComment = false;
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "workflow_id", nullable = false)
+    @JsonIgnore
+    private Workflow workflow;
+}
+\end{lstlisting}
+
+---
+
+% 5. GESTION DES CYCLES DE VIE JPA ET RÉSOLUTIONS D'ERREURS
+\section{Gestion du Cycle de Vie JPA \& Résolution de l'Erreur \textit{Detached Entity}}
+
+\subsection{Analyse du Problème de Persistance (\textit{Detached Entity Passed to Persist})}
+
+Lors de la mise à jour d'un workflow existant depuis l'interface Web (Frontend React), le contrôleur reçoit un objet JSON désérialisé contenant des états et des transitions ayant des identifiants (\texttt{id}) déjà générés.
+
+Lorsque l'on tente d'affecter directement cette liste à une entité managée par Hibernate :
+\begin{enumerate}
+    \item L'instance désérialisée n'appartient pas au contexte de persistance (\textit{Persistence Context}) courant.
+    \item Hibernate détecte un identifiant non nul sur des objets enfants et interprète l'objet comme une entité détachée (\textit{Detached Entity}).
+    \item L'appel à la méthode \texttt{persist()} au travers de la cascade \texttt{CascadeType.ALL} déclenche l'exception :\\
+    \small\texttt{PersistentObjectException: detached entity passed to persist}.
+\end{enumerate}
+
+\subsection{Solution Implémentée dans \texttt{WorkflowService}}
+
+Pour résoudre ce problème de manière définitive et garantir l'intégrité référentielle, le service procède par mise à jour en place sur la collection managée (\textit{In-Place Update}) ou par versioning automatique si des incidents sont déjà rattachés au workflow.
+
+\begin{lstlisting}[language=CustomJava, caption={Algorithme de sauvegarde securise dans WorkflowService.java}]
+@Transactional
+@CacheEvict(value = {"workflows", "workflows-category"}, allEntries = true)
+public Workflow saveWorkflow(Workflow workflow) {
+    validateWorkflowGraph(workflow);
+
+    if (workflow.getId() != null) {
+        boolean hasLinkedIncidents = incidentRepository.existsByWorkflowId(workflow.getId());
+        
+        // Cas 1 : Des incidents sont lies -> Creation d'une nouvelle version (Versioning)
+        if (hasLinkedIncidents) {
+            Workflow original = workflowRepository.findById(workflow.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Workflow original non trouve"));
+            original.setActive(false);
+            workflowRepository.save(original);
+
+            Workflow newVersion = new Workflow();
+            newVersion.setName(workflow.getName());
+            newVersion.setCategory(workflow.getCategory());
+            newVersion.setVersion(original.getVersion() + 1);
+            newVersion.setActive(true);
+
+            // Re-instanciation propre sans ID pour eviter l'etat detache
+            if (workflow.getStates() != null) {
+                for (WorkflowState state : workflow.getStates()) {
+                    newVersion.getStates().add(WorkflowState.builder()
+                            .name(state.getName()).label(state.getLabel())
+                            .colorClass(state.getColorClass()).active(state.isActive())
+                            .workflow(newVersion).build());
+                }
+            }
+            if (workflow.getTransitions() != null) {
+                for (WorkflowTransition transition : workflow.getTransitions()) {
+                    newVersion.getTransitions().add(WorkflowTransition.builder()
+                            .fromState(transition.getFromState()).toState(transition.getToState())
+                            .roleRequired(transition.getRoleRequired())
+                            .requiresComment(transition.isRequiresComment())
+                            .workflow(newVersion).build());
+                }
+            }
+            return workflowRepository.save(newVersion);
+        }
+
+        // Cas 2 : Aucun incident lie -> Nettoyage et mise a jour en place
+        Workflow existing = workflowRepository.findById(workflow.getId())
+                .orElseGet(() -> workflow);
+
+        if (existing != workflow) {
+            existing.setName(workflow.getName());
+            existing.setCategory(workflow.getCategory());
+            existing.setActive(workflow.isActive());
+
+            // Nettoyage de la collection managee (declenche orphanRemoval)
+            existing.getStates().clear();
+            if (workflow.getStates() != null) {
+                for (WorkflowState state : workflow.getStates()) {
+                    existing.getStates().add(WorkflowState.builder()
+                            .name(state.getName()).label(state.getLabel())
+                            .colorClass(state.getColorClass()).active(state.isActive())
+                            .workflow(existing).build());
+                }
+            }
+
+            existing.getTransitions().clear();
+            if (workflow.getTransitions() != null) {
+                for (WorkflowTransition transition : workflow.getTransitions()) {
+                    existing.getTransitions().add(WorkflowTransition.builder()
+                            .fromState(transition.getFromState()).toState(transition.getToState())
+                            .roleRequired(transition.getRoleRequired())
+                            .requiresComment(transition.isRequiresComment())
+                            .workflow(existing).build());
+                }
+            }
+            return workflowRepository.save(existing);
+        }
+    }
+    return workflowRepository.save(workflow);
+}
+\end{lstlisting}
+
+---
+
+% 6. SYNCHRONISATION FRONTEND ET CYCLE DE VIE REST
+\section{Flux de Persistance Frontend-Backend}
+
+Le diagramme de séquence suivant résume le parcours de persistance lors de la modification du rôle autorisé d'une transition depuis l'interface utilisateur React.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.8cm,
+    actor/.style={rectangle, draw=navyprimary, fill=codebg, rounded corners, font=\small\bfseries, minimum width=2.5cm, minimum height=0.8cm},
+    line/.style={draw=slategray, dashed, thick}
+]
+
+\node[actor] (ui) {Interface React};
+\node[actor, right=3.5cm of ui] (ctrl) {WorkflowController};
+\node[actor, right=3.5cm of ctrl] (srv) {WorkflowService};
+\node[actor, right=3.5cm of srv] (db) {PostgreSQL};
+
+% Lignes de vie
+\draw[line] (ui) -- ++(0,-5);
+\draw[line] (ctrl) -- ++(0,-5);
+\draw[line] (srv) -- ++(0,-5);
+\draw[line] (db) -- ++(0,-5);
+
+% Messages
+\draw[-{Stealth}, thick, color=blueaccent] (ui.south) ++(0,-0.8) -- node[above, font=\tiny] {1. PUT /api/workflows/1 (JSON payload avec roleRequired)} ++(3.5,0);
+\draw[-{Stealth}, thick, color=blueaccent] (ctrl.south) ++(0,-1.6) -- node[above, font=\tiny] {2. saveWorkflow(workflowDetails)} ++(3.5,0);
+\draw[-{Stealth}, thick, color=blueaccent] (srv.south) ++(0,-2.4) -- node[above, font=\tiny] {3. In-Place update \& orphanRemoval} ++(3.5,0);
+\draw[-{Stealth}, thick, color=greenaccent] (db.south) ++(0,-3.2) -- node[above, font=\tiny] {4. UPDATE workflows / DELETE \& INSERT transitions} ++(-3.5,0);
+\draw[-{Stealth}, thick, color=greenaccent] (srv.south) ++(0,-4.0) -- node[above, font=\tiny] {5. Retour Workflow persistant (200 OK)} ++(-7,0);
+
+\end{tikzpicture}
+\caption{Diagramme de Séquence de la persistance d'une transition modifiée.}
+\end{figure}
+
+---
+
+% 7. CONCLUSION ET BONNES PRATIQUES
+\section{Conclusion et Bonnes Pratiques Retenues}
+
+La stratégie de persistance mise en œuvre pour les entités \texttt{User}, \texttt{Role} et \texttt{Workflow} au sein d'IncidentFlow garantit :
+\begin{itemize}
+    \item \textbf{Intégrité des données} : Aucune incohérence d'état n'est possible grâce aux validations graphiques par parcours en profondeur (DFS) et au nettoyage automatique des sous-collections via \texttt{orphanRemoval}.
+    \item \textbf{Gestion fluide des versions} : En présence d'incidents associés, l'historique n'est jamais corrompu car les anciens workflows sont archivés et une nouvelle version active est créée.
+    \item \textbf{Sécurité granulaire RBAC} : La restriction dynamique des transitions par rôle (\texttt{roleRequired}) est directement enregistrée et validée au niveau de la couche service lors de chaque passage d'état d'un incident.
+\end{itemize}
+
+\end{document}
