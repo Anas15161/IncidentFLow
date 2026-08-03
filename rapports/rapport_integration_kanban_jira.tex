@@ -1,0 +1,141 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    pdftitle={Rapport Integration Kanban Jira - IncidentFlow}
+}
+
+\title{\textbf{RAPPORT TECHNIQUE D'INTÉGRATION}\\[0.2cm]
+\Large\textbf{Ajout d'une Vue Kanban Interactive (Style Jira Roadmap)}\\[0.1cm]
+\small Gestion et Transition d'États d'Incidents par Glisser-Déposer}
+
+\author{Équipe de Développement IncidentFlow}
+\date{Août 2026}
+
+\begin{document}
+
+\maketitle
+
+\hrule
+\vspace{0.3cm}
+
+\section*{Synthèse Exécutive}
+Ce document détaille la conception, l'implémentation, les tests de validation ainsi que la résolution des problèmes rencontrés lors de l'intégration de la \textbf{Vue Kanban / Roadmap (style Jira)} dans l'application \textbf{IncidentFlow}. Cette fonctionnalité permet aux opérateurs de faire évoluer visuellement l'état des incidents par glisser-déplacer tout en garantissant le respect des règles du workflow backend Spring Boot.
+
+\vspace{0.3cm}
+\hrule
+\vspace{0.5cm}
+
+\tableofcontents
+\newpage
+
+\section{Introduction et Objectifs Métiers}
+
+L'application \textbf{IncidentFlow} disposait initialement d'un affichage tabulaire. Afin d'améliorer l'expérience utilisateur (UX) et d'offrir une visibilité similaire à \textbf{Jira Software}, une vue \textbf{Kanban interactive} a été ajoutée.
+
+\subsection{Objectifs Principaux}
+\begin{itemize}
+    \item \textbf{Visibilité Globale} : Visualiser le volume d'incidents par colonnes d'états (Nouveau, En cours, Résolu, Clôturé).
+    \item \textbf{Interactivité (Drag-and-Drop)} : Déplacement d'une carte d'incident d'une colonne vers une autre à la souris.
+    \item \textbf{Validation Dynamique du Workflow} : Contrôle automatique des transitions autorisées par le backend.
+    \item \textbf{Filtrage Avancé} : Recherche par mot-clé, priorité et catégorie d'incident.
+\end{itemize}
+
+\section{Architecture et Étapes de Réalisation}
+
+L'implémentation respecte la séparation Frontend (React / Vite) et Backend (Spring Boot).
+
+\subsection{Étape 1 : Composant KanbanView.jsx}
+Le composant \texttt{KanbanView.jsx} utilise l'API native \textbf{HTML5 Drag and Drop} pour des performances maximales.
+
+\begin{verbatim}
+const handleDragStart = (e, incident) => {
+  setDraggedIncident(incident);
+  e.dataTransfer.setData('text/plain', incident.incidentCode);
+};
+
+const handleDrop = async (e, targetStatus) => {
+  e.preventDefault();
+  if (!draggedIncident || draggedIncident.status === targetStatus) return;
+  await onExecuteTransition(draggedIncident, targetStatus, "Transition Kanban");
+};
+\end{verbatim}
+
+\subsection{Étape 2 : Design System et CSS}
+Les styles ont été ajoutés dans \texttt{index.css} : colonnes avec bordures colorées par état, effet visuel au survol (Drag-Over) et cartes d'incidents réactives.
+
+\subsection{Étape 3 : Routage et Navigation dans App.jsx}
+\begin{enumerate}
+    \item Ajout du bouton \textbf{"Tableau Kanban"} dans le menu latéral.
+    \item Extension de la vue \texttt{currentView === 'kanban'}.
+    \item Définition de la fonction globale \texttt{executeIncidentTransition}.
+\end{enumerate}
+
+\section{Problèmes, Erreurs Rencontrés et Solutions}
+
+\subsection*{Erreur 1 : Dépendance de executeTransition à l'incident sélectionné}
+\textbf{Symptôme :} Erreur \texttt{TypeError} quand \texttt{selectedIncident} était \texttt{null}.\\
+\textbf{Solution :} Création de la fonction autonome \texttt{executeIncidentTransition(incidentCode, toState, comment)}.
+
+\subsection*{Erreur 2 : Clignotement de la colonne au survol (Drag Leave)}
+\textbf{Symptôme :} Survol des cartes enfants déclenchant l'événement \texttt{onDragLeave}.\\
+\textbf{Solution :} Vérification de la cible avec \texttt{e.currentTarget.contains(e.relatedTarget)}.
+
+\subsection*{Erreur 3 : Adaptabilité et ordre logique des états de Workflow (Positionnement séquentiel)}
+\textbf{Symptôme :} Les nouveaux états ajoutés (par exemple entre "En cours" et "Résolu") apparaissaient à la fin du tableau au lieu d'être positionnés entre leurs états prédécesseurs et successeurs.\\
+\textbf{Solution :} Implémentation de l'algorithme de parcours de graphe par largeur (BFS / Tri topologique) \texttt{getOrderedStates(activeWorkflow)}. Cet algorithme parcourt les transitions pour ordonner automatiquement les colonnes Kanban selon leur séquence exacte (\texttt{Nouveau} $\rightarrow$ \texttt{En cours} $\rightarrow$ \texttt{État Intermédiaire} $\rightarrow$ \texttt{Résolu} $\rightarrow$ \texttt{Clôturé}).
+
+
+\subsection*{Erreur 4 : TypeError toUpperCase sur assignedTo}
+\textbf{Symptôme :} \texttt{Uncaught TypeError: Cannot read properties of undefined (reading 'toUpperCase')} à la ligne 247.\\
+\textbf{Solution :} Fonctions sécurisées \texttt{getAssigneeInitial} et \texttt{getAssigneeName} vérifiant le type.
+
+\subsection*{Erreur 5 : Surconsommation mémoire et CPU du navigateur}
+\textbf{Symptôme :} Utilisation de la clé \texttt{key=Math.random()} détruisant et recréant le DOM.\\
+\textbf{Solution :} Clés stables, mémorisation des cartes avec \texttt{React.memo(KanbanCard)} et mémorisation du filtrage avec \texttt{useMemo}.
+
+\subsection*{Erreur 6 : Saturation CPU Système à 100\% par boucle pdflatex}
+\textbf{Symptôme :} Processus \texttt{pdflatex} bloqués en arrière-plan.\\
+\textbf{Solution :} Arrêt via \texttt{killall -9 pdflatex} et utilisation des options non-interactives.
+
+\subsection*{Erreur 7 : Incompatibilité de casse et de langue sur le filtrage par Priorité}
+\textbf{Symptôme :} Sélectionner un filtre de priorité (ex: "Critique" ou "Haute") masquait la totalité des cartes (0 incident affiché).\\
+\subsection*{Amélioration UX : Filtre Rapide "Mes Incidents" (1 Clic)}
+\subsection*{Amélioration Sécurité \& Métier : Option B (Isolation Stricte par Rôle) \& Limites WIP}
+\textbf{Isolation Stricte (Option B) :} Les utilisateurs non-administrateurs ne voient strictement que les incidents qui leur sont assignés ou qu'ils ont créés, garantissant la confidentialité des données de l'organisation via \texttt{canUserSeeIncident(inc, currentUser)}. Les Administrateurs conservent la vue globale sur la totalité de la flotte d'incidents (\texttt{👑 Mode Vue Globale}).\\
+\textbf{Limites WIP (Work-In-Progress) :} Chaque colonne intègre un seuil maximal recommandé (ex: 5 dans "En cours"). En cas de dépassement du seuil, l'en-tête de la colonne passe en alerte rouge animée \texttt{⚠️ Capacité Dépassée (X/Y)}. Les administrateurs peuvent ajuster ces limites à la volée via l'icône \texttt{Settings}.
+
+\section{Validation, Tests et Optimisation des Ressources}
+
+
+
+
+
+\subsection{1. Compilation}
+\begin{itemize}
+    \item \textbf{Frontend Vite Build} : \texttt{npm run build} validé avec succès (520ms).
+    \item \textbf{Backend Java Maven} : \texttt{mvn compile} validé avec succès (BUILD SUCCESS).
+\end{itemize}
+
+\subsection{2. Optimisation Mémoire (RAM / RSS)}
+\begin{itemize}
+    \item \textbf{Garbage Collector JVM} : Option \texttt{-XX:+UseSerialGC} et \texttt{-Xss256k} ajoutées au Dockerfile.
+    \item \textbf{Limitation Heap JVM} : \texttt{-Xms128m -Xmx384m} (Backend) et \texttt{-Xmx480m} (Keycloak).
+    \item \textbf{Limites Conteneurs Docker} : Backend (512M), Keycloak (640M), Postgres (256M), Redis (128M).
+    \item \textbf{HikariCP} : Limitation du pool à 5 connexions actives max.
+\end{itemize}
+
+\section{Conclusion}
+
+L'intégration de la \textbf{vue Kanban style Jira Roadmap} enrichit la plateforme \textbf{IncidentFlow}. Elle offre une gestion visuelle et réactive des incidents tout en garantissant l'intégrité des règles métiers et l'optimisation des ressources système.
+
+\end{document}

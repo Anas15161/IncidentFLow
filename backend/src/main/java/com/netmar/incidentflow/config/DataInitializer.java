@@ -95,6 +95,32 @@ public class DataInitializer implements CommandLineRunner {
             roleRepository.save(resp);
             roleRepository.save(ope);
             roleRepository.save(med);
+        } else {
+            // S'assurer que les rôles existants ont bien leurs permissions attribuées
+            roleRepository.findByName("Administrateur").ifPresent(r -> {
+                if (r.getPermissions() == null || r.getPermissions().isEmpty()) {
+                    r.setPermissions(new HashSet<>(Set.of(pDash, pInc, pWf, pUsers, pSla, pIncCreate, pIncEdit, pIncDelete, pIncPdf, pIncMed, pRbacEdit, pWfEdit)));
+                    roleRepository.save(r);
+                }
+            });
+            roleRepository.findByName("Responsable").ifPresent(r -> {
+                if (r.getPermissions() == null || r.getPermissions().isEmpty()) {
+                    r.setPermissions(new HashSet<>(Set.of(pDash, pInc, pWf, pSla, pIncCreate, pIncEdit, pIncPdf, pIncMed, pWfEdit)));
+                    roleRepository.save(r);
+                }
+            });
+            roleRepository.findByName("Opérateur").ifPresent(r -> {
+                if (r.getPermissions() == null || r.getPermissions().isEmpty()) {
+                    r.setPermissions(new HashSet<>(Set.of(pDash, pInc, pSla, pIncCreate, pIncEdit, pIncPdf)));
+                    roleRepository.save(r);
+                }
+            });
+            roleRepository.findByName("Opérateur médical").ifPresent(r -> {
+                if (r.getPermissions() == null || r.getPermissions().isEmpty()) {
+                    r.setPermissions(new HashSet<>(Set.of(pDash, pInc, pSla, pIncCreate, pIncEdit, pIncPdf, pIncMed)));
+                    roleRepository.save(r);
+                }
+            });
         }
 
         Role adminRole = roleRepository.findByName("Administrateur").orElseThrow();
@@ -194,8 +220,10 @@ public class DataInitializer implements CommandLineRunner {
                     WorkflowTransition.builder().fromState("Résolu").toState("En cours").workflow(wfStandard).build()
             ));
             
-            workflowRepository.save(wfStandard);
+            wfStandard = workflowRepository.save(wfStandard);
         }
+
+        Workflow wfStandard = workflowRepository.findAll().isEmpty() ? null : workflowRepository.findAll().get(0);
 
         // 4. Initialiser quelques incidents factices issus de la maquette
         if (incidentRepository.count() == 0) {
@@ -209,6 +237,7 @@ public class DataInitializer implements CommandLineRunner {
                     .severity("Critique")
                     .status("Nouveau")
                     .author(marie)
+                    .workflow(wfStandard)
                     .slaDueAt(LocalDateTime.now().plusMinutes(15))
                     .build();
 
@@ -228,6 +257,7 @@ public class DataInitializer implements CommandLineRunner {
                     .status("En cours")
                     .author(sophie)
                     .assignedTo(anas)
+                    .workflow(wfStandard)
                     .slaDueAt(LocalDateTime.now().plusHours(1).plusMinutes(30))
                     .build();
 
@@ -263,6 +293,7 @@ public class DataInitializer implements CommandLineRunner {
                     .status("En cours")
                     .author(marie)
                     .assignedTo(drJean)
+                    .workflow(wfStandard)
                     .slaDueAt(LocalDateTime.now().minusMinutes(45))
                     .build();
 
@@ -288,6 +319,7 @@ public class DataInitializer implements CommandLineRunner {
                     .status("Résolu")
                     .author(anas)
                     .assignedTo(anas)
+                    .workflow(wfStandard)
                     .slaDueAt(LocalDateTime.now().plusHours(12))
                     .build();
 

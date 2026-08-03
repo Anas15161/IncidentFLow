@@ -4,8 +4,10 @@ import {
   Search, User, Plus, X, Bell, Paperclip, Download, Send,
   Globe, Cpu, Stethoscope, ArrowLeft, Eye, EyeOff, RefreshCw, Layers,
   Lock, LogOut, Users, Trash2, Edit3, Settings, AlertCircle,
-  ChevronDown, HelpCircle, MessageSquare, PlusCircle, UserPlus, FileUp, CheckSquare
+  ChevronDown, HelpCircle, MessageSquare, PlusCircle, UserPlus, FileUp, CheckSquare,
+  Kanban
 } from 'lucide-react';
+import { KanbanView } from './KanbanView';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -27,67 +29,150 @@ const USERS = [
 ];
 
 const getInitialNodes = (states) => {
-  if (!states) return [];
-  return states.map((state, index) => {
-    const isNouveau = state.name.toLowerCase() === 'nouveau';
-    const isCloture = state.name.toLowerCase() === 'clôturé' || state.name.toLowerCase() === 'cloture';
+  if (!states || states.length === 0) return [];
+
+  const statePosMap = {
+    'nouveau': { x: 40, y: 180 },
+    'assigné': { x: 230, y: 180 },
+    'en cours': { x: 420, y: 180 },
+    'résolu': { x: 610, y: 180 },
+    'clôturé': { x: 800, y: 180 },
+    'cloture': { x: 800, y: 180 }
+  };
+
+  const customStates = states.filter(s => !statePosMap[s.name.toLowerCase().trim()]);
+
+  return states.map((state) => {
+    const key = state.name.toLowerCase().trim();
+    const isNouveau = key === 'nouveau';
+    const isCloture = key === 'clôturé' || key === 'cloture';
 
     let nodeType = 'default';
     if (isNouveau) nodeType = 'input';
     else if (isCloture) nodeType = 'output';
 
-    let x = 250;
-    let y = 150;
-    if (isNouveau) {
-      x = 50;
-      y = 150;
-    } else if (isCloture) {
-      x = 580;
-      y = 150;
-    } else {
-      const others = states.filter(s => {
-        const name = s.name.toLowerCase();
-        return name !== 'nouveau' && name !== 'clôturé' && name !== 'cloture';
-      });
-      const idx = others.findIndex(o => o.name === state.name);
-      x = 220 + (idx * 160);
-      y = 60 + (idx % 2 * 160);
+    let pos = statePosMap[key];
+    if (!pos) {
+      const customIdx = customStates.findIndex(c => c.name.toLowerCase().trim() === key);
+      pos = {
+        x: 230 + (customIdx * 190),
+        y: customIdx % 2 === 0 ? 60 : 300
+      };
     }
 
     return {
       id: state.name,
       type: nodeType,
-      data: { label: `${state.label} (${state.name})` },
-      position: { x, y },
+      data: { label: `${state.label || state.name}` },
+      position: pos,
+      sourcePosition: 'right',
+      targetPosition: 'left',
       style: {
         background: state.active ? 'var(--card-bg)' : 'var(--border-color)',
         color: 'var(--text-main)',
         border: '2px solid ' + (isNouveau ? '#10b981' : isCloture ? '#6366f1' : '#3b82f6'),
-        borderRadius: '8px',
-        padding: '10px',
+        borderRadius: '10px',
+        padding: '12px',
         fontWeight: 'bold',
-        fontSize: '11px',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-        width: 140
+        fontSize: '12px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+        width: 145,
+        textAlign: 'center'
       }
     };
   });
 };
 
-const getInitialEdges = (transitions) => {
-  if (!transitions) return [];
-  return transitions.map((t, idx) => ({
-    id: `e-${t.fromState}-${t.toState}`,
-    source: t.fromState,
-    target: t.toState,
-    animated: true,
-    style: { stroke: '#3b82f6', strokeWidth: 2 },
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-      color: '#3b82f6'
-    },
-    label: t.roleRequired ? `🔑 ${t.roleRequired}` : ''
-  }));
+const getInitialEdges = (transitions, states) => {
+  if (!transitions || !states) return [];
+  const stateNameMap = new Map();
+  states.forEach(s => stateNameMap.set(s.name.toLowerCase().trim(), s.name));
+
+  return transitions
+    .map((t, idx) => {
+      const source = stateNameMap.get((t.fromState || '').toLowerCase().trim()) || t.fromState;
+      const target = stateNameMap.get((t.toState || '').toLowerCase().trim()) || t.toState;
+
+      if (!source || !target) return null;
+
+      const isReverse = source.toLowerCase() === 'résolu' && target.toLowerCase() === 'en cours';
+
+      return {
+        id: `e-${source}-${target}-${idx}`,
+        source: source,
+        target: target,
+        animated: true,
+        type: 'smoothstep',
+        style: { stroke: isReverse ? '#f59e0b' : '#3b82f6', strokeWidth: 2.5 },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: isReverse ? '#f59e0b' : '#3b82f6',
+          width: 20,
+          height: 20
+        },
+        label: t.roleRequired ? `🔑 ${t.roleRequired}` : ''
+      };
+    })
+    .filter(Boolean);
+};
+
+const getOrderedStates = (wf) => {
+  if (!wf || !wf.states || wf.states.length === 0) return [];
+  const states = wf.states;
+  const transitions = wf.transitions || [];
+
+  const stateMap = new Map();
+  states.forEach(s => stateMap.set(s.name.toLowerCase().trim(), s));
+
+  const initialKey = states.find(s => s.name.toLowerCase().trim() === 'nouveau')?.name.toLowerCase().trim() || states[0].name.toLowerCase().trim();
+
+  const adj = new Map();
+  states.forEach(s => adj.set(s.name.toLowerCase().trim(), []));
+  transitions.forEach(t => {
+    const from = (t.fromState || '').toLowerCase().trim();
+    const to = (t.toState || '').toLowerCase().trim();
+    if (adj.has(from) && adj.has(to)) {
+      adj.get(from).push(to);
+    }
+  });
+
+  const orderedKeys = [];
+  const visited = new Set();
+  const queue = [initialKey];
+
+  while (queue.length > 0) {
+    const currentKey = queue.shift();
+    if (!visited.has(currentKey) && stateMap.has(currentKey)) {
+      visited.add(currentKey);
+      orderedKeys.push(currentKey);
+
+      const neighbors = adj.get(currentKey) || [];
+      // Prioritize non-final states so 'clôturé' appears last
+      neighbors.sort((a, b) => (a === 'clôturé' || a === 'cloture' ? 1 : 0) - (b === 'clôturé' || b === 'cloture' ? 1 : 0));
+      neighbors.forEach(n => {
+        if (!visited.has(n) && !queue.includes(n)) {
+          queue.push(n);
+        }
+      });
+    }
+  }
+
+  // Append any unvisited states before 'clôturé'
+  states.forEach(s => {
+    const key = s.name.toLowerCase().trim();
+    if (!visited.has(key)) {
+      orderedKeys.push(key);
+    }
+  });
+
+  // Ensure 'clôturé' is at the very end
+  const clotureIdx = orderedKeys.findIndex(k => k === 'clôturé' || k === 'cloture');
+  if (clotureIdx !== -1 && clotureIdx !== orderedKeys.length - 1) {
+    const [clotureKey] = orderedKeys.splice(clotureIdx, 1);
+    orderedKeys.push(clotureKey);
+  }
+
+  return orderedKeys.map(k => stateMap.get(k)).filter(Boolean);
 };
 
 function App() {
@@ -117,7 +202,7 @@ function App() {
   const [showAppSettingsModal, setShowAppSettingsModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  // App Settings States
+  // States
   const [sessionDuration, setSessionDuration] = useState(() => {
     return parseInt(localStorage.getItem('sessionDuration') || '600');
   });
@@ -134,11 +219,17 @@ function App() {
     return parseInt(localStorage.getItem('itemsPerPage') || '5');
   });
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(() => {
-    return parseInt(localStorage.getItem('autoRefreshInterval') || '0');
+    return parseInt(localStorage.getItem('autoRefreshInterval') || '30');
   });
   const [themeMode, setThemeMode] = useState(() => {
     return localStorage.getItem('themeMode') || 'light';
   });
+  const [workflowRuleMode, setWorkflowRuleMode] = useState(() => {
+    return localStorage.getItem('workflowRuleMode') || 'strict';
+  });
+
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   // Edit Profile Form State
   const [profileForm, setProfileForm] = useState({
@@ -344,34 +435,10 @@ function App() {
   const [newTransRequiresComment, setNewTransRequiresComment] = useState(false);
   const [editorMode, setEditorMode] = useState('visual'); // 'visual' or 'textual'
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-
-  // Apply theme class to document element
-  useEffect(() => {
-    document.documentElement.className = '';
-    if (themeMode === 'dark') {
-      document.documentElement.classList.add('dark-theme');
-    } else if (themeMode === 'glass') {
-      document.documentElement.classList.add('glass-theme');
-    }
-  }, [themeMode]);
-
-  // Periodic auto-refresh for incidents
-  useEffect(() => {
-    if (!isAuthenticated || autoRefreshInterval <= 0) return;
-
-    const interval = setInterval(() => {
-      fetchIncidents();
-    }, autoRefreshInterval * 1000);
-
-    return () => clearInterval(interval);
-  }, [isAuthenticated, autoRefreshInterval]);
-
   useEffect(() => {
     if (activeWorkflow) {
       setNodes(getInitialNodes(activeWorkflow.states));
-      setEdges(getInitialEdges(activeWorkflow.transitions));
+      setEdges(getInitialEdges(activeWorkflow.transitions, activeWorkflow.states));
     }
   }, [activeWorkflow]);
 
@@ -1453,6 +1520,24 @@ function App() {
     setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
   };
 
+  const handleQuickAddTransition = (fromState, toState, roleRequired = '') => {
+    if (!activeWorkflow) return;
+    const exists = activeWorkflow.transitions.some(
+      t => t.fromState.toLowerCase() === fromState.toLowerCase() && t.toState.toLowerCase() === toState.toLowerCase()
+    );
+    if (exists) return;
+
+    const transObj = {
+      fromState,
+      toState,
+      roleRequired: roleRequired || null,
+      requiresComment: false
+    };
+    const updatedWf = { ...activeWorkflow, transitions: [...activeWorkflow.transitions, transObj] };
+    setActiveWorkflow(updatedWf);
+    setWorkflows(prev => prev.map(w => w.id === updatedWf.id ? updatedWf : w));
+  };
+
   // Update authorized role for an existing transition
   const handleUpdateTransitionRole = (fromState, toState, roleRequired) => {
     if (!activeWorkflow) return;
@@ -1563,6 +1648,36 @@ function App() {
     } catch (err) {
       setErrorMessage(err.message);
       setShowTransitionModal(false);
+    }
+  };
+
+  const executeIncidentTransition = async (incidentCode, toState, comment = '') => {
+    setErrorMessage('');
+    try {
+      const res = await fetch(`${API_BASE}/incidents/${incidentCode}/transition`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ toState, comment })
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "La transition a échoué.");
+      }
+
+      if (selectedIncident && selectedIncident.incidentCode === incidentCode) {
+        loadIncidentDetail(incidentCode);
+      }
+      fetchIncidents();
+
+      setNotifications(prev => [
+        { id: Date.now(), text: `Incident ${incidentCode} passé à l'état ${toState}`, time: "À l'instant" },
+        ...prev
+      ]);
+      return true;
+    } catch (err) {
+      alert(`Transition impossible : ${err.message}`);
+      return false;
     }
   };
 
@@ -2721,15 +2836,27 @@ function App() {
           )}
 
           {hasPermission('PAGE_INCIDENTS') && (
-            <button
-              className={`nav-btn ${currentView === 'incidents' ? 'active' : ''}`}
-              onClick={() => { setCurrentView('incidents'); setSelectedIncidentCode(null); }}
-            >
-              <span className="nav-label">
-                <FileText size={18} />
-                Gestion des Incidents
-              </span>
-            </button>
+            <>
+              <button
+                className={`nav-btn ${currentView === 'incidents' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('incidents'); setSelectedIncidentCode(null); }}
+              >
+                <span className="nav-label">
+                  <FileText size={18} />
+                  Gestion des Incidents
+                </span>
+              </button>
+
+              <button
+                className={`nav-btn ${currentView === 'kanban' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('kanban'); setSelectedIncidentCode(null); }}
+              >
+                <span className="nav-label">
+                  <Kanban size={18} />
+                  Tableau Kanban
+                </span>
+              </button>
+            </>
           )}
 
           {hasPermission('PAGE_WORKFLOWS') && (
@@ -3001,11 +3128,12 @@ function App() {
                     {(() => {
                       const currentWf = activeWorkflow || (workflows && workflows.length > 0 ? workflows[0] : selectedIncidentWorkflow);
                       if (!currentWf || !currentWf.states) return null;
+                      const orderedStates = getOrderedStates(currentWf);
                       return (
                         <div className="workflow-stepper-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', padding: '12px 16px', backgroundColor: 'var(--body-bg)', borderRadius: '12px', border: '1px solid var(--border-color)', overflowX: 'auto', flexWrap: 'nowrap' }}>
-                          {currentWf.states.map((state, idx) => {
+                          {orderedStates.map((state, idx) => {
                             const isCurrent = state.name.toLowerCase() === selectedIncident.status.toLowerCase();
-                            const currentStateIndex = currentWf.states.findIndex(s => s.name.toLowerCase() === selectedIncident.status.toLowerCase());
+                            const currentStateIndex = orderedStates.findIndex(s => s.name.toLowerCase() === selectedIncident.status.toLowerCase());
                             const isPassed = idx < currentStateIndex;
                             const stepStatusClass = isCurrent ? 'current' : (isPassed ? 'passed' : 'upcoming');
                             return (
@@ -3018,7 +3146,7 @@ function App() {
                                     {state.name}
                                   </span>
                                 </div>
-                                {idx < currentWf.states.length - 1 && (
+                                {idx < orderedStates.length - 1 && (
                                   <span style={{ color: 'var(--border-color)', fontSize: '11px', fontWeight: 'bold' }}>→</span>
                                 )}
                               </div>
@@ -4041,6 +4169,42 @@ function App() {
                   )}
                 </div>
               </div>
+            ) : currentView === 'kanban' ? (
+              <KanbanView
+                incidents={incidents}
+                activeWorkflow={activeWorkflow}
+                currentUser={currentUser}
+                usersList={usersList}
+                hasPermission={hasPermission}
+                onSelectIncident={(code) => {
+                  setSelectedIncidentCode(code);
+                  loadIncidentDetail(code);
+                  setCurrentView('incidents');
+                }}
+                onExecuteTransition={async (incident, targetState, comment) => {
+                  return await executeIncidentTransition(incident.incidentCode, targetState, comment);
+                }}
+                onReassignIncident={async (incidentCode, newUserObj) => {
+                  try {
+                    const payload = {
+                      assignedTo: newUserObj ? { id: newUserObj.id } : null
+                    };
+                    const res = await fetch(`${API_BASE}/incidents/${incidentCode}`, {
+                      method: 'PUT',
+                      headers: getHeaders(),
+                      body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) {
+                      throw new Error("Erreur lors de la réassignation de l'incident.");
+                    }
+                    fetchIncidents();
+                    setSuccessMessage(`Incident ${incidentCode} réassigné à ${newUserObj?.name || 'Personne'}`);
+                    setTimeout(() => setSuccessMessage(''), 3000);
+                  } catch (err) {
+                    console.error("Erreur réassignation rapide:", err);
+                  }
+                }}
+              />
             ) : currentView === 'workflows' ? (
               // VIEW D: WORKFLOW CONFIGURATION & CUSTOMIZATION (Epic 3)
               <div className="animate-fade-in">
@@ -4240,10 +4404,18 @@ function App() {
                               ...(rolesList || []).map(r => r.name).filter(Boolean),
                               ...(t.roleRequired ? [t.roleRequired] : [])
                             ]));
+                            const isMain = (t.fromState === 'Nouveau' && t.toState === 'Assigné') ||
+                              (t.fromState === 'Assigné' && t.toState === 'En cours') ||
+                              (t.fromState === 'En cours' && t.toState === 'Résolu') ||
+                              (t.fromState === 'Résolu' && t.toState === 'Clôturé');
+
                             return (
                               <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--body-bg)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', gap: '12px', flexWrap: 'wrap' }}>
-                                <div style={{ flex: 1, minWidth: '140px' }}>
+                                <div style={{ flex: 1, minWidth: '160px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '13px' }}>
+                                    <span className="badge" style={{ fontSize: '9px', padding: '2px 6px', backgroundColor: isMain ? '#e0f2fe' : '#fef3c7', color: isMain ? '#0369a1' : '#b45309', border: 'none' }}>
+                                      {isMain ? '⏩ Principale' : '🔄 Secondaire'}
+                                    </span>
                                     <span>{t.fromState}</span>
                                     <span>➔</span>
                                     <span style={{ color: 'var(--primary-600)' }}>{t.toState}</span>
@@ -4288,9 +4460,45 @@ function App() {
                           )}
                         </div>
 
+                        {/* Modèles Prédéfinis de Transitions Secondaires */}
+                        <div style={{ marginTop: '16px', padding: '14px', backgroundColor: 'var(--body-bg)', border: '1px dashed var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>🔄 Modèles Prédéfinis de Transitions Secondaires :</span>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {[
+                              { from: 'Nouveau', to: 'En cours', label: '+ Nouveau ➔ En cours (Autoprise en charge)' },
+                              { from: 'Assigné', to: 'Nouveau', label: '+ Assigné ➔ Nouveau (Remise en file)' },
+                              { from: 'En cours', to: 'Assigné', label: '+ En cours ➔ Assigné (Réassignation)' },
+                              { from: 'Résolu', to: 'En cours', label: '+ Résolu ➔ En cours (Réouverture)' }
+                            ].map((sec, i) => {
+                              const exists = activeWorkflow.transitions.some(t => t.fromState === sec.from && t.toState === sec.to);
+                              return (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  className="btn btn-secondary btn-small"
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '4px 8px',
+                                    backgroundColor: exists ? '#f1f5f9' : 'var(--card-bg)',
+                                    color: exists ? '#94a3b8' : 'var(--primary-600)',
+                                    borderColor: exists ? '#e2e8f0' : 'var(--border-color)',
+                                    cursor: exists ? 'default' : 'pointer'
+                                  }}
+                                  onClick={() => !exists && handleQuickAddTransition(sec.from, sec.to)}
+                                  disabled={exists}
+                                >
+                                  {exists ? `✓ ${sec.from} ➔ ${sec.to}` : sec.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
                         {/* Add transition inline form */}
                         <form onSubmit={handleAddTransitionToWorkflow} style={{ marginTop: '16px', padding: '16px', backgroundColor: 'var(--body-bg)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          <h4 style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={14} /> Définir une Transition</h4>
+                          <h4 style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><Plus size={14} /> Définir une Transition Personnalisée</h4>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                             <div className="form-group" style={{ marginBottom: 0 }}>
                               <label style={{ fontSize: '9px' }}>État Origine</label>

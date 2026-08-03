@@ -4,6 +4,7 @@ services:
   incidentflow-postgres:
     image: postgres:16-alpine
     container_name: incidentflow-postgres
+    command: postgres -c shared_buffers=64MB -c max_connections=40 -c work_mem=4MB
     environment:
       POSTGRES_DB: IncidentFlow_db
       POSTGRES_USER: IncidentFlow_user
@@ -15,6 +16,12 @@ services:
     networks:
       - incidentflow-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
 
   incidentflow-keycloak:
     image: keycloak/keycloak:21.1.1
@@ -27,6 +34,7 @@ services:
       KC_DB_URL: jdbc:postgresql://incidentflow-postgres:5432/IncidentFlow_db
       KC_DB_USERNAME: IncidentFlow_user
       KC_DB_PASSWORD: ${DB_PASSWORD}
+      JAVA_OPTS_KC_BUILD: "-Xms128m -Xmx480m -XX:+UseSerialGC"
     ports:
       - "8180:8080"
     depends_on:
@@ -36,15 +44,28 @@ services:
     networks:
       - incidentflow-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 640M
+        reservations:
+          memory: 128M
 
   incidentflow-redis:
     image: redis:7-alpine
     container_name: incidentflow-redis
+    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
     ports:
       - "6380:6379"
     networks:
       - incidentflow-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M
 
   incidentflow-backend:
     build: ./backend
@@ -56,6 +77,7 @@ services:
       SPRING_PROFILES_ACTIVE: dev-mock
       SPRING_DATA_REDIS_HOST: incidentflow-redis
       SPRING_DATA_REDIS_PORT: 6379
+      JAVA_TOOL_OPTIONS: "-XX:+UseSerialGC -Xss256k -Xms128m -Xmx384m"
     ports:
       - "8080:8080"
     depends_on:
@@ -64,20 +86,12 @@ services:
     networks:
       - incidentflow-network
     restart: unless-stopped
-
-  # incidentflow-frontend:
-  #   build: ./frontend
-  #   container_name: incidentflow-frontend
-  #   environment:
-  #     REACT_APP_API_URL: http://incidentflow-backend:8080
-  #     REACT_APP_KEYCLOAK_URL: http://incidentflow-keycloak:8080
-  #   ports:
-  #     - "3000:80"
-  #   depends_on:
-  #     - incidentflow-backend
-  #   networks:
-  #     - incidentflow-network
-  #   restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
 
 volumes:
   postgres-data:
@@ -85,3 +99,4 @@ volumes:
 networks:
   incidentflow-network:
     driver: bridge
+
