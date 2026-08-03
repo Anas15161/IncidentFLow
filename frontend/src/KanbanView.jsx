@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   Clock, Search, Kanban, X, Filter, AlertTriangle, ShieldAlert,
   CheckCircle, User, Tag, Sparkles, RefreshCw, UserCheck, ChevronRight,
-  Eye, UserPlus, FileText, Calendar, Lock, Crown, Settings, ShieldCheck
+  Eye, UserPlus, FileText, Calendar, Lock, Crown, Settings, ShieldCheck,
+  ChevronDown, Check
 } from 'lucide-react';
 
 const DEFAULT_COLUMNS = [
@@ -88,9 +89,8 @@ const isAssignedToCurrentUser = (incident, currentUser) => {
 // Option B: Strict Security & Visibility check
 const canUserSeeIncident = (inc, currentUser) => {
   if (!inc || !currentUser) return false;
-  if (isUserAdmin(currentUser)) return true; // Admins & Managers see all organization incidents
+  if (isUserAdmin(currentUser)) return true;
 
-  // Non-admin users strictly see only incidents assigned to them or reported by them
   if (isAssignedToCurrentUser(inc, currentUser)) return true;
 
   const userEmail = (currentUser.email || '').toLowerCase().trim();
@@ -162,6 +162,146 @@ const getOrderedStates = (wf) => {
   }
 
   return orderedKeys.map(k => stateMap.get(k)).filter(Boolean);
+};
+
+// Executive Professional Priority Dropdown
+const PriorityFilterDropdown = ({ value, onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const options = [
+    { value: 'Tous', label: 'Toutes les priorités', color: '#64748b', desc: 'Afficher tous les niveaux de priorité' },
+    { value: 'Critical', label: 'Critique', color: '#ef4444', desc: 'Intervention urgente (< 4h)' },
+    { value: 'High', label: 'Haute', color: '#f59e0b', desc: 'Traitement prioritaire (< 24h)' },
+    { value: 'Medium', label: 'Moyenne', color: '#3b82f6', desc: 'Priorité normale d\'exploitation' },
+    { value: 'Low', label: 'Basse', color: '#10b981', desc: 'Demande ou amélioration mineure' }
+  ];
+
+  const selectedOpt = options.find(o => o.value === value) || options[0];
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="custom-dropdown-container" ref={containerRef}>
+      <button
+        className="custom-dropdown-trigger"
+        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+      >
+        <span className="dropdown-dot" style={{ backgroundColor: selectedOpt.color }} />
+        <span className="dropdown-label">{selectedOpt.label}</span>
+        <ChevronDown size={14} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="custom-dropdown-menu animate-pop-in">
+          <div className="dropdown-menu-header">Niveau de Priorité</div>
+          {options.map(opt => (
+            <div
+              key={opt.value}
+              className={`dropdown-option-item ${value === opt.value ? 'selected' : ''}`}
+              onClick={() => {
+                onChange(opt.value);
+                setIsOpen(false);
+              }}
+            >
+              <span className="dropdown-dot" style={{ backgroundColor: opt.color }} />
+              <div className="option-text-group">
+                <span className="option-title">{opt.label}</span>
+                <span className="option-desc">{opt.desc}</span>
+              </div>
+              {value === opt.value && <Check size={14} className="option-check" />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Executive Professional Category Dropdown
+const CategoryFilterDropdown = ({ value, categories = [], incidents = [], onChange }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getCategoryCount = (catName) => {
+    if (catName === 'Tous') return incidents.length;
+    return incidents.filter(i => i.category === catName).length;
+  };
+
+  return (
+    <div className="custom-dropdown-container" ref={containerRef}>
+      <button
+        className="custom-dropdown-trigger"
+        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+      >
+        <Tag size={13} style={{ color: '#2563eb' }} />
+        <span className="dropdown-label">
+          {value === 'Tous' ? 'Toutes les catégories' : value}
+        </span>
+        <ChevronDown size={14} className={`dropdown-chevron ${isOpen ? 'open' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="custom-dropdown-menu animate-pop-in" style={{ minWidth: '260px' }}>
+          <div className="dropdown-menu-header">Catégorie Métier</div>
+          <div
+            className={`dropdown-option-item ${value === 'Tous' ? 'selected' : ''}`}
+            onClick={() => {
+              onChange('Tous');
+              setIsOpen(false);
+            }}
+          >
+            <Tag size={13} style={{ color: '#64748b' }} />
+            <div className="option-text-group">
+              <span className="option-title">Toutes les catégories</span>
+            </div>
+            <span className="option-count-pill">{incidents.length}</span>
+            {value === 'Tous' && <Check size={14} className="option-check" />}
+          </div>
+          {categories.map(cat => {
+            const count = getCategoryCount(cat);
+            return (
+              <div
+                key={cat}
+                className={`dropdown-option-item ${value === cat ? 'selected' : ''}`}
+                onClick={() => {
+                  onChange(cat);
+                  setIsOpen(false);
+                }}
+              >
+                <Tag size={13} style={{ color: '#2563eb' }} />
+                <div className="option-text-group">
+                  <span className="option-title">{cat}</span>
+                </div>
+                <span className="option-count-pill">{count}</span>
+                {value === cat && <Check size={14} className="option-check" />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 };
 
 // Component Memoized Kanban Card with zero-JS CSS hover action buttons
@@ -276,7 +416,7 @@ export function KanbanView({
     'résolu': 15,
     'clôturé': 999
   });
-  const [editingWipCol, setEditingWipCol] = useState(null); // colName
+  const [editingWipCol, setEditingWipCol] = useState(null);
   const [newWipValue, setNewWipValue] = useState(5);
 
   // Transition confirmation modal state
@@ -636,36 +776,19 @@ export function KanbanView({
           </button>
         </div>
 
-        {/* Select Filters */}
+        {/* Executive Custom Popover Dropdowns */}
         <div className="kanban-dropdowns-group">
-          <div className="filter-group">
-            <span className="filter-label">Priorité:</span>
-            <select
-              className="filter-select"
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-            >
-              <option value="Tous">Toutes les priorités</option>
-              <option value="Critical">Critique (Critical)</option>
-              <option value="High">Haute (High)</option>
-              <option value="Medium">Moyenne (Medium)</option>
-              <option value="Low">Basse (Low)</option>
-            </select>
-          </div>
+          <PriorityFilterDropdown
+            value={priorityFilter}
+            onChange={setPriorityFilter}
+          />
 
-          <div className="filter-group">
-            <span className="filter-label">Catégorie:</span>
-            <select
-              className="filter-select"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="Tous">Toutes</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
+          <CategoryFilterDropdown
+            value={categoryFilter}
+            categories={categories}
+            incidents={visibleIncidents}
+            onChange={setCategoryFilter}
+          />
 
           {(searchTerm || priorityFilter !== 'Tous' || categoryFilter !== 'Tous' || quickFilter !== 'all') && (
             <button className="btn-reset-filters" onClick={resetFilters} title="Réinitialiser tous les filtres">
