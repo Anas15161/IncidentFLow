@@ -318,6 +318,16 @@ function App() {
 
   const addAuditLogEntry = (incidentCode, eventType, details) => {
     const roleStr = typeof currentUser?.role === 'string' ? currentUser.role : (currentUser?.role?.name || 'Utilisateur');
+    const now = new Date();
+    const localTimeString = now.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
     const newLog = {
       id: Date.now() + Math.floor(Math.random() * 1000),
       incidentCode: incidentCode || 'GLOBAL',
@@ -325,7 +335,7 @@ function App() {
       actorName: currentUser?.name || 'Anas Haddou',
       actorEmail: currentUser?.email || 'anas@netmar.com',
       actorRole: roleStr,
-      timestamp: new Date().toISOString(),
+      timestamp: localTimeString,
       details: details,
       ipAddress: '127.0.0.1',
       checksum: Math.random().toString(36).substring(2, 11)

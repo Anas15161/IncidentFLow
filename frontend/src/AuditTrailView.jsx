@@ -190,7 +190,7 @@ export function AuditTrailView({ auditLogs = MOCK_AUDIT_LOGS, currentUser }) {
                   <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: '12px', fontFamily: 'monospace' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Clock size={13} style={{ color: '#3b82f6' }} />
-                      {new Date(log.timestamp).toLocaleString('fr-FR')}
+                      {typeof log.timestamp === 'string' && log.timestamp.includes('/') ? log.timestamp : new Date(log.timestamp).toLocaleString('fr-FR')}
                     </div>
                   </td>
                   <td style={{ padding: '12px 16px', fontWeight: '800', color: '#2563eb' }}>
