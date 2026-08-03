@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Shield, Activity, FileText, AlertTriangle, CheckCircle, Clock,
   Search, User, Plus, X, Bell, Paperclip, Download, Send,
@@ -279,6 +279,7 @@ function App() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [commandPaletteQuery, setCommandPaletteQuery] = useState("");
   const [commandPaletteSelectedIndex, setCommandPaletteSelectedIndex] = useState(0);
+  const commandPaletteInputRef = useRef(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [editingCommentTab, setEditingCommentTab] = useState('write');
@@ -3494,6 +3495,7 @@ function App() {
         setShowCommandPalette={setShowCommandPalette}
         commandPaletteQuery={commandPaletteQuery}
         setCommandPaletteQuery={setCommandPaletteQuery}
+        commandPaletteInputRef={commandPaletteInputRef}
         setCommandPaletteSelectedIndex={setCommandPaletteSelectedIndex}
         getCommandPaletteItems={getCommandPaletteItems}
         commandPaletteSelectedIndex={commandPaletteSelectedIndex}
