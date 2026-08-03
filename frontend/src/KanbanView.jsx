@@ -356,9 +356,9 @@ const KanbanCard = React.memo(({
         </button>
       </div>
 
-      <div className="kanban-card-top">
+      <div className="kanban-card-top" style={{ paddingRight: '56px' }}>
         <span className="card-code-pill">{incident.incidentCode}</span>
-        <span className={`badge badge-${priorityNorm}`} style={{ marginRight: '50px' }}>
+        <span className={`badge badge-${priorityNorm}`}>
           {priorityLabel}
         </span>
       </div>

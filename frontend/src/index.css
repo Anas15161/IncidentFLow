@@ -2442,6 +2442,7 @@ html.glass-theme .topbar {
 .custom-dropdown-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   background: var(--bg-surface, #ffffff);
   border: 1px solid var(--border-color, #cbd5e1);
@@ -2450,6 +2451,7 @@ html.glass-theme .topbar {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-main, #0f172a);
+  white-space: nowrap;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
