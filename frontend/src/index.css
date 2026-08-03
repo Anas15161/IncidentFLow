@@ -2915,8 +2915,9 @@ html.dark-theme .option-count-pill {
 /* ==========================================================================
    OFFICIAL EXECUTIVE KANBAN PRINT / PDF EXPORT STYLES
    ========================================================================== */
-.kanban-print-header {
-  display: none;
+.kanban-print-header,
+.kanban-print-table-wrapper {
+  display: none !important;
 }
 
 @media print {
