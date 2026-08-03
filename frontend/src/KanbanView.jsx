@@ -262,7 +262,7 @@ const CategoryFilterDropdown = ({ value, categories = [], incidents = [], onChan
       </button>
 
       {isOpen && (
-        <div className="custom-dropdown-menu animate-pop-in" style={{ minWidth: '260px' }}>
+        <div className="custom-dropdown-menu animate-pop-in" style={{ minWidth: '260px', right: 0, left: 'auto' }}>
           <div className="dropdown-menu-header">Catégorie Métier</div>
           <div
             className={`dropdown-option-item ${value === 'Tous' ? 'selected' : ''}`}
