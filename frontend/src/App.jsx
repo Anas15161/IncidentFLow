@@ -8,6 +8,7 @@ import {
   Kanban
 } from 'lucide-react';
 import { KanbanView } from './KanbanView';
+import { AnalyticsKPIWidget } from './AnalyticsKPIWidget';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -3812,6 +3813,9 @@ function App() {
                       </button>
                     )}
                   </div>
+
+                  {/* ITIL Analytics & Performance KPI Widget */}
+                  <AnalyticsKPIWidget incidents={incidents} />
 
                 {/* KPI Grid */}
                 <div className="kpi-grid">

@@ -3,8 +3,9 @@ import {
   Clock, Search, Kanban, X, Filter, AlertTriangle, ShieldAlert,
   CheckCircle, User, Tag, Sparkles, RefreshCw, UserCheck, ChevronRight,
   Eye, UserPlus, FileText, Calendar, Lock, Crown, Settings, ShieldCheck,
-  ChevronDown, Check, Printer, Download
+  ChevronDown, Check, Printer, Download, BarChart2, Activity
 } from 'lucide-react';
+import { AnalyticsKPIWidget } from './AnalyticsKPIWidget';
 
 const DEFAULT_COLUMNS = [
   { name: 'Nouveau', color: '#3b82f6', badgeBg: 'rgba(59, 130, 246, 0.12)', badgeText: '#2563eb', wipLimit: 10 },
@@ -429,6 +430,7 @@ export function KanbanView({
   const [quickReassignIncident, setQuickReassignIncident] = useState(null);
   const [selectedNewAssigneeId, setSelectedNewAssigneeId] = useState('');
   const [isReassigning, setIsReassigning] = useState(false);
+  const [showAnalyticsPanel, setShowAnalyticsPanel] = useState(false);
 
   const isAdmin = useMemo(() => isUserAdmin(currentUser), [currentUser]);
 
@@ -823,6 +825,17 @@ export function KanbanView({
             )}
           </div>
 
+          {/* Analytics ITIL Toggle Button */}
+          <button
+            className={`btn ${showAnalyticsPanel ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setShowAnalyticsPanel(!showAnalyticsPanel)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontWeight: '700', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}
+            title="Afficher/Masquer le tableau de bord des métriques MTTR, MTTA et SLA"
+          >
+            <BarChart2 size={15} />
+            <span>Analytics ITIL</span>
+          </button>
+
           {/* Executive Export Button */}
           <button
             className="btn btn-secondary"
@@ -835,6 +848,13 @@ export function KanbanView({
           </button>
         </div>
       </div>
+
+      {/* Expandable ITIL Analytics & Performance KPI Panel */}
+      {showAnalyticsPanel && (
+        <div style={{ marginBottom: '16px' }}>
+          <AnalyticsKPIWidget incidents={visibleIncidents} />
+        </div>
+      )}
 
       {/* Control & Filters Toolbar */}
       <div className="kanban-toolbar">
