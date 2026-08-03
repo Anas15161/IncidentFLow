@@ -3,7 +3,7 @@ import {
   Clock, Search, Kanban, X, Filter, AlertTriangle, ShieldAlert,
   CheckCircle, User, Tag, Sparkles, RefreshCw, UserCheck, ChevronRight,
   Eye, UserPlus, FileText, Calendar, Lock, Crown, Settings, ShieldCheck,
-  ChevronDown, Check
+  ChevronDown, Check, Printer, Download
 } from 'lucide-react';
 
 const DEFAULT_COLUMNS = [
@@ -653,6 +653,31 @@ export function KanbanView({
 
   return (
     <div className="kanban-view-wrapper animate-fade-in">
+      {/* Executive Printable/Export Header with App Logo & Official Metadata (Visible on Print/Export) */}
+      <div className="kanban-print-header">
+        <div className="print-header-left">
+          <div className="print-app-logo">
+            <div className="print-logo-icon">
+              <Kanban size={24} color="#ffffff" />
+            </div>
+            <div className="print-logo-text">
+              Incident<span style={{ color: '#3b82f6' }}>Flow</span>
+            </div>
+          </div>
+          <div className="print-subtitle">Plateforme d'Orchestration et de Gestion des Incidents IT</div>
+        </div>
+
+        <div className="print-header-right">
+          <div className="print-report-title">RAPPORT OFFICIEL -- TABLEAU KANBAN / ROADMAP</div>
+          <div className="print-meta-grid">
+            <span><strong>Date d'export :</strong> {new Date().toLocaleString('fr-FR')}</span>
+            <span><strong>Exporté par :</strong> {currentUser?.name || 'Administrateur'} ({currentUser?.email || ''})</span>
+            <span><strong>Incidents affichés :</strong> {filteredIncidents.length} / {visibleIncidents.length}</span>
+            <span><strong>Statut Sécurité :</strong> Option B (Isolation Active)</span>
+          </div>
+        </div>
+      </div>
+
       {/* Security & Access Rights Notice Banner (Option B Enforced) */}
       <div style={{
         display: 'flex',
@@ -695,37 +720,51 @@ export function KanbanView({
           </p>
         </div>
 
-        {/* Top Summary Stats Cards */}
-        <div className="kanban-stats-row">
-          <div className="kanban-stat-pill">
-            <span className="stat-num">{stats.total}</span>
-            <span className="stat-label">Total Visibles</span>
+        {/* Action & Stats Row */}
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Top Summary Stats Cards */}
+          <div className="kanban-stats-row">
+            <div className="kanban-stat-pill">
+              <span className="stat-num">{stats.total}</span>
+              <span className="stat-label">Total Visibles</span>
+            </div>
+            <div className="kanban-stat-pill active-pill">
+              <span className="stat-num">{stats.active}</span>
+              <span className="stat-label">En Cours</span>
+            </div>
+            {stats.myIncidents > 0 && (
+              <div className="kanban-stat-pill my-pill" title="Incidents assignés à vous">
+                <UserCheck size={14} style={{ marginRight: '4px' }} />
+                <span className="stat-num">{stats.myIncidents}</span>
+                <span className="stat-label">Mes Incidents</span>
+              </div>
+            )}
+            {stats.critical > 0 && (
+              <div className="kanban-stat-pill critical-pill">
+                <ShieldAlert size={14} style={{ marginRight: '4px' }} />
+                <span className="stat-num">{stats.critical}</span>
+                <span className="stat-label">Priorité Haute</span>
+              </div>
+            )}
+            {stats.overdue > 0 && (
+              <div className="kanban-stat-pill overdue-pill">
+                <Clock size={14} style={{ marginRight: '4px' }} />
+                <span className="stat-num">{stats.overdue}</span>
+                <span className="stat-label">SLA Dépassé</span>
+              </div>
+            )}
           </div>
-          <div className="kanban-stat-pill active-pill">
-            <span className="stat-num">{stats.active}</span>
-            <span className="stat-label">En Cours</span>
-          </div>
-          {stats.myIncidents > 0 && (
-            <div className="kanban-stat-pill my-pill" title="Incidents assignés à vous">
-              <UserCheck size={14} style={{ marginRight: '4px' }} />
-              <span className="stat-num">{stats.myIncidents}</span>
-              <span className="stat-label">Mes Incidents</span>
-            </div>
-          )}
-          {stats.critical > 0 && (
-            <div className="kanban-stat-pill critical-pill">
-              <ShieldAlert size={14} style={{ marginRight: '4px' }} />
-              <span className="stat-num">{stats.critical}</span>
-              <span className="stat-label">Priorité Haute</span>
-            </div>
-          )}
-          {stats.overdue > 0 && (
-            <div className="kanban-stat-pill overdue-pill">
-              <Clock size={14} style={{ marginRight: '4px' }} />
-              <span className="stat-num">{stats.overdue}</span>
-              <span className="stat-label">SLA Dépassé</span>
-            </div>
-          )}
+
+          {/* Executive Export Button */}
+          <button
+            className="btn btn-secondary"
+            onClick={() => window.print()}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontWeight: '700', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}
+            title="Exporter le Kanban avec En-tête Officiel & Logo en PDF"
+          >
+            <Printer size={15} className="text-primary-600" />
+            <span>Exporter le Kanban</span>
+          </button>
         </div>
       </div>
 
