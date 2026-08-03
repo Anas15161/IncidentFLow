@@ -950,7 +950,13 @@ function App() {
       const res = await fetch(url, { headers: getHeaders() });
       if (!res.ok) throw new Error("Erreur de chargement des incidents.");
       const data = await res.json();
-      setIncidents(data);
+
+      const normalizedData = (data || []).map((inc, idx) => ({
+        ...inc,
+        incidentCode: inc.incidentCode || inc.code || `INC-2026-${String(inc.id || idx + 1).padStart(3, '0')}`
+      }));
+
+      setIncidents(normalizedData);
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -1334,6 +1340,13 @@ function App() {
           console.error("Le téléversement de la pièce jointe a échoué.");
         }
       }
+
+      const incCode = createdInc.incidentCode || createdInc.code || `INC-2026-${createdInc.id || 'NEW'}`;
+      addAuditLogEntry(
+        incCode,
+        'CREATION_INCIDENT',
+        `Déclaration initiale de l'incident: "${createdInc.title}" (Priorité: ${createdInc.priority || newIncident.priority})`
+      );
 
       setNewIncident({
         title: '',
@@ -1772,6 +1785,12 @@ function App() {
       });
 
       if (!res.ok) throw new Error("Impossible d'ajouter le commentaire.");
+
+      addAuditLogEntry(
+        selectedIncident.incidentCode,
+        'AJOUT_COMMENTAIRE',
+        `Ajout d'un commentaire sur l'incident: "${newComment}"`
+      );
 
       setNewComment('');
       setCommentTab('write');

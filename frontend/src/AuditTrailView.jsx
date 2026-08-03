@@ -7,63 +7,51 @@ import {
 const MOCK_AUDIT_LOGS = [
   {
     id: 101,
-    incidentCode: 'INC-001',
+    incidentCode: 'INC-2026-001',
     eventType: 'CREATION_INCIDENT',
     actorName: 'Anas Haddou',
     actorEmail: 'anas@netmar.com',
     actorRole: 'Administrateur',
-    timestamp: '2026-08-03T10:15:00Z',
+    timestamp: '03/08/2026, 12:15:00',
     details: 'Création initiale de l\'incident: Panne serveur de base de données PostgreSQL.',
     ipAddress: '192.168.1.45',
     checksum: 'a8f93e11b4c'
   },
   {
     id: 102,
-    incidentCode: 'INC-001',
+    incidentCode: 'INC-2026-002',
     eventType: 'REASSIGNATION',
     actorName: 'Anas Haddou',
     actorEmail: 'anas@netmar.com',
     actorRole: 'Administrateur',
-    timestamp: '2026-08-03T10:20:30Z',
+    timestamp: '03/08/2026, 13:20:30',
     details: 'Réassignation de l\'incident à Marie Laurent (Opératrice Réseau).',
     ipAddress: '192.168.1.45',
     checksum: 'c4b8109f2d1'
   },
   {
     id: 103,
-    incidentCode: 'INC-001',
+    incidentCode: 'INC-2026-003',
     eventType: 'TRANSITION_STATUT',
     actorName: 'Marie Laurent',
     actorEmail: 'marie.l@netmar.com',
     actorRole: 'Opérateur',
-    timestamp: '2026-08-03T10:35:12Z',
+    timestamp: '03/08/2026, 14:35:12',
     details: 'Changement d\'état: [Nouveau] ➔ [En cours]. Motif: Analyse des journaux système et redémarrage du service.',
     ipAddress: '192.168.1.88',
     checksum: 'e71029ab54f'
   },
   {
     id: 104,
-    incidentCode: 'INC-002',
+    incidentCode: 'INC-2026-004',
     eventType: 'TRANSITION_STATUT',
     actorName: 'Sophie Martin',
     actorEmail: 'sophie.m@netmar.com',
     actorRole: 'Responsable',
-    timestamp: '2026-08-03T11:50:00Z',
+    timestamp: '03/08/2026, 15:50:00',
     details: 'Changement d\'état: [En cours] ➔ [Résolu]. Motif: Correctif de sécurité appliqué sur le pare-feu.',
     ipAddress: '192.168.1.12',
     checksum: 'f912c488e1a'
-  },
-  {
-    id: 105,
-    incidentCode: 'INC-003',
-    eventType: 'MODIFICATION_PRIORITE',
-    actorName: 'Dr. Jean Robert',
-    actorEmail: 'jean.r@netmar.com',
-    actorRole: 'Opérateur médical',
-    timestamp: '2026-08-03T14:10:00Z',
-    details: 'Priorité réévaluée de [Moyenne] ➔ [Critique]. Motif: Impact direct sur la prise en charge des patients.',
-    ipAddress: '192.168.1.102',
-    checksum: 'b1259c4021e'
   }
 ];
 
