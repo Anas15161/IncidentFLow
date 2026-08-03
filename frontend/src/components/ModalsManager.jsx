@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Shield, Edit3, UserPlus, FileText, Search
 } from 'lucide-react';
@@ -62,7 +62,7 @@ export function ModalsManager({
   setShowCommandPalette,
   commandPaletteQuery,
   setCommandPaletteQuery,
-  commandPaletteInputRef,
+  commandPaletteInputRef: externalInputRef,
   setCommandPaletteSelectedIndex,
   getCommandPaletteItems,
   commandPaletteSelectedIndex,
@@ -79,6 +79,14 @@ export function ModalsManager({
   editRoleForm,
   setEditRoleForm
 }) {
+  const internalInputRef = useRef(null);
+  const inputRef = externalInputRef || internalInputRef;
+
+  useEffect(() => {
+    if (showCommandPalette && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [showCommandPalette]);
   return (
     <>
       {/* Modal 0: Edit Incident Modal */}
@@ -896,7 +904,7 @@ export function ModalsManager({
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--card-bg)' }}>
               <Search size={18} style={{ color: 'var(--primary-600, #0284c7)' }} />
               <input
-                ref={commandPaletteInputRef}
+                ref={inputRef}
                 type="text"
                 placeholder="Tapez une commande ou recherchez un incident... (ex: Dashboard, Nouveau, INC-001)"
                 value={commandPaletteQuery}

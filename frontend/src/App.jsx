@@ -3494,7 +3494,6 @@ function App() {
         setShowCommandPalette={setShowCommandPalette}
         commandPaletteQuery={commandPaletteQuery}
         setCommandPaletteQuery={setCommandPaletteQuery}
-        commandPaletteInputRef={commandPaletteInputRef}
         setCommandPaletteSelectedIndex={setCommandPaletteSelectedIndex}
         getCommandPaletteItems={getCommandPaletteItems}
         commandPaletteSelectedIndex={commandPaletteSelectedIndex}
