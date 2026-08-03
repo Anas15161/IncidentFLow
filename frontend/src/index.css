@@ -3011,27 +3011,110 @@ html.dark-theme .option-count-pill {
     margin-top: 4px;
   }
 
+  /* Hide the visual kanban column board on print */
   .kanban-board-grid {
-    overflow: visible !important;
-    display: flex !important;
-    gap: 14px !important;
+    display: none !important;
   }
 
-  .kanban-col {
-    break-inside: avoid;
-    box-shadow: none !important;
+  /* Show executive print data table */
+  .kanban-print-table-wrapper {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 15px;
+  }
+
+  .kanban-print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 11px !important;
+  }
+
+  .kanban-print-table th {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    padding: 9px 12px !important;
+    text-align: left !important;
+    font-weight: 800 !important;
+    border: 1px solid #1e293b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .kanban-print-table td {
+    padding: 9px 12px !important;
     border: 1px solid #cbd5e1 !important;
-    background: #ffffff !important;
+    vertical-align: top !important;
+    color: #0f172a !important;
+  }
+
+  .kanban-print-table tr:nth-child(even) td {
+    background: #f8fafc !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  .kanban-card-item {
-    break-inside: avoid;
-    box-shadow: none !important;
-    border: 1px solid #e2e8f0 !important;
-    background: #ffffff !important;
+  .print-code-text {
+    color: #2563eb !important;
+    font-weight: 800 !important;
+  }
+
+  .print-inc-title {
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    margin-bottom: 3px;
+    font-size: 12px !important;
+  }
+
+  .print-inc-desc {
+    font-size: 10px !important;
+    color: #475569 !important;
+    line-height: 1.3 !important;
+  }
+
+  .print-badge {
+    display: inline-block !important;
+    padding: 3px 8px !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  .print-badge-critical {
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+    border: 1px solid #fca5a5 !important;
+  }
+
+  .print-badge-high {
+    background: #fffbebfb !important;
+    color: #d97706 !important;
+    border: 1px solid #fcd34d !important;
+  }
+
+  .print-badge-medium {
+    background: #eff6ff !important;
+    color: #2563eb !important;
+    border: 1px solid #93c5fd !important;
+  }
+
+  .print-badge-low {
+    background: #ecfdf5 !important;
+    color: #059669 !important;
+    border: 1px solid #6ee7b7 !important;
+  }
+
+  .print-badge-status {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  .print-sla-overdue {
+    color: #dc2626 !important;
+    font-weight: 800 !important;
   }
 }

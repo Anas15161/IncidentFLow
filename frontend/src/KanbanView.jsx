@@ -668,7 +668,7 @@ export function KanbanView({
         </div>
 
         <div className="print-header-right">
-          <div className="print-report-title">RAPPORT OFFICIEL -- TABLEAU KANBAN / ROADMAP</div>
+          <div className="print-report-title">RAPPORT OFFICIEL -- TABLEAU DES INCIDENTS</div>
           <div className="print-meta-grid">
             <span><strong>Date d'export :</strong> {new Date().toLocaleString('fr-FR')}</span>
             <span><strong>Exporté par :</strong> {currentUser?.name || 'Administrateur'} ({currentUser?.email || ''})</span>
@@ -676,6 +676,74 @@ export function KanbanView({
             <span><strong>Statut Sécurité :</strong> Option B (Isolation Active)</span>
           </div>
         </div>
+      </div>
+
+      {/* Executive Printable Table of Incidents (Visible on Print/Export) */}
+      <div className="kanban-print-table-wrapper">
+        <table className="kanban-print-table">
+          <thead>
+            <tr>
+              <th style={{ width: '90px' }}>Code</th>
+              <th>Titre & Description</th>
+              <th style={{ width: '100px' }}>Statut</th>
+              <th style={{ width: '90px' }}>Priorité</th>
+              <th style={{ width: '110px' }}>Catégorie</th>
+              <th style={{ width: '130px' }}>Assigné à</th>
+              <th style={{ width: '120px' }}>Échéance SLA</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredIncidents.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '20px' }}>
+                  Aucun incident ne correspond aux critères filtrés.
+                </td>
+              </tr>
+            ) : (
+              filteredIncidents.map((inc) => {
+                const priorityNorm = normalizePriority(inc.priority);
+                const priorityLabel = getPriorityLabel(inc.priority);
+                const assigneeName = getAssigneeName(inc.assignedTo);
+                const isOverdue = inc.slaDueAt && inc.status !== 'Résolu' && inc.status !== 'Clôturé' && new Date(inc.slaDueAt) < new Date();
+
+                return (
+                  <tr key={inc.incidentCode || inc.id || inc.title}>
+                    <td>
+                      <strong className="print-code-text">{inc.incidentCode}</strong>
+                    </td>
+                    <td>
+                      <div className="print-inc-title">{inc.title}</div>
+                      {inc.description && (
+                        <div className="print-inc-desc">{inc.description}</div>
+                      )}
+                    </td>
+                    <td>
+                      <span className="print-badge print-badge-status">{inc.status}</span>
+                    </td>
+                    <td>
+                      <span className={`print-badge print-badge-${priorityNorm}`}>
+                        {priorityLabel}
+                      </span>
+                    </td>
+                    <td>
+                      {inc.category || 'Non catégorisé'}
+                    </td>
+                    <td>
+                      {assigneeName}
+                    </td>
+                    <td>
+                      {inc.slaDueAt ? (
+                        <span className={isOverdue ? 'print-sla-overdue' : ''}>
+                          {new Date(inc.slaDueAt).toLocaleDateString('fr-FR')} {isOverdue && '⚠️'}
+                        </span>
+                      ) : 'N/A'}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Security & Access Rights Notice Banner (Option B Enforced) */}
