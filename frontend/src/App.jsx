@@ -276,6 +276,63 @@ function App() {
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [editingCommentTab, setEditingCommentTab] = useState('write');
 
+  // Real-time Audit Trail Log State (ISO 27001 / ITIL)
+  const [auditLogs, setAuditLogs] = useState([
+    {
+      id: 101,
+      incidentCode: 'INC-001',
+      eventType: 'CREATION_INCIDENT',
+      actorName: 'Anas Haddou',
+      actorEmail: 'anas@netmar.com',
+      actorRole: 'Administrateur',
+      timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
+      details: 'Création initiale de l\'incident: Panne serveur de base de données PostgreSQL.',
+      ipAddress: '192.168.1.45',
+      checksum: 'a8f93e11b4c'
+    },
+    {
+      id: 102,
+      incidentCode: 'INC-001',
+      eventType: 'REASSIGNATION',
+      actorName: 'Anas Haddou',
+      actorEmail: 'anas@netmar.com',
+      actorRole: 'Administrateur',
+      timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
+      details: 'Réassignation de l\'incident à Marie Laurent (Opératrice Réseau).',
+      ipAddress: '192.168.1.45',
+      checksum: 'c4b8109f2d1'
+    },
+    {
+      id: 103,
+      incidentCode: 'INC-001',
+      eventType: 'TRANSITION_STATUT',
+      actorName: 'Marie Laurent',
+      actorEmail: 'marie.l@netmar.com',
+      actorRole: 'Opérateur',
+      timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+      details: 'Changement d\'état: [Nouveau] ➔ [En cours]. Motif: Analyse des journaux système et redémarrage du service.',
+      ipAddress: '192.168.1.88',
+      checksum: 'e71029ab54f'
+    }
+  ]);
+
+  const addAuditLogEntry = (incidentCode, eventType, details) => {
+    const roleStr = typeof currentUser?.role === 'string' ? currentUser.role : (currentUser?.role?.name || 'Utilisateur');
+    const newLog = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      incidentCode: incidentCode || 'GLOBAL',
+      eventType: eventType,
+      actorName: currentUser?.name || 'Anas Haddou',
+      actorEmail: currentUser?.email || 'anas@netmar.com',
+      actorRole: roleStr,
+      timestamp: new Date().toISOString(),
+      details: details,
+      ipAddress: '127.0.0.1',
+      checksum: Math.random().toString(36).substring(2, 11)
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+  };
+
   // Dropdowns & UI toggles
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([
@@ -1676,6 +1733,14 @@ function App() {
         { id: Date.now(), text: `Incident ${incidentCode} passé à l'état ${toState}`, time: "À l'instant" },
         ...prev
       ]);
+
+      // Real-time Audit Trail Recording
+      addAuditLogEntry(
+        incidentCode,
+        'TRANSITION_STATUT',
+        `Changement d'état vers [${toState}]. Motif: ${comment || 'Aucun commentaire'}`
+      );
+
       return true;
     } catch (err) {
       alert(`Transition impossible : ${err.message}`);
@@ -4215,13 +4280,14 @@ function App() {
                     fetchIncidents();
                     setSuccessMessage(`Incident ${incidentCode} réassigné à ${newUserObj?.name || 'Personne'}`);
                     setTimeout(() => setSuccessMessage(''), 3000);
+                    addAuditLogEntry(incidentCode, 'REASSIGNATION', `Réassignation de l'incident à ${newUserObj?.name || 'Non assigné'}`);
                   } catch (err) {
                     console.error("Erreur réassignation rapide:", err);
                   }
                 }}
               />
             ) : currentView === 'audit' ? (
-              <AuditTrailView currentUser={currentUser} />
+              <AuditTrailView auditLogs={auditLogs} currentUser={currentUser} />
             ) : currentView === 'workflows' ? (
               // VIEW D: WORKFLOW CONFIGURATION & CUSTOMIZATION (Epic 3)
               <div className="animate-fade-in">
