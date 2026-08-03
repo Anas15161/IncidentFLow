@@ -1,0 +1,64 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{utf8}
+\usepackage[french]{babel}
+\usepackage[margin=2cm]{geometry}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{verbatim}
+
+\definecolor{navy}{RGB}{15, 23, 42}
+\definecolor{blueaccent}{RGB}{37, 99, 235}
+\definecolor{emerald}{RGB}{16, 185, 129}
+
+\title{\textbf{\Large IncidentFlow -- Documentation du Journal d'Audit \& Traçabilité (Audit Trail)}\\\large Normes ISO/IEC 27001:2022 \& ITIL v4 Compliance}
+\author{\textbf{Équipe d'Architecture IncidentFlow}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Présentation et Objectifs de Conformité}
+
+Le module de \textbf{Journal d'Audit et de Traçabilité Inaltérable (\textit{Audit Trail})} d'IncidentFlow est conçu pour répondre aux exigences de sécurité, de gouvernance des systèmes d'information et d'audit légal conformément aux référentiels internationaux :
+\begin{itemize}
+    \item \textbf{ISO/IEC 27001:2022 (Annexe A.8.15 - Journalisation des événements)} : Garantie que toutes les actions des utilisateurs, administrateurs et opérateurs sont enregistrées de façon horodatée et infalsifiable.
+    \item \textbf{ITIL v4 (Continuité de Service \& Gestion des Incidents)} : Traçabilité complète de la chaîne de responsabilité et des motifs lors de chaque changement d'état ou d'attribution d'incident.
+\end{itemize}
+
+\section{Structure du Registre d'Audit}
+
+Chaque événement enregistré dans le journal d'audit est encapsulé dans une structure de données typée contenant les attributs suivants :
+
+\begin{verbatim}
+AuditLogEntry {
+  id: Long,
+  incidentCode: String,      // Identifiant unique de l'incident (ex: INC-001)
+  eventType: Enum,           // CREATION, TRANSITION_STATUT, REASSIGNATION, etc.
+  actorName: String,         // Nom complet de l'opérateur (ex: Anas Haddou)
+  actorEmail: String,        // Courriel certifié de l'opérateur
+  actorRole: String,         // Rôle au moment de l'action (ex: Administrateur)
+  timestamp: ISO8601String,  // Horodatage universel UTC (ex: 2026-08-03T10:15:00Z)
+  details: String,           // Motif et description précise de la modification
+  ipAddress: String,         // Adresse IP source de la requête HTTP
+  checksum: String           // Empreinte cryptographique d'intégrité Hash MD5/SHA256
+}
+\end{verbatim}
+
+\section{Étapes de Mise en Œuvre et Intégration Technique}
+
+Le processus d'implémentation du journal d'audit suit 5 étapes clés :
+
+\begin{enumerate}
+    \item \textbf{Étape 1 : Interception des Événements Métiers} : Capture systématique des transitions d'état dans le composant \texttt{KanbanView.jsx} et des modifications dans \texttt{App.jsx}.
+    \item \textbf{Étape 2 : Horodatage UTC et Signature Cryptographique} : Génération automatique de l'empreinte \texttt{checksum} pour chaque entrée afin d'empêcher toute altération rétrospective.
+    \item \textbf{Étape 3 : Application du Filtrage par Rôle (Option B)} : Les auditeurs et administrateurs accèdent à l'ensemble du registre global, tandis que les opérateurs ne voient que l'historique de leur périmètre.
+    \item \textbf{Étape 4 : Développement de la Vue React (\texttt{AuditTrailView.jsx})} : Interface de consultation réactive permettant la recherche textuelle instantanée, le filtrage par type d'événement et l'affichage des détails.
+    \item \textbf{Étape 5 : Exportation Certifiée des Logs} : Bouton d'exportation au format JSON/CSV certifié pour remise aux auditeurs internes et externes ISO 27001.
+\end{enumerate}
+
+\section{Conclusion}
+
+Grâce à ce journal d'audit inaltérable, la plateforme \textbf{IncidentFlow} offre une traçabilité totale garantissant le respect des procédures d'entreprise et répondant aux critères d'audit les plus stricts.
+
+\end{document}

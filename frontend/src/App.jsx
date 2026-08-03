@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { KanbanView } from './KanbanView';
 import { AnalyticsKPIWidget } from './AnalyticsKPIWidget';
+import { AuditTrailView } from './AuditTrailView';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -2857,6 +2858,16 @@ function App() {
                   Tableau Kanban
                 </span>
               </button>
+
+              <button
+                className={`nav-btn ${currentView === 'audit' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('audit'); setSelectedIncidentCode(null); }}
+              >
+                <span className="nav-label">
+                  <Clock size={18} />
+                  Journal d'Audit ISO 27001
+                </span>
+              </button>
             </>
           )}
 
@@ -4209,6 +4220,8 @@ function App() {
                   }
                 }}
               />
+            ) : currentView === 'audit' ? (
+              <AuditTrailView currentUser={currentUser} />
             ) : currentView === 'workflows' ? (
               // VIEW D: WORKFLOW CONFIGURATION & CUSTOMIZATION (Epic 3)
               <div className="animate-fade-in">
