@@ -1199,20 +1199,52 @@ header.topbar {
   flex-wrap: wrap;
 }
 
-.filter-select {
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
+/* Enhanced Modern Custom Select Styling */
+.filter-select,
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 8px 34px 8px 12px;
+  border: 1px solid var(--border-color, #cbd5e1);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
-  outline: none;
-  background-color: #ffffff;
+  color: var(--text-main, #0f172a);
+  background-color: var(--bg-surface, #ffffff);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px 14px;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-.filter-select:focus {
-  border-color: var(--primary-500);
+.filter-select:hover,
+.form-select:hover {
+  border-color: #94a3b8;
+  background-color: var(--bg-hover, #f8fafc);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
+
+.filter-select:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.filter-select option,
+.form-select option {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
 
 /* ==========================================================================
    INCIDENT DETAIL LAYOUT
@@ -1657,10 +1689,18 @@ html.dark-theme .filter-panel-premium {
 }
 
 html.dark-theme .filter-select,
+html.dark-theme .form-select,
 html.dark-theme .form-control {
   background-color: #0f172a;
   color: #f1f5f9;
   border-color: #334155;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+html.dark-theme .filter-select option,
+html.dark-theme .form-select option {
+  background-color: #1e293b;
+  color: #f1f5f9;
 }
 
 html.dark-theme .form-control-static {
