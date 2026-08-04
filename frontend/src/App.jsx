@@ -18,12 +18,17 @@ import { RoleManagementView } from './components/RoleManagementView';
 import { WorkflowConfigView } from './components/WorkflowConfigView';
 import { ModalsManager } from './components/ModalsManager';
 import { LoginPage } from './components/LoginPage';
+import { Sidebar } from './components/Sidebar';
+import { Topbar } from './components/Topbar';
 import { getCategoryIcon, renderSlaBadge } from './components/ChartWidgets';
 import {
   formatDate, getPriorityColor, formatSlaDuration,
   getDonutSegmentPath, parseMarkdown, getRoleName,
-  insertMarkdownAtSelection
+  insertMarkdownAtSelection, getTimelineItemDetails
 } from './utils/helpers';
+import { getInitialNodes, getInitialEdges, getOrderedStates } from './utils/workflowHelpers';
+import { useCommandPalette } from './hooks/useCommandPalette';
+import { useDragAndDrop } from './hooks/useDragAndDrop';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -44,152 +49,6 @@ const USERS = [
   { id: 4, name: "Dr. Jean Robert", firstName: "Jean", lastName: "Robert", email: "jean.r@netmar.com", role: "Opérateur médical", department: "Urgences médicales", post: "Médecin Coordinateur", avatarColor: "bg-red-600" }
 ];
 
-const getInitialNodes = (states) => {
-  if (!states || states.length === 0) return [];
-
-  const statePosMap = {
-    'nouveau': { x: 40, y: 180 },
-    'assigné': { x: 230, y: 180 },
-    'en cours': { x: 420, y: 180 },
-    'résolu': { x: 610, y: 180 },
-    'clôturé': { x: 800, y: 180 },
-    'cloture': { x: 800, y: 180 }
-  };
-
-  const customStates = states.filter(s => !statePosMap[s.name.toLowerCase().trim()]);
-
-  return states.map((state) => {
-    const key = state.name.toLowerCase().trim();
-    const isNouveau = key === 'nouveau';
-    const isCloture = key === 'clôturé' || key === 'cloture';
-
-    let nodeType = 'default';
-    if (isNouveau) nodeType = 'input';
-    else if (isCloture) nodeType = 'output';
-
-    let pos = statePosMap[key];
-    if (!pos) {
-      const customIdx = customStates.findIndex(c => c.name.toLowerCase().trim() === key);
-      pos = {
-        x: 230 + (customIdx * 190),
-        y: customIdx % 2 === 0 ? 60 : 300
-      };
-    }
-
-    return {
-      id: state.name,
-      type: nodeType,
-      data: { label: `${state.label || state.name}` },
-      position: pos,
-      sourcePosition: 'right',
-      targetPosition: 'left',
-      style: {
-        background: state.active ? 'var(--card-bg)' : 'var(--border-color)',
-        color: 'var(--text-main)',
-        border: '2px solid ' + (isNouveau ? '#10b981' : isCloture ? '#6366f1' : '#3b82f6'),
-        borderRadius: '10px',
-        padding: '12px',
-        fontWeight: 'bold',
-        fontSize: '12px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-        width: 145,
-        textAlign: 'center'
-      }
-    };
-  });
-};
-
-const getInitialEdges = (transitions, states) => {
-  if (!transitions || !states) return [];
-  const stateNameMap = new Map();
-  states.forEach(s => stateNameMap.set(s.name.toLowerCase().trim(), s.name));
-
-  return transitions
-    .map((t, idx) => {
-      const source = stateNameMap.get((t.fromState || '').toLowerCase().trim()) || t.fromState;
-      const target = stateNameMap.get((t.toState || '').toLowerCase().trim()) || t.toState;
-
-      if (!source || !target) return null;
-
-      const isReverse = source.toLowerCase() === 'résolu' && target.toLowerCase() === 'en cours';
-
-      return {
-        id: `e-${source}-${target}-${idx}`,
-        source: source,
-        target: target,
-        animated: true,
-        type: 'smoothstep',
-        style: { stroke: isReverse ? '#f59e0b' : '#3b82f6', strokeWidth: 2.5 },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: isReverse ? '#f59e0b' : '#3b82f6',
-          width: 20,
-          height: 20
-        },
-        label: t.roleRequired ? `🔑 ${t.roleRequired}` : ''
-      };
-    })
-    .filter(Boolean);
-};
-
-const getOrderedStates = (wf) => {
-  if (!wf || !wf.states || wf.states.length === 0) return [];
-  const states = wf.states;
-  const transitions = wf.transitions || [];
-
-  const stateMap = new Map();
-  states.forEach(s => stateMap.set(s.name.toLowerCase().trim(), s));
-
-  const initialKey = states.find(s => s.name.toLowerCase().trim() === 'nouveau')?.name.toLowerCase().trim() || states[0].name.toLowerCase().trim();
-
-  const adj = new Map();
-  states.forEach(s => adj.set(s.name.toLowerCase().trim(), []));
-  transitions.forEach(t => {
-    const from = (t.fromState || '').toLowerCase().trim();
-    const to = (t.toState || '').toLowerCase().trim();
-    if (adj.has(from) && adj.has(to)) {
-      adj.get(from).push(to);
-    }
-  });
-
-  const orderedKeys = [];
-  const visited = new Set();
-  const queue = [initialKey];
-
-  while (queue.length > 0) {
-    const currentKey = queue.shift();
-    if (!visited.has(currentKey) && stateMap.has(currentKey)) {
-      visited.add(currentKey);
-      orderedKeys.push(currentKey);
-
-      const neighbors = adj.get(currentKey) || [];
-      // Prioritize non-final states so 'clôturé' appears last
-      neighbors.sort((a, b) => (a === 'clôturé' || a === 'cloture' ? 1 : 0) - (b === 'clôturé' || b === 'cloture' ? 1 : 0));
-      neighbors.forEach(n => {
-        if (!visited.has(n) && !queue.includes(n)) {
-          queue.push(n);
-        }
-      });
-    }
-  }
-
-  // Append any unvisited states before 'clôturé'
-  states.forEach(s => {
-    const key = s.name.toLowerCase().trim();
-    if (!visited.has(key)) {
-      orderedKeys.push(key);
-    }
-  });
-
-  // Ensure 'clôturé' is at the very end
-  const clotureIdx = orderedKeys.findIndex(k => k === 'clôturé' || k === 'cloture');
-  if (clotureIdx !== -1 && clotureIdx !== orderedKeys.length - 1) {
-    const [clotureKey] = orderedKeys.splice(clotureIdx, 1);
-    orderedKeys.push(clotureKey);
-  }
-
-  return orderedKeys.map(k => stateMap.get(k)).filter(Boolean);
-};
 
 function App() {
 
@@ -268,8 +127,6 @@ function App() {
   const [selectedIncidentCode, setSelectedIncidentCode] = useState(null);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [selectedIncidentWorkflow, setSelectedIncidentWorkflow] = useState(null);
-  const [isDraggingUpload, setIsDraggingUpload] = useState(false);
-  const [isDraggingCreate, setIsDraggingCreate] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
   const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -278,10 +135,6 @@ function App() {
   const [editingAttachmentName, setEditingAttachmentName] = useState("");
   const [commentTab, setCommentTab] = useState('write');
   const [tickerTime, setTickerTime] = useState(Date.now());
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [commandPaletteQuery, setCommandPaletteQuery] = useState("");
-  const [commandPaletteSelectedIndex, setCommandPaletteSelectedIndex] = useState(0);
-  const commandPaletteInputRef = useRef(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
   const [editingCommentTab, setEditingCommentTab] = useState('write');
@@ -655,189 +508,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Get filtered items for the Command Palette (Ctrl+K)
-  const getCommandPaletteItems = () => {
-    const items = [];
-    const query = commandPaletteQuery.toLowerCase().trim();
 
-    // Static commands list
-    const commands = [
-      { id: 'cmd-new', type: 'command', label: 'Déclarer un incident', shortcut: '> new', action: () => { setShowCreateModal(true); } },
-      { id: 'nav-dash', type: 'nav', label: 'Aller au Tableau de bord', shortcut: '> dashboard', action: () => { setCurrentView('dashboard'); } },
-      { id: 'nav-inc', type: 'nav', label: 'Aller à la liste des Incidents', shortcut: '> incidents', action: () => { setCurrentView('incidents'); } },
-      { id: 'nav-wf', type: 'nav', label: 'Aller au Workflow', shortcut: '> workflow', action: () => { setCurrentView('workflows'); } },
-      { id: 'nav-user', type: 'nav', label: 'Aller à la gestion des Utilisateurs', shortcut: '> users', action: () => { setCurrentView('users'); } },
-      { id: 'cmd-theme', type: 'command', label: 'Changer le Thème (Clair/Sombre)', shortcut: '> theme', action: () => { setThemeMode(prev => prev === 'dark' ? 'light' : 'dark'); } },
-      { id: 'cmd-logout', type: 'command', label: 'Se déconnecter de la session', shortcut: '> logout', action: () => { handleLogout(); } }
-    ];
-
-    if (query.startsWith('>')) {
-      const subQuery = query.substring(1).trim();
-      const filteredCmds = commands.filter(c =>
-        c.shortcut.toLowerCase().includes(subQuery) || c.label.toLowerCase().includes(subQuery)
-      );
-      items.push(...filteredCmds);
-    } else {
-      // Show commands that match the search query
-      const filteredCmds = commands.filter(c =>
-        c.label.toLowerCase().includes(query) || c.shortcut.toLowerCase().includes(query)
-      );
-      items.push(...filteredCmds);
-
-      // Show incidents that match the search query (code or title)
-      if (query.length > 0) {
-        const filteredIncidents = incidents.filter(inc =>
-          inc.incidentCode.toLowerCase().includes(query) ||
-          inc.title.toLowerCase().includes(query)
-        ).slice(0, 5).map(inc => ({
-          id: `inc-${inc.incidentCode}`,
-          type: 'incident',
-          label: `${inc.incidentCode} : ${inc.title}`,
-          status: inc.status,
-          action: () => { handleSelectIncident(inc.incidentCode); }
-        }));
-        items.push(...filteredIncidents);
-      }
-    }
-
-    return items;
-  };
-
-  // Helper to categorize timeline logs and return icons/colors
-  const getTimelineItemDetails = (action) => {
-    const act = action.toLowerCase();
-
-    // Status Change
-    if (act.includes('statut') || act.includes('passé à') || act.includes('transition')) {
-      return {
-        icon: <Activity size={14} />,
-        color: '#22c55e', // green
-        bgColor: '#f0fdf4',
-        borderColor: '#bbf7d0',
-        title: 'Changement de Statut'
-      };
-    }
-
-    // Assignee
-    if (act.includes('assigné') || act.includes('responsable') || act.includes('affecté')) {
-      return {
-        icon: <UserPlus size={14} />,
-        color: '#a855f7', // purple
-        bgColor: '#faf5ff',
-        borderColor: '#e9d5ff',
-        title: 'Affectation'
-      };
-    }
-
-    // Attachment upload
-    if (act.includes('pièce jointe ajoutée') || act.includes('fichier téléversé') || act.includes('attachment added') || act.includes('pièce jointe téléversée')) {
-      return {
-        icon: <FileUp size={14} />,
-        color: '#3b82f6', // blue
-        bgColor: '#eff6ff',
-        borderColor: '#bfdbfe',
-        title: 'Ajout de Fichier'
-      };
-    }
-
-    // Attachment delete or rename
-    if (act.includes('pièce jointe supprimée') || act.includes('suppression de la pièce jointe') || act.includes('attachment deleted')) {
-      return {
-        icon: <Trash2 size={14} />,
-        color: '#ef4444', // red
-        bgColor: '#fef2f2',
-        borderColor: '#fca5a5',
-        title: 'Suppression de Fichier'
-      };
-    }
-
-    if (act.includes('pièce jointe renommée') || act.includes('renommage de la pièce jointe') || act.includes('attachment renamed')) {
-      return {
-        icon: <Edit3 size={14} />,
-        color: '#eab308', // yellow/amber
-        bgColor: '#fef9c3',
-        borderColor: '#fef08a',
-        title: 'Renommage de Fichier'
-      };
-    }
-
-    // Comment
-    if (act.includes('commentaire')) {
-      return {
-        icon: <MessageSquare size={14} />,
-        color: '#64748b', // slate
-        bgColor: 'var(--body-bg)',
-        borderColor: 'var(--border-color)',
-        title: 'Commentaire'
-      };
-    }
-
-    // Created / Declared
-    if (act.includes('créé') || act.includes('déclaré') || act.includes('création') || act.includes('signalé')) {
-      return {
-        icon: <PlusCircle size={14} />,
-        color: '#06b6d4', // cyan
-        bgColor: 'var(--body-bg)',
-        borderColor: 'var(--border-color)',
-        title: 'Incident Déclaré'
-      };
-    }
-
-    // Default
-    return {
-      icon: <Clock size={14} />,
-      color: '#64748b',
-      bgColor: 'var(--body-bg)',
-      borderColor: 'var(--border-color)',
-      title: 'Action Consignée'
-    };
-  };
-
-  // Universal Command Palette toggle shortcut listener (Ctrl + K or Cmd + K)
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setShowCommandPalette(prev => !prev);
-        setCommandPaletteQuery("");
-        setCommandPaletteSelectedIndex(0);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Keyboard navigation shortcuts listener for active Command Palette
-  useEffect(() => {
-    if (!showCommandPalette) return;
-
-    const handlePaletteKeys = (e) => {
-      const items = getCommandPaletteItems();
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setShowCommandPalette(false);
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setCommandPaletteSelectedIndex(prev =>
-          prev < items.length - 1 ? prev + 1 : 0
-        );
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setCommandPaletteSelectedIndex(prev =>
-          prev > 0 ? prev - 1 : items.length - 1
-        );
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (items[commandPaletteSelectedIndex]) {
-          items[commandPaletteSelectedIndex].action();
-          setShowCommandPalette(false);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handlePaletteKeys);
-    return () => window.removeEventListener('keydown', handlePaletteKeys);
-  }, [showCommandPalette, commandPaletteQuery, commandPaletteSelectedIndex, incidents]);
 
   // Open Edit Profile modal and set form fields
   const handleOpenEditProfile = () => {
@@ -2122,46 +1793,7 @@ function App() {
     setNewComment(newValue);
   };
 
-  // Drag and drop event handlers
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
 
-  const handleDragEnterUpload = (e) => {
-    e.preventDefault();
-    setIsDraggingUpload(true);
-  };
-
-  const handleDragLeaveUpload = (e) => {
-    e.preventDefault();
-    setIsDraggingUpload(false);
-  };
-
-  const handleDropUpload = (e) => {
-    e.preventDefault();
-    setIsDraggingUpload(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      uploadFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleDragEnterCreate = (e) => {
-    e.preventDefault();
-    setIsDraggingCreate(true);
-  };
-
-  const handleDragLeaveCreate = (e) => {
-    e.preventDefault();
-    setIsDraggingCreate(false);
-  };
-
-  const handleDropCreate = (e) => {
-    e.preventDefault();
-    setIsDraggingCreate(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setNewIncidentFile(e.dataTransfer.files[0]);
-    }
-  };
 
 
 
@@ -2209,6 +1841,29 @@ function App() {
     return !searchRoleQuery || nameMatch || descMatch;
   });
 
+  const { 
+    isDragging: isDraggingUpload, 
+    handleDragOver: handleDragOverUpload, 
+    handleDragEnter: handleDragEnterUpload, 
+    handleDragLeave: handleDragLeaveUpload, 
+    handleDrop: handleDropUpload 
+  } = useDragAndDrop(uploadFile);
+
+  const { 
+    isDragging: isDraggingCreate, 
+    handleDragOver: handleDragOverCreate, 
+    handleDragEnter: handleDragEnterCreate, 
+    handleDragLeave: handleDragLeaveCreate, 
+    handleDrop: handleDropCreate 
+  } = useDragAndDrop(setNewIncidentFile);
+
+  const {
+    showCommandPalette, setShowCommandPalette,
+    commandPaletteQuery, setCommandPaletteQuery,
+    commandPaletteSelectedIndex, setCommandPaletteSelectedIndex,
+    commandPaletteInputRef, getCommandPaletteItems
+  } = useCommandPalette(setShowCreateModal, setCurrentView, incidents);
+
   // Authenticate wrapper
   if (!isAuthenticated) {
     return (
@@ -2231,234 +1886,37 @@ function App() {
   return (
 <div className="app-container">
       {/* 1. SIDEBAR */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="brand-icon">
-            <Activity className="text-white" size={20} />
-          </div>
-          <div>
-            <div className="brand-title">IncidentFlow</div>
-            <div className="brand-subtitle">Gestion de Workflows</div>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          {hasPermission('PAGE_DASHBOARD') && (
-            <button
-              className={`nav-btn ${currentView === 'dashboard' && !selectedIncidentCode ? 'active' : ''}`}
-              onClick={() => { setCurrentView('dashboard'); setSelectedIncidentCode(null); }}
-            >
-              <span className="nav-label">
-                <Activity size={18} />
-                Dashboard
-              </span>
-            </button>
-          )}
-
-          {hasPermission('PAGE_INCIDENTS') && (
-            <>
-              <button
-                className={`nav-btn ${currentView === 'incidents' ? 'active' : ''}`}
-                onClick={() => { setCurrentView('incidents'); setSelectedIncidentCode(null); }}
-              >
-                <span className="nav-label">
-                  <FileText size={18} />
-                  Gestion des Incidents
-                </span>
-              </button>
-
-              <button
-                className={`nav-btn ${currentView === 'kanban' ? 'active' : ''}`}
-                onClick={() => { setCurrentView('kanban'); setSelectedIncidentCode(null); }}
-              >
-                <span className="nav-label">
-                  <Kanban size={18} />
-                  Tableau Kanban
-                </span>
-              </button>
-
-              <button
-                className={`nav-btn ${currentView === 'audit' ? 'active' : ''}`}
-                onClick={() => { setCurrentView('audit'); setSelectedIncidentCode(null); }}
-              >
-                <span className="nav-label">
-                  <Clock size={18} />
-                  Journal d'Audit ISO 27001
-                </span>
-              </button>
-            </>
-          )}
-
-          {hasPermission('PAGE_WORKFLOWS') && (
-            <button
-              className={`nav-btn ${currentView === 'workflows' ? 'active' : ''}`}
-              onClick={() => { setCurrentView('workflows'); setSelectedIncidentCode(null); }}
-            >
-              <span className="nav-label">
-                <Layers size={18} />
-                Paramètres Workflow
-              </span>
-            </button>
-          )}
-
-          {(hasPermission('PAGE_USERS') || getRoleName(currentUser.role) === 'Administrateur') && (
-            <>
-              <button
-                className={`nav-btn ${currentView === 'users' ? 'active' : ''}`}
-                onClick={() => { setCurrentView('users'); setSelectedIncidentCode(null); }}
-              >
-                <span className="nav-label">
-                  <Users size={18} />
-                  Gestion Utilisateurs
-                </span>
-              </button>
-
-              <button
-                className={`nav-btn ${currentView === 'roles' ? 'active' : ''}`}
-                onClick={() => { setCurrentView('roles'); setSelectedIncidentCode(null); }}
-              >
-                <span className="nav-label">
-                  <Shield size={18} />
-                  Gestion des Rôles & Matrice RBAC
-                </span>
-              </button>
-            </>
-          )}
-        </nav>
-
-        {/* Priority KPI widgets */}
-        <div className="sidebar-widget">
-          <div className="widget-title">Sévérité Critique</div>
-          <div className="widget-row">
-            <span className="widget-label">
-              <span className="widget-dot" style={{ backgroundColor: 'var(--critical-dot)' }}></span>
-              Critique
-            </span>
-            <span className="widget-value">{incidents.filter(i => i.priority === 'Critical').length}</span>
-          </div>
-          <div className="widget-row">
-            <span className="widget-label">
-              <span className="widget-dot" style={{ backgroundColor: 'var(--high-dot)' }}></span>
-              Élevée
-            </span>
-            <span className="widget-value">{incidents.filter(i => i.priority === 'High').length}</span>
-          </div>
-        </div>
-
-        {/* Session Time Out banner */}
-        <div style={{ padding: '12px 24px', backgroundColor: 'rgba(255,255,255,0.03)', borderTop: '1px solid rgba(255,255,255,0.05)', fontSize: '10px', color: '#94a3b8' }}>
-          <span>Session expire dans: <strong>{Math.floor(sessionTimeLeft / 60)}m {sessionTimeLeft % 60}s</strong></span>
-        </div>
-
-        <div className="sidebar-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 'bold' }}>{currentUser.name}</div>
-            <div className="role-badge-pill" style={{ marginTop: '2px' }}>{getRoleName(currentUser.role)}</div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="icon-btn btn-secondary"
-            style={{ width: '28px', height: '28px', color: '#fca5a5', border: 'none' }}
-            title="Se déconnecter"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-      </aside>
+      <Sidebar 
+        hasPermission={hasPermission}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        setSelectedIncidentCode={setSelectedIncidentCode}
+        incidents={incidents}
+        sessionTimeLeft={sessionTimeLeft}
+        currentUser={currentUser}
+        getRoleName={getRoleName}
+        handleLogout={handleLogout}
+      />
 
       {/* 2. MAIN VIEWPORT */}
       <main className="main-viewport">
         {/* TOPBAR HEADER */}
-        <header className="topbar">
-          <div className="topbar-left">
-            <div className="topbar-search-box">
-              <Search size={16} className="text-slate-400" />
-              <input
-                type="text"
-                placeholder="Rechercher par titre/code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchIncidents()}
-              />
-            </div>
-            {searchQuery && (
-              <button onClick={() => { setSearchQuery(''); fetchIncidents(); }} className="btn btn-secondary btn-small">
-                Effacer
-              </button>
-            )}
-          </div>
-
-          <div className="topbar-right">
-            {/* Notification Bell */}
-            <div className="notif-bell-container">
-              <button className="icon-btn" onClick={() => setShowNotifications(!showNotifications)}>
-                <Bell size={18} />
-                <span className="bell-badge">{notifications.length}</span>
-              </button>
-
-              {showNotifications && (
-                <div className="card" style={{ position: 'absolute', right: 0, top: '44px', width: '280px', zIndex: 60, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px' }}>
-                    Notifications Récentes
-                  </div>
-                  {notifications.map(n => (
-                    <div key={n.id} style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      • {n.text} <span style={{ fontSize: '9px', opacity: 0.6 }}>({n.time})</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* User display with Dropdown */}
-            <div className="user-profile-dropdown-container">
-              <button
-                className="user-profile-menu"
-                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-              >
-                <div className={`avatar-circle ${currentUser.avatarColor}`}>
-                  {currentUser.name ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U'}
-                </div>
-                <div className="profile-info">
-                  <span className="profile-name">{currentUser.name}</span>
-                  <span className="profile-role">{getRoleName(currentUser.role)}</span>
-                </div>
-                <ChevronDown size={14} className="dropdown-arrow" style={{ transform: showProfileDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.6 }} />
-              </button>
-
-              {showProfileDropdown && (
-                <div className="profile-dropdown-menu">
-                  <div className="profile-dropdown-header">
-                    <span className="user-name">{currentUser.name}</span>
-                    <span className="user-email">{currentUser.email}</span>
-                  </div>
-
-                  <button className="profile-dropdown-item" onClick={handleOpenEditProfile}>
-                    <User size={14} />
-                    <span>Modifier le profil</span>
-                  </button>
-
-                  <button className="profile-dropdown-item" onClick={handleOpenAppSettings}>
-                    <Settings size={14} />
-                    <span>Paramètres</span>
-                  </button>
-
-                  <button className="profile-dropdown-item" onClick={() => { setShowHelpModal(true); setShowProfileDropdown(false); }}>
-                    <HelpCircle size={14} />
-                    <span>Aide & Support</span>
-                  </button>
-
-                  <div className="profile-dropdown-divider"></div>
-
-                  <button className="profile-dropdown-item logout" onClick={() => { handleLogout(); setShowProfileDropdown(false); }}>
-                    <LogOut size={14} />
-                    <span>Se déconnecter</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
+        <Topbar 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          fetchIncidents={fetchIncidents}
+          showNotifications={showNotifications}
+          setShowNotifications={setShowNotifications}
+          notifications={notifications}
+          showProfileDropdown={showProfileDropdown}
+          setShowProfileDropdown={setShowProfileDropdown}
+          currentUser={currentUser}
+          getRoleName={getRoleName}
+          handleOpenEditProfile={handleOpenEditProfile}
+          handleOpenAppSettings={handleOpenAppSettings}
+          setShowHelpModal={setShowHelpModal}
+          handleLogout={handleLogout}
+        />
 
         {/* MAIN SCROLLABLE CONTENT */}
         <div className="content-area">
@@ -2533,7 +1991,7 @@ function App() {
                 handleStartRename={handleStartRename}
                 handleDeleteAttachment={handleDeleteAttachment}
                 isDraggingUpload={isDraggingUpload}
-                handleDragOver={handleDragOver}
+                handleDragOver={handleDragOverUpload}
                 handleDragEnterUpload={handleDragEnterUpload}
                 handleDragLeaveUpload={handleDragLeaveUpload}
                 handleDropUpload={handleDropUpload}
