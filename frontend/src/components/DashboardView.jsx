@@ -4,18 +4,18 @@ import {
 } from 'lucide-react';
 import { AnalyticsKPIWidget } from '../AnalyticsKPIWidget';
 
+import { PriorityDonut, RealTimeTrendChart, renderSlaBadge, getCategoryIcon } from './ChartWidgets';
+
 export function DashboardView({
   incidents = [],
   hasPermission,
   setShowCreateModal,
   setCurrentView,
+  setPriorityFilter,
   setStatusFilter,
   handleSelectIncident,
-  getCategoryIcon,
   getPriorityColor,
-  renderSlaBadge,
-  renderPriorityDonut,
-  renderRealTimeTrendChart
+  formatSlaDuration
 }) {
   if (!hasPermission('PAGE_DASHBOARD')) {
     return (
@@ -100,7 +100,7 @@ export function DashboardView({
         <div className="dashboard-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: 0 }}>
           <h3 className="widget-title" style={{ fontSize: '13px', color: 'var(--text-main)', marginBottom: 0 }}>Breakdown des Priorités</h3>
           <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-            {renderPriorityDonut && renderPriorityDonut()}
+            <PriorityDonut incidents={incidents} setCurrentView={setCurrentView} setPriorityFilter={setPriorityFilter} />
           </div>
         </div>
 
@@ -113,7 +113,7 @@ export function DashboardView({
             </span>
           </div>
           <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-            {renderRealTimeTrendChart && renderRealTimeTrendChart()}
+            <RealTimeTrendChart incidents={incidents} />
           </div>
         </div>
       </div>
@@ -162,7 +162,7 @@ export function DashboardView({
                     </span>
                   </td>
                   <td>
-                    {renderSlaBadge && renderSlaBadge(inc)}
+                    {renderSlaBadge(inc)}
                   </td>
                   <td>{inc.author?.name || 'Système'}</td>
                 </tr>

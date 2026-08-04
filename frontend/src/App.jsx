@@ -17,6 +17,13 @@ import { UserManagementView } from './components/UserManagementView';
 import { RoleManagementView } from './components/RoleManagementView';
 import { WorkflowConfigView } from './components/WorkflowConfigView';
 import { ModalsManager } from './components/ModalsManager';
+import { LoginPage } from './components/LoginPage';
+import { getCategoryIcon, renderSlaBadge } from './components/ChartWidgets';
+import {
+  formatDate, getPriorityColor, formatSlaDuration,
+  getDonutSegmentPath, parseMarkdown, getRoleName,
+  insertMarkdownAtSelection
+} from './utils/helpers';
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -185,12 +192,7 @@ const getOrderedStates = (wf) => {
 };
 
 function App() {
-  const getRoleName = (role) => {
-    if (!role) return '';
-    if (typeof role === 'string') return role;
-    if (typeof role === 'object' && role.name) return role.name;
-    return '';
-  };
+
 
   // Authentication states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -445,7 +447,7 @@ function App() {
   const [sortBy, setSortBy] = useState('createdAt_desc');
   const [currentPage, setCurrentPage] = useState(1);
   const incidentsPerPage = itemsPerPage;
-  const [hoveredTrendIndex, setHoveredTrendIndex] = useState(null);
+
 
   // User Filtering & Search
   const [searchUserQuery, setSearchUserQuery] = useState('');
@@ -477,6 +479,7 @@ function App() {
   const [showTransitionModal, setShowTransitionModal] = useState(false);
   const [targetTransition, setTargetTransition] = useState(null);
   const [transitionComment, setTransitionComment] = useState('');
+  const [showAssignSelect, setShowAssignSelect] = useState(false);
 
   // Modals & Forms for Users
   const [showUserCreateModal, setShowUserCreateModal] = useState(false);
@@ -1755,6 +1758,54 @@ function App() {
     loadIncidentDetail(code);
   };
 
+  const handleQuickReassignSubmit = async (assigneeId) => {
+    setErrorMessage('');
+    const selectedAssignee = usersList.find(u => u.id.toString() === assigneeId.toString());
+    const payload = {
+      title: selectedIncident.title,
+      description: selectedIncident.description,
+      category: selectedIncident.category,
+      priority: selectedIncident.priority,
+      severity: selectedIncident.severity,
+      assignedTo: selectedAssignee ? { id: selectedAssignee.id } : null
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/incidents/${selectedIncident.incidentCode}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Erreur de réassignation de l'incident.");
+      }
+
+      const updatedIncident = await res.json();
+      setIncidents(prev => prev.map(inc => 
+        inc.incidentCode === updatedIncident.incidentCode ? updatedIncident : inc
+      ));
+      setSelectedIncident(updatedIncident);
+      setShowAssignSelect(false);
+      setSuccessMessage('Incident réassigné avec succès.');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      const newLog = {
+        id: Date.now().toString(),
+        type: 'UPDATE',
+        incidentId: updatedIncident.id || updatedIncident.incidentCode,
+        user: currentUser?.name || 'Système',
+        action: `Incident réassigné à ${selectedAssignee ? selectedAssignee.name : 'Non assigné'}`,
+        date: new Date().toISOString()
+      };
+      setAuditLogs(prev => [newLog, ...prev]);
+
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
   // Create workflow transition (US-INC-005)
   const handleTransitionClick = (transition) => {
     setTargetTransition(transition);
@@ -2059,146 +2110,16 @@ function App() {
     }
   };
 
-  // Helper to insert markdown tags at selection in comment edit editor
   const handleInsertEditMarkdown = (type) => {
-    const textarea = document.getElementById('comment-edit-textarea');
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selectedText = text.substring(start, end);
-
-    let replacement = "";
-    switch (type) {
-      case 'bold':
-        replacement = `**${selectedText || "texte en gras"}**`;
-        break;
-      case 'italic':
-        replacement = `*${selectedText || "texte en italique"}*`;
-        break;
-      case 'list':
-        replacement = `\n- ${selectedText || "élément"}`;
-        break;
-      case 'code':
-        replacement = `\n\`\`\`\n${selectedText || "bloc de code"}\n\`\`\`\n`;
-        break;
-      default:
-        break;
-    }
-
-    const newValue = text.substring(0, start) + replacement + text.substring(end);
+    const newValue = insertMarkdownAtSelection('comment-edit-textarea', editingCommentContent, type);
     setEditingCommentContent(newValue);
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + replacement.length, start + replacement.length);
-    }, 50);
   };
 
-  // Markdown parser for rich comments formatting
-  const parseMarkdown = (text) => {
-    if (!text) return "";
 
-    // Escape HTML to prevent XSS
-    let html = text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
 
-    // Code blocks: ```code```
-    html = html.replace(/```([\s\S]+?)```/g, (match, code) => {
-      return `<pre style="background: #f1f5f9; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-family: monospace; overflow-x: auto; font-size: 12px; margin: 8px 0; color: #0f172a; line-height: 1.4;"><code>${code.trim()}</code></pre>`;
-    });
-
-    // Inline code: `code`
-    html = html.replace(/`([^`\n]+?)`/g, '<code style="background: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #e11d48;">$1</code>');
-
-    // Bold: **text** or __text__
-    html = html.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/__([\s\S]+?)__/g, '<strong>$1</strong>');
-
-    // Italic: *text* or _text_
-    html = html.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
-    html = html.replace(/_([\s\S]+?)_/g, '<em>$1</em>');
-
-    // Bullet lists: Lines starting with "- " or "* "
-    const lines = html.split('\n');
-    let inList = false;
-    let listProcessedLines = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const match = line.match(/^(\s*)[-*]\s+(.+)$/);
-      if (match) {
-        if (!inList) {
-          listProcessedLines.push('<ul style="margin: 6px 0; padding-left: 20px; list-style-type: disc;">');
-          inList = true;
-        }
-        listProcessedLines.push(`<li style="margin: 3px 0;">${match[2]}</li>`);
-      } else {
-        if (inList) {
-          listProcessedLines.push('</ul>');
-          inList = false;
-        }
-        listProcessedLines.push(line);
-      }
-    }
-    if (inList) {
-      listProcessedLines.push('</ul>');
-    }
-    html = listProcessedLines.join('\n');
-
-    // Paragraphs / line breaks (preserving newlines in text block)
-    html = html.replace(/\n/g, '<br />');
-
-    // Clean up br inside pre/code blocks
-    html = html.replace(/(<pre.*?>[\s\S]*?<\/pre>)/g, (match) => {
-      return match.replace(/<br \/>/g, '\n');
-    });
-    // Clean up br inside ul/li blocks
-    html = html.replace(/(<ul.*?>[\s\S]*?<\/ul>)/g, (match) => {
-      return match.replace(/<br \/>/g, '');
-    });
-
-    return html;
-  };
-
-  // Helper to insert markdown tags at selection in comments editor
   const handleInsertMarkdown = (type) => {
-    const textarea = document.getElementById('comment-editor-textarea');
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selectedText = text.substring(start, end);
-
-    let replacement = "";
-    switch (type) {
-      case 'bold':
-        replacement = `**${selectedText || "texte en gras"}**`;
-        break;
-      case 'italic':
-        replacement = `*${selectedText || "texte en italique"}*`;
-        break;
-      case 'list':
-        replacement = `\n- ${selectedText || "élément"}`;
-        break;
-      case 'code':
-        replacement = `\n\`\`\`\n${selectedText || "bloc de code"}\n\`\`\`\n`;
-        break;
-      default:
-        break;
-    }
-
-    const newValue = text.substring(0, start) + replacement + text.substring(end);
+    const newValue = insertMarkdownAtSelection('comment-editor-textarea', newComment, type);
     setNewComment(newValue);
-
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + replacement.length, start + replacement.length);
-    }, 50);
   };
 
   // Drag and drop event handlers
@@ -2242,480 +2163,7 @@ function App() {
     }
   };
 
-  // Category Icon helper
-  const getCategoryIcon = (category) => {
-    switch (category) {
-      case 'Réseau': return <Globe size={16} />;
-      case 'Sécurité': return <Shield size={16} />;
-      case 'Système': return <Cpu size={16} />;
-      case 'Médical': return <Stethoscope size={16} />;
-      default: return <FileText size={16} />;
-    }
-  };
 
-  // Priority color helper
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'Critical': return '#dc2626';
-      case 'High': return '#ea580c';
-      case 'Medium': return '#ca8a04';
-      case 'Low': return '#16a34a';
-      default: return 'var(--text-muted)';
-    }
-  };
-
-  // Format date helper
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Helper de formatage clair et propre des temps SLA (évite le défilement inutile des secondes sauf urgence)
-  const formatSlaDuration = (ms) => {
-    const isOverdue = ms < 0;
-    const absMs = Math.abs(ms);
-
-    const totalMins = Math.floor(absMs / (1000 * 60));
-    const totalHours = Math.floor(absMs / (1000 * 60 * 60));
-    const days = Math.floor(totalHours / 24);
-    const remHours = totalHours % 24;
-    const remMins = totalMins % 60;
-    const remSecs = Math.floor((absMs / 1000) % 60);
-
-    if (isOverdue) {
-      if (days > 0) {
-        return `Dépassé de ${days}j ${remHours > 0 ? remHours + 'h' : ''}`.trim();
-      }
-      if (totalHours > 0) {
-        return `Dépassé de ${totalHours}h ${remMins > 0 ? remMins + 'm' : ''}`.trim();
-      }
-      return `Dépassé de ${totalMins} min`;
-    } else {
-      if (days > 0) {
-        return `Reste ${days}j ${remHours}h`;
-      }
-      if (totalHours > 0) {
-        return `Reste ${totalHours}h ${remMins}m`;
-      }
-      if (totalMins >= 15) {
-        return `Reste ${totalMins} min`;
-      }
-      // Moins de 15 min : afficher minutes et secondes pour l'urgence
-      return `Reste ${totalMins}m ${remSecs}s`;
-    }
-  };
-
-  // Render SLA Badge helper
-  const renderSlaBadge = (inc) => {
-    if (!inc.slaDueAt) return null;
-
-    if (inc.status === 'Résolu' || inc.status === 'Clôturé') {
-      return (
-        <span className="badge" style={{ backgroundColor: '#f0fdf4', color: '#166534', borderColor: '#86efac', fontWeight: 'bold' }}>
-          ✓ SLA Respecté
-        </span>
-      );
-    }
-
-    const dueTime = new Date(inc.slaDueAt).getTime();
-    const diffMs = dueTime - tickerTime;
-    const formattedText = formatSlaDuration(diffMs);
-
-    if (diffMs < 0) {
-      if (inc.escalated) {
-        return (
-          <span className="badge pulse-active-glow" style={{ backgroundColor: '#fff5f5', color: '#e53e3e', borderColor: '#feb2b2', fontWeight: 'bold' }} title={`${formattedText} (Escaladé automatiquement)`}>
-            🚨 SLA {formattedText} (Escaladé)
-          </span>
-        );
-      }
-
-      return (
-        <span className="badge pulse-active-glow" style={{ backgroundColor: '#fef2f2', color: '#991b1b', borderColor: '#fca5a5', fontWeight: 'bold' }}>
-          ⚠ SLA {formattedText}
-        </span>
-      );
-    }
-
-    const totalMinutes = Math.floor(diffMs / 60000);
-
-    if (totalMinutes < 15) {
-      return (
-        <span className="badge animate-pulse-red" style={{ fontWeight: 'bold' }}>
-          ⏱ Échéance ({formattedText})
-        </span>
-      );
-    }
-
-    if (totalMinutes <= 30) {
-      return (
-        <span className="badge" style={{ backgroundColor: '#fff7ed', color: '#c2410c', borderColor: '#fdba74', fontWeight: 'bold' }}>
-          ⏱ Échéance ({formattedText})
-        </span>
-      );
-    }
-
-    return (
-      <span className="badge" style={{ backgroundColor: '#f0fdf4', color: '#15803d', borderColor: '#bbf7d0', fontWeight: 'bold' }}>
-        ⏱ {formattedText}
-      </span>
-    );
-  };
-
-  // SVG Donut Path helper
-  const getDonutSegmentPath = (cx, cy, r, startAngle, endAngle) => {
-    const startRad = (startAngle - 90) * Math.PI / 180.0;
-    const endRad = (endAngle - 90) * Math.PI / 180.0;
-
-    const x1 = cx + r * Math.cos(startRad);
-    const y1 = cy + r * Math.sin(startRad);
-    const x2 = cx + r * Math.cos(endRad);
-    const y2 = cy + r * Math.sin(endRad);
-
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
-    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
-  };
-
-  // Render SVG Donut Chart for Priorities (US-INC-009 / Epic 5)
-  const renderPriorityDonut = () => {
-    const criticalCount = incidents.filter(i => i.priority === 'Critical').length;
-    const highCount = incidents.filter(i => i.priority === 'High').length;
-    const mediumCount = incidents.filter(i => i.priority === 'Medium').length;
-    const lowCount = incidents.filter(i => i.priority === 'Low').length;
-    const total = criticalCount + highCount + mediumCount + lowCount;
-
-    if (total === 0) {
-      return (
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', padding: '40px 0' }}>
-          Aucune donnée disponible.
-        </div>
-      );
-    }
-
-    const segments = [
-      { count: criticalCount, color: "#dc2626", label: "Critique", raw: "Critical" },
-      { count: highCount, color: "#ea580c", label: "Élevée", raw: "High" },
-      { count: mediumCount, color: "#ca8a04", label: "Moyenne", raw: "Medium" },
-      { count: lowCount, color: "#16a34a", label: "Faible", raw: "Low" }
-    ].filter(s => s.count > 0);
-
-    let accumulatedAngle = 0;
-
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', width: '100%' }}>
-        <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-          <circle cx="70" cy="70" r="50" fill="transparent" stroke="var(--border-color)" strokeWidth="12" />
-          {segments.map((seg, idx) => {
-            const percentage = seg.count / total;
-            const angle = percentage * 360;
-            let path = "";
-            if (percentage === 1) {
-              return (
-                <circle key={idx} cx="70" cy="70" r="50" fill="transparent" stroke={seg.color} strokeWidth="12" className="donut-segment" onClick={() => { setCurrentView('incidents'); setPriorityFilter(seg.raw); }} />
-              );
-            } else {
-              path = getDonutSegmentPath(70, 70, 50, accumulatedAngle, accumulatedAngle + angle);
-              accumulatedAngle += angle;
-              return (
-                <path key={idx} d={path} fill="transparent" stroke={seg.color} strokeWidth="12" strokeLinecap="round" className="donut-segment" onClick={() => { setCurrentView('incidents'); setPriorityFilter(seg.raw); }} />
-              );
-            }
-          })}
-          {/* Centered Text rotated back to upright */}
-          <text x="70" y="65" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: '18px', fontWeight: '800', fill: 'var(--text-main)', transform: 'rotate(90deg)', transformOrigin: '70px 70px' }}>{total}</text>
-          <text x="70" y="81" textAnchor="middle" dominantBaseline="middle" style={{ fontSize: '9px', fontWeight: '700', fill: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', transform: 'rotate(90deg)', transformOrigin: '70px 70px' }}>Total</text>
-        </svg>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 }}>
-          {segments.map((seg, idx) => (
-            <div key={idx} className="donut-legend-item" onClick={() => { setCurrentView('incidents'); setPriorityFilter(seg.raw); }}>
-              <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', backgroundColor: seg.color }}></span>
-              <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>{seg.label}</span>
-              <span style={{ color: 'var(--text-muted)', marginLeft: 'auto', fontWeight: '700' }}>{seg.count}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // Get dynamic 7-day trend data from actual incidents
-  const getTrendData = () => {
-    const data = [];
-    const now = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-
-      const dateStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
-
-      // Incidents created on this day
-      const createdCount = incidents.filter(inc => {
-        const createdDate = new Date(inc.createdAt);
-        return createdDate.toDateString() === d.toDateString();
-      }).length;
-
-      // Incidents resolved on this day
-      const resolvedCount = incidents.filter(inc => {
-        const updatedDate = new Date(inc.updatedAt || inc.createdAt);
-        return (inc.status === 'Résolu' || inc.status === 'Clôturé') && updatedDate.toDateString() === d.toDateString();
-      }).length;
-
-      // Active incidents on this day
-      const activeCount = incidents.filter(inc => {
-        const createdDate = new Date(inc.createdAt);
-        const isCreatedBeforeOrOn = createdDate <= d || createdDate.toDateString() === d.toDateString();
-
-        let isStillActive = true;
-        if (inc.status === 'Résolu' || inc.status === 'Clôturé') {
-          const resolvedDate = new Date(inc.updatedAt || inc.createdAt);
-          isStillActive = resolvedDate > d && resolvedDate.toDateString() !== d.toDateString();
-        }
-
-        return isCreatedBeforeOrOn && isStillActive;
-      }).length;
-
-      data.push({
-        dateLabel: dateStr,
-        created: createdCount,
-        resolved: resolvedCount,
-        active: activeCount,
-        rawDate: d
-      });
-    }
-
-    // Seeding mock realistic baseline points for past days if db is empty
-    const hasHistory = data.slice(0, 6).some(item => item.created > 0 || item.resolved > 0 || item.active > 0);
-    if (!hasHistory && incidents.length > 0) {
-      const mockBaselines = [
-        { created: 2, resolved: 1, active: 3 },
-        { created: 1, resolved: 2, active: 2 },
-        { created: 4, resolved: 2, active: 4 },
-        { created: 2, resolved: 3, active: 3 },
-        { created: 3, resolved: 1, active: 5 },
-        { created: 5, resolved: 4, active: 6 }
-      ];
-      mockBaselines.forEach((mock, idx) => {
-        data[idx].created = mock.created;
-        data[idx].resolved = mock.resolved;
-        data[idx].active = mock.active;
-      });
-      // The last day (today) will combine actual incidents
-      data[6].created = incidents.length;
-      data[6].active = incidents.filter(i => i.status !== 'Résolu' && i.status !== 'Clôturé').length;
-      data[6].resolved = incidents.filter(i => i.status === 'Résolu' || i.status === 'Clôturé').length;
-    }
-
-    return data;
-  };
-
-  // Render Real-time Trend line/area chart (US-INC-010 / Epic 5)
-  const renderRealTimeTrendChart = () => {
-    const trendData = getTrendData();
-    const maxY = Math.max(...trendData.map(d => Math.max(d.created, d.resolved, d.active)), 4) + 1;
-
-    const activeIndex = hoveredTrendIndex !== null ? hoveredTrendIndex : 6;
-    const activeData = trendData[activeIndex];
-
-    // Coordinate mapping (viewBox="0 0 500 200")
-    const pointsWidth = 440;
-    const pointsHeight = 145;
-    const paddingLeft = 40;
-    const paddingTop = 20;
-    const borderBottom = 165;
-
-    const activePoints = trendData.map((d, i) => ({
-      x: paddingLeft + i * (pointsWidth / 6),
-      y: borderBottom - (d.active / maxY) * pointsHeight
-    }));
-
-    const resolvedPoints = trendData.map((d, i) => ({
-      x: paddingLeft + i * (pointsWidth / 6),
-      y: borderBottom - (d.resolved / maxY) * pointsHeight
-    }));
-
-    // Generate paths
-    const activePath = activePoints.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, "");
-    const resolvedPath = resolvedPoints.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, "");
-
-    const activeAreaPath = activePoints.length > 0
-      ? `${activePath} L ${activePoints[activePoints.length - 1].x} ${borderBottom} L ${activePoints[0].x} ${borderBottom} Z`
-      : "";
-    const resolvedAreaPath = resolvedPoints.length > 0
-      ? `${resolvedPath} L ${resolvedPoints[resolvedPoints.length - 1].x} ${borderBottom} L ${resolvedPoints[0].x} ${borderBottom} Z`
-      : "";
-
-    // Handler for hovering over coordinate columns
-    const handleMouseMove = (e) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const svgX = (x / rect.width) * 500;
-
-      let nearestIdx = 0;
-      let minDist = 999999;
-      for (let i = 0; i < 7; i++) {
-        const ptX = paddingLeft + i * (pointsWidth / 6);
-        const dist = Math.abs(svgX - ptX);
-        if (dist < minDist) {
-          minDist = dist;
-          nearestIdx = i;
-        }
-      }
-      setHoveredTrendIndex(nearestIdx);
-    };
-
-    return (
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
-        {/* SVG Chart area */}
-        <div style={{ flexGrow: 2, minWidth: '280px', position: 'relative' }}>
-          <svg
-            width="100%"
-            height="180"
-            viewBox="0 0 500 200"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => setHoveredTrendIndex(null)}
-            style={{ overflow: 'visible' }}
-          >
-            <defs>
-              <linearGradient id="activeGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
-              </linearGradient>
-              <linearGradient id="resolvedGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-
-            {/* Grid Lines */}
-            {[0, 0.25, 0.5, 0.75, 1].map((val, idx) => {
-              const yVal = borderBottom - val * pointsHeight;
-              const gridNum = Math.round(val * maxY);
-              return (
-                <g key={idx}>
-                  <line x1={paddingLeft} y1={yVal} x2={paddingLeft + pointsWidth} y2={yVal} stroke="rgba(226, 232, 240, 0.6)" strokeWidth="1" />
-                  <text x={paddingLeft - 8} y={yVal + 4} textAnchor="end" style={{ fontSize: '10px', fill: 'var(--text-muted)', fontWeight: '600' }}>
-                    {gridNum}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Area Paths */}
-            <path d={activeAreaPath} fill="url(#activeGrad)" style={{ transition: 'all 0.3s' }} />
-            <path d={resolvedAreaPath} fill="url(#resolvedGrad)" style={{ transition: 'all 0.3s' }} />
-
-            {/* Lines */}
-            <path d={activePath} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" style={{ transition: 'all 0.3s' }} />
-            <path d={resolvedPath} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" style={{ transition: 'all 0.3s' }} />
-
-            {/* Vertical guidelines on hover */}
-            {hoveredTrendIndex !== null && (
-              <g>
-                <line
-                  x1={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)}
-                  y1={paddingTop}
-                  x2={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)}
-                  y2={borderBottom}
-                  stroke="#cbd5e1"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 4"
-                />
-                <circle
-                  cx={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)}
-                  cy={activePoints[hoveredTrendIndex].y}
-                  r="6"
-                  fill="#3b82f6"
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                  style={{ filter: 'drop-shadow(0 0 4px rgba(59, 130, 246, 0.4))' }}
-                />
-                <circle
-                  cx={paddingLeft + hoveredTrendIndex * (pointsWidth / 6)}
-                  cy={resolvedPoints[hoveredTrendIndex].y}
-                  r="6"
-                  fill="#10b981"
-                  stroke="#ffffff"
-                  strokeWidth="2"
-                  style={{ filter: 'drop-shadow(0 0 4px rgba(16, 185, 129, 0.4))' }}
-                />
-              </g>
-            )}
-
-            {/* X-axis labels */}
-            {trendData.map((d, i) => (
-              <text
-                key={i}
-                x={paddingLeft + i * (pointsWidth / 6)}
-                y={borderBottom + 18}
-                textAnchor="middle"
-                style={{
-                  fontSize: '9.5px',
-                  fill: hoveredTrendIndex === i ? 'var(--text-main)' : 'var(--text-muted)',
-                  fontWeight: hoveredTrendIndex === i ? '800' : '600',
-                  transition: 'fill 0.2s'
-                }}
-              >
-                {d.dateLabel}
-              </text>
-            ))}
-          </svg>
-        </div>
-
-        {/* Real-time details card */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          padding: '16px',
-          backgroundColor: 'var(--card-bg)',
-          borderRadius: '12px',
-          border: '1px solid var(--border-color)',
-          width: '180px',
-          flexShrink: 0,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-        }}>
-          <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            {activeIndex === 6 ? "Aujourd'hui" : activeData.dateLabel}
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-              <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }}></span> Actifs
-              </span>
-              <strong style={{ color: 'var(--text-main)' }}>{activeData.active}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-              <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#dc2626' }}></span> Déclarés
-              </span>
-              <strong style={{ color: 'var(--text-main)' }}>+{activeData.created}</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-              <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></span> Résolus
-              </span>
-              <strong style={{ color: 'var(--text-main)' }}>{activeData.resolved}</strong>
-            </div>
-            <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '4px 0' }}></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Respect SLA</span>
-              <strong style={{ color: activeData.resolved > 0 ? '#16a34a' : 'var(--text-muted)', fontWeight: '700' }}>
-                {activeData.resolved > 0 ? '96.4%' : '100%'}
-              </strong>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // Sort incidents
   const getSortedIncidents = () => {
@@ -2764,208 +2212,19 @@ function App() {
   // Authenticate wrapper
   if (!isAuthenticated) {
     return (
-      <div className="login-container-split">
-        {/* Left Side: Illustration Banner */}
-        <div className="login-banner-side">
-          <div className="login-banner-overlay" />
-          <div className="login-banner-content">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', border: '1px solid rgba(255, 255, 255, 0.2)' }}>
-                <Activity size={18} style={{ color: '#60a5fa' }} />
-              </div>
-              <h1 style={{ fontSize: '22px', fontWeight: '900', margin: 0, letterSpacing: '-0.5px' }}>IncidentFlow</h1>
-            </div>
-
-            <h2 className="login-banner-title">
-              Gérez vos incidents de support <span className="highlight-itil">ITIL</span> avec <span className="highlight-fluidite">fluidité</span>.
-            </h2>
-            <p style={{ color: '#cbd5e1', fontSize: '15.5px', lineHeight: '1.6', marginBottom: '32px', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-              Une plateforme moderne combinant gestion de workflow dynamique, comptes à rebours SLA actifs et communication en temps réel pour vos équipes d'exploitation.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="login-feature-item">
-                <div className="login-feature-icon">
-                  <CheckCircle size={14} style={{ color: '#34d399' }} />
-                </div>
-                <span>Workflow de transition dynamique réactif</span>
-              </div>
-              <div className="login-feature-item">
-                <div className="login-feature-icon">
-                  <CheckCircle size={14} style={{ color: '#34d399' }} />
-                </div>
-                <span>Compte à rebours de résolution SLA actif</span>
-              </div>
-              <div className="login-feature-item">
-                <div className="login-feature-icon">
-                  <CheckCircle size={14} style={{ color: '#34d399' }} />
-                </div>
-                <span>Éditeur de diagnostics en Markdown & historique Git-style</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side: Form Panel */}
-        <div className="login-form-side">
-          {/* Ambient Glowing Blobs */}
-          <div style={{ position: 'absolute', top: '15%', left: '20%', width: '350px', height: '350px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.14) 0%, rgba(59, 130, 246, 0) 70%)', filter: 'blur(45px)', zIndex: 0, pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: '15%', right: '20%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.14) 0%, rgba(168, 85, 247, 0) 70%)', filter: 'blur(55px)', zIndex: 0, pointerEvents: 'none' }} />
-
-          <div className="card neon-card-glow" style={{ width: '100%', maxWidth: '480px', padding: '44px', borderRadius: '20px', background: 'rgba(30, 41, 59, 0.65)', backdropFilter: 'blur(16px)', zIndex: 1 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
-              <div className="brand-icon animate-pulse-red" style={{ width: '48px', height: '48px', marginBottom: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)' }}>
-                <Activity className="text-white" size={24} />
-              </div>
-              <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.75px', marginBottom: '4px' }}>IncidentFlow</h2>
-              <p style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500', textAlign: 'center' }}>Connexion utilisateur sécurisée</p>
-            </div>
-
-            {loginError && (
-              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#fca5a5', padding: '10px 14px', borderRadius: '10px', fontSize: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <AlertCircle size={16} />
-                <span>{loginError}</span>
-              </div>
-            )}
-
-            {/* Primary Enterprise SSO Action */}
-            {/*<button
-              type="button"
-              onClick={() => triggerQuickLogin('anas@netmar.com')}
-              className="btn btn-primary"
-              style={{
-                width: '100%',
-                justifyContent: 'center',
-                padding: '12px',
-                fontWeight: '700',
-                backgroundColor: '#4f46e5',
-                borderColor: '#4338ca',
-                boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                borderRadius: '10px',
-                fontSize: '13px'
-              }}
-            >
-              <Shield size={16} />
-              Connexion Unique Keycloak (SSO)
-            </button> */}
-
-
-            {/* Divider */}
-            <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: '12px' }}>
-              <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.08)' }} />
-              <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '800', letterSpacing: '0.08em' }}>OU CONNEXION DIRECTE</span>
-              <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(255,255,255,0.08)' }} />
-            </div>
-
-            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ color: '#94a3b8', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>Email ou Identifiant</label>
-                <input
-                  type="email"
-                  className="form-control"
-                  placeholder="Ex: anas@netmar.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  style={{ background: 'rgba(15, 23, 42, 0.45)', color: 'white', borderColor: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px' }}
-                  required
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ color: '#94a3b8', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px', display: 'block' }}>Mot de passe</label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type={showLoginPassword ? "text" : "password"}
-                    className="form-control"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    onKeyUp={(e) => {
-                      if (e.getModifierState) {
-                        setIsCapsLockOn(e.getModifierState('CapsLock'));
-                      }
-                    }}
-                    style={{
-                      background: 'rgba(15, 23, 42, 0.45)',
-                      color: 'white',
-                      borderColor: 'rgba(255,255,255,0.08)',
-                      borderRadius: '10px',
-                      padding: '10px 14px',
-                      paddingRight: '40px',
-                      width: '100%'
-                    }}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowLoginPassword(prev => !prev)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      background: 'none',
-                      border: 'none',
-                      color: '#64748b',
-                      cursor: 'pointer',
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {isCapsLockOn && (
-                  <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
-                    <AlertTriangle size={12} />
-                    Touche Verr. Maj active
-                  </div>
-                )}
-              </div>
-              <button type="submit" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontWeight: '700', borderRadius: '10px', marginTop: '6px', fontSize: '13px', background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)', color: 'white' }}>
-                Se connecter localement
-              </button>
-            </form>
-
-            {/* Quick-select test accounts */}
-            <div style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px' }}>
-              <span style={{ fontSize: '10px', color: '#64748b', display: 'block', marginBottom: '12px', textAlign: 'center', fontWeight: '800', letterSpacing: '0.08em' }}>
-                COMPTES DE TEST (SIMULATION)
-              </span>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                {USERS.map(u => (
-                  <div
-                    key={u.id}
-                    onClick={() => triggerQuickLogin(u.email)}
-                    className="quick-login-card"
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.05)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      textAlign: 'left'
-                    }}
-                  >
-                    <span className={`avatar-circle ${u.avatarColor}`} style={{ width: '22px', height: '22px', fontSize: '8px', fontWeight: 'bold' }}>
-                      {u.firstName[0]}{u.lastName[0]}
-                    </span>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#ffffff' }}>{u.firstName}</span>
-                      <span style={{ fontSize: '9px', color: '#64748b', fontWeight: '700' }}>{getRoleName(u.role)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LoginPage
+        loginEmail={loginEmail}
+        setLoginEmail={setLoginEmail}
+        loginPassword={loginPassword}
+        setLoginPassword={setLoginPassword}
+        loginError={loginError}
+        showLoginPassword={showLoginPassword}
+        setShowLoginPassword={setShowLoginPassword}
+        isCapsLockOn={isCapsLockOn}
+        setIsCapsLockOn={setIsCapsLockOn}
+        handleLoginSubmit={handleLoginSubmit}
+        triggerQuickLogin={triggerQuickLogin}
+      />
     );
   }
 
@@ -3290,8 +2549,7 @@ function App() {
                 getCategoryIcon={getCategoryIcon}
                 getPriorityColor={getPriorityColor}
                 renderSlaBadge={renderSlaBadge}
-                renderPriorityDonut={renderPriorityDonut}
-                renderRealTimeTrendChart={renderRealTimeTrendChart}
+
               />
             ) : currentView === 'incidents' ? (
               <IncidentListView
