@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FICHIER      : IncidentListView.jsx
+ * EMPLACEMENT  : src/components
+ * DESCRIPTION  : Vue affichant la liste complète des incidents sous forme de tableau, avec prise en charge des filtres, du tri et de la pagination.
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import React from 'react';
 import {
   Plus, Search, X, Paperclip, Eye, Trash2

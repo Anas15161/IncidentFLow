@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FICHIER      : IncidentDetailView.jsx
+ * EMPLACEMENT  : src/components
+ * DESCRIPTION  : Interface détaillée pour consulter et gérer un incident spécifique (statut, historique, commentaires, pièces jointes, etc.).
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import React from 'react';
 import {
   ArrowLeft, Edit3, Trash2, User, Clock, AlertTriangle, ChevronDown, CheckCircle,

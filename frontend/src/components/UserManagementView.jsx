@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FICHIER      : UserManagementView.jsx
+ * EMPLACEMENT  : src/components
+ * DESCRIPTION  : Interface d'administration pour la gestion des comptes utilisateurs (création, modification, désactivation).
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import React from 'react';
 import {
   Plus, Search, X, Users, Shield, Edit3, Trash2

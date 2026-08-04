@@ -1,6 +1,14 @@
-// ============================================
-// utils/helpers.js — Fonctions utilitaires pures
-// ============================================
+/**
+ * ============================================================================
+ * FICHIER      : helpers.jsx
+ * EMPLACEMENT  : src/utils
+ * DESCRIPTION  : Bibliothèque de fonctions utilitaires pures utilisées dans toute l'application (formatage de dates, couleurs de priorité, parsing markdown, etc.).
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
+import React from 'react';
+import { Activity, UserPlus, FileUp, Trash2, Edit3, MessageSquare, PlusCircle, Clock } from 'lucide-react';
 
 // Format date helper (locale FR)
 export const formatDate = (dateStr) => {
@@ -185,4 +193,94 @@ export const insertMarkdownAtSelection = (textareaId, currentValue, type) => {
   }, 50);
 
   return newValue;
+};
+
+// Helper to categorize timeline logs and return icons/colors
+export const getTimelineItemDetails = (action) => {
+  const act = action.toLowerCase();
+
+  // Status Change
+  if (act.includes('statut') || act.includes('passé à') || act.includes('transition')) {
+    return {
+      icon: <Activity size={14} />,
+      color: '#22c55e', // green
+      bgColor: '#f0fdf4',
+      borderColor: '#bbf7d0',
+      title: 'Changement de Statut'
+    };
+  }
+
+  // Assignee
+  if (act.includes('assigné') || act.includes('responsable') || act.includes('affecté')) {
+    return {
+      icon: <UserPlus size={14} />,
+      color: '#a855f7', // purple
+      bgColor: '#faf5ff',
+      borderColor: '#e9d5ff',
+      title: 'Affectation'
+    };
+  }
+
+  // Attachment upload
+  if (act.includes('pièce jointe ajoutée') || act.includes('fichier téléversé') || act.includes('attachment added') || act.includes('pièce jointe téléversée')) {
+    return {
+      icon: <FileUp size={14} />,
+      color: '#3b82f6', // blue
+      bgColor: '#eff6ff',
+      borderColor: '#bfdbfe',
+      title: 'Ajout de Fichier'
+    };
+  }
+
+  // Attachment delete or rename
+  if (act.includes('pièce jointe supprimée') || act.includes('suppression de la pièce jointe') || act.includes('attachment deleted')) {
+    return {
+      icon: <Trash2 size={14} />,
+      color: '#ef4444', // red
+      bgColor: '#fef2f2',
+      borderColor: '#fca5a5',
+      title: 'Suppression de Fichier'
+    };
+  }
+
+  if (act.includes('pièce jointe renommée') || act.includes('renommage de la pièce jointe') || act.includes('attachment renamed')) {
+    return {
+      icon: <Edit3 size={14} />,
+      color: '#eab308', // yellow/amber
+      bgColor: '#fef9c3',
+      borderColor: '#fef08a',
+      title: 'Renommage de Fichier'
+    };
+  }
+
+  // Comment
+  if (act.includes('commentaire')) {
+    return {
+      icon: <MessageSquare size={14} />,
+      color: '#64748b', // slate
+      bgColor: 'var(--body-bg)',
+      borderColor: 'var(--border-color)',
+      title: 'Commentaire'
+    };
+  }
+
+  // Created / Declared
+  if (act.includes('créé') || act.includes('déclaré') || act.includes('création') || act.includes('signalé')) {
+    return {
+      icon: <PlusCircle size={14} />,
+      color: '#06b6d4', // cyan
+      bgColor: 'var(--body-bg)',
+      borderColor: 'var(--border-color)',
+      title: 'Incident Déclaré'
+    };
+  }
+
+  // Default
+  return {
+    icon: <Clock size={14} />,
+    color: '#64748b',
+    bgColor: 'var(--body-bg)',
+    borderColor: 'var(--border-color)',
+    title: 'Action Consignée'
+  };
 };

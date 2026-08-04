@@ -1,6 +1,12 @@
-// ============================================
-// hooks/useSettings.js — Paramètres App & Profil
-// ============================================
+/**
+ * ============================================================================
+ * FICHIER      : useSettings.js
+ * EMPLACEMENT  : src/hooks
+ * DESCRIPTION  : Hook React gérant les paramètres locaux de l'application et les préférences visuelles de l'utilisateur.
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import { useState, useEffect } from 'react';
 
 const API_BASE = 'http://localhost:8080/api';

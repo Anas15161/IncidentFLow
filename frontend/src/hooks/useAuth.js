@@ -1,6 +1,12 @@
-// ============================================
-// hooks/useAuth.js — Authentification & Session
-// ============================================
+/**
+ * ============================================================================
+ * FICHIER      : useAuth.js
+ * EMPLACEMENT  : src/hooks
+ * DESCRIPTION  : Hook React personnalisé gérant l'authentification, le token de session et les informations de l'utilisateur connecté.
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import { useState, useEffect } from 'react';
 
 const API_BASE = 'http://localhost:8080/api';

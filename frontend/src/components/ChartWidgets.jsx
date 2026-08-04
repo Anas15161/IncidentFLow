@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FICHIER      : ChartWidgets.jsx
+ * EMPLACEMENT  : src/components
+ * DESCRIPTION  : Composants réutilisables pour afficher divers graphiques et indicateurs (widgets) dans le tableau de bord (ex: KPI, courbes, donuts).
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import React, { useState } from 'react';
 import { Globe, Shield, Cpu, Stethoscope, FileText } from 'lucide-react';
 import { getDonutSegmentPath, formatSlaDuration } from '../utils/helpers';

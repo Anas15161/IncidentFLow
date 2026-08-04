@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FICHIER      : ModalsManager.jsx
+ * EMPLACEMENT  : src/components
+ * DESCRIPTION  : Gestionnaire centralisé pour toutes les fenêtres modales de l'application (création d'incident, confirmation de suppression, etc.).
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import React, { useRef, useEffect } from 'react';
 import {
   Shield, Edit3, UserPlus, FileText, Search

@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FICHIER      : WorkflowConfigView.jsx
+ * EMPLACEMENT  : src/components
+ * DESCRIPTION  : Interface de configuration visuelle des workflows (définition des états, des transitions et des processus d'incidents).
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import React from 'react';
 import {
   Layers, Plus, Trash2, X

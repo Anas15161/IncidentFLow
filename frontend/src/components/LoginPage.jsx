@@ -1,6 +1,12 @@
-// ============================================
-// components/LoginPage.jsx — Page de Connexion
-// ============================================
+/**
+ * ============================================================================
+ * FICHIER      : LoginPage.jsx
+ * EMPLACEMENT  : src/components
+ * DESCRIPTION  : Page de connexion permettant l'authentification des utilisateurs.
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import React from 'react';
 import {
   Activity, AlertCircle, AlertTriangle, CheckCircle,

@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FICHIER      : RoleManagementView.jsx
+ * EMPLACEMENT  : src/components
+ * DESCRIPTION  : Interface d'administration dédiée à la gestion des rôles et à l'attribution des permissions.
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import React from 'react';
 import {
   Shield, Plus, Users, Search, X, Edit3, Trash2, CheckSquare, AlertTriangle

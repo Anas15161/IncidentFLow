@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * FICHIER      : DashboardView.jsx
+ * EMPLACEMENT  : src/components
+ * DESCRIPTION  : Vue principale (Tableau de bord) affichant une vue d'ensemble des statistiques, métriques et widgets de l'application.
+ * ============================================================================
+ * Ce fichier a été documenté pour faciliter la compréhension du code.
+ */
+
 import React from 'react';
 import {
   Shield, Plus, Activity, AlertCircle, Clock, CheckCircle
