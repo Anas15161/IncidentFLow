@@ -15,6 +15,19 @@ import com.netmar.incidentflow.repository.PermissionRepository;
 import java.util.Set;
 import java.util.HashSet;
 
+/**
+ * Objectif de ce fichier :
+ * Cette classe a pour but d'initialiser la base de données avec un jeu de données par défaut 
+ * lors du démarrage de l'application (seed data).
+ * 
+ * Ce qu'elle contient :
+ * - La création automatique du dossier 'uploads' et d'un fichier de log de test.
+ * - L'initialisation des permissions RBAC (Role-Based Access Control).
+ * - L'initialisation des rôles par défaut (Administrateur, Responsable, Opérateur, Opérateur médical).
+ * - La création des utilisateurs par défaut avec leurs mots de passe encodés.
+ * - L'initialisation d'un workflow standard (états et transitions).
+ * - L'insertion de quelques incidents factices (avec commentaires et historiques) pour la démonstration.
+ */
 @Component
 public class DataInitializer implements CommandLineRunner {
 
@@ -270,6 +283,17 @@ public class DataInitializer implements CommandLineRunner {
             inc2.setComments(List.of(
                     Comment.builder().content("Blocage temporaire des adresses IPs suspectes mis en place au niveau du pare-feu principal.").author(anas).incident(inc2).build()
             ));
+
+            try {
+                java.nio.file.Path uploadsDir = java.nio.file.Paths.get("uploads");
+                java.nio.file.Files.createDirectories(uploadsDir);
+                java.nio.file.Path dummyFile = uploadsDir.resolve("logs_firewall_ssh.txt");
+                if (!java.nio.file.Files.exists(dummyFile)) {
+                    java.nio.file.Files.writeString(dummyFile, "2026-08-08 19:30:00 WARN [Firewall] Suspicious SSH login attempts detected from IP 192.168.1.100\n2026-08-08 19:30:05 WARN [Firewall] Suspicious SSH login attempts detected from IP 192.168.1.100\n2026-08-08 19:31:00 ERROR [Firewall] Too many failed attempts. IP 192.168.1.100 blocked temporarily.");
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
 
             inc2.setAttachments(List.of(
                     Attachment.builder()

@@ -1070,6 +1070,7 @@ function App() {
         const uploadRes = await fetch(`${API_BASE}/incidents/${createdInc.incidentCode}/attachments`, {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${token}`,
             'X-Mock-User': currentUser.email
           },
           body: formData
@@ -1599,6 +1600,7 @@ function App() {
       const res = await fetch(`${API_BASE}/incidents/${selectedIncident.incidentCode}/attachments`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'X-Mock-User': currentUser.email
         },
         body: formData
@@ -1995,6 +1997,7 @@ function App() {
                 handleDragEnterUpload={handleDragEnterUpload}
                 handleDragLeaveUpload={handleDragLeaveUpload}
                 handleDropUpload={handleDropUpload}
+                handleFileUpload={handleFileUpload}
               />
             ) : currentView === 'dashboard' ? (
               <DashboardView
@@ -2152,6 +2155,7 @@ function App() {
                 setShowRoleEditModal={setShowRoleEditModal}
                 handleRoleDelete={handleRoleDelete}
                 permissionsList={permissionsList}
+                handleTogglePermission={handleTogglePermission}
               />
             ) : null}
 
@@ -2207,6 +2211,9 @@ function App() {
         setShowHelpModal={setShowHelpModal}
         previewFile={previewFile}
         setPreviewFile={setPreviewFile}
+        previewBlobUrl={previewBlobUrl}
+        previewLoading={previewLoading}
+        previewError={previewError}
         showCommandPalette={showCommandPalette}
         setShowCommandPalette={setShowCommandPalette}
         commandPaletteQuery={commandPaletteQuery}

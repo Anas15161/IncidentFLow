@@ -66,6 +66,9 @@ export function ModalsManager({
   // Preview File
   previewFile,
   setPreviewFile,
+  previewBlobUrl,
+  previewLoading,
+  previewError,
   // Command Palette
   showCommandPalette,
   setShowCommandPalette,
@@ -872,10 +875,14 @@ export function ModalsManager({
               <button className="modal-close-btn" onClick={() => setPreviewFile(null)}>✕</button>
             </div>
             <div className="modal-body" style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px', backgroundColor: 'var(--body-bg)' }}>
-              {previewFile.fileType && previewFile.fileType.startsWith('image/') ? (
-                <img src={previewFile.fileUrl} alt={previewFile.filename} style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              {previewLoading ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Chargement de l'aperçu...</div>
+              ) : previewError ? (
+                <div style={{ textAlign: 'center', color: '#ef4444' }}>{previewError}</div>
+              ) : previewFile.fileType && previewFile.fileType.startsWith('image/') ? (
+                <img src={previewBlobUrl} alt={previewFile.filename} style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
               ) : previewFile.fileType === 'application/pdf' ? (
-                <iframe src={previewFile.fileUrl} title={previewFile.filename} style={{ width: '100%', height: '60vh', border: 'none', borderRadius: '8px' }} />
+                <iframe src={previewBlobUrl} title={previewFile.filename} style={{ width: '100%', height: '60vh', border: 'none', borderRadius: '8px' }} />
               ) : (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
                   <FileText size={48} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
@@ -888,9 +895,11 @@ export function ModalsManager({
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Taille : {previewFile.fileSize}</span>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setPreviewFile(null)}>Fermer</button>
-                <a href={previewFile.fileUrl} download={previewFile.filename} className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  Télécharger
-                </a>
+                {previewBlobUrl && (
+                  <a href={previewBlobUrl} download={previewFile.filename} className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    Télécharger
+                  </a>
+                )}
               </div>
             </div>
           </div>
